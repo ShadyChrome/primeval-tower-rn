@@ -16,19 +16,26 @@ export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('home')
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session)
+    // Validate stored user ID first, then get session
+    const initializeAuth = async () => {
+      await AnonymousUserManager.validateStoredUserId()
       
-      // If we have an anonymous session that was automatically restored by Supabase,
-      // make sure we store the user ID for future reference
-      if (session && session.user.is_anonymous) {
-        const storedUserId = await AnonymousUserManager.getStoredAnonymousUserId()
-        if (!storedUserId) {
-          // Only store if we don't already have one
-          await AnonymousUserManager.storeAnonymousUserId(session.user.id)
+      supabase.auth.getSession().then(async ({ data: { session } }) => {
+        setSession(session)
+        
+        // If we have an anonymous session that was automatically restored by Supabase,
+        // make sure we store the user ID for future reference
+        if (session && session.user.is_anonymous) {
+          const storedUserId = await AnonymousUserManager.getStoredAnonymousUserId()
+          if (!storedUserId) {
+            // Only store if we don't already have one
+            await AnonymousUserManager.storeAnonymousUserId(session.user.id)
+          }
         }
-      }
-    })
+      })
+    }
+
+    initializeAuth()
 
     supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session)

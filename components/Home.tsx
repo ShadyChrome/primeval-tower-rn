@@ -126,7 +126,7 @@ export default function Home({ session, onProfilePress }: HomeProps) {
         <Card.Divider />
         <View style={styles.cardContent}>
           <Button
-            title="View Profile"
+            title="View Account"
             onPress={onProfilePress}
             buttonStyle={[styles.button, styles.primaryButton]}
           />
@@ -195,7 +195,7 @@ export default function Home({ session, onProfilePress }: HomeProps) {
 
     const permanentFeatures = [
       ...baseFeatures,
-      '✅ Profile Management',
+      '✅ Account Management',
       '✅ Data Synchronization',
     ]
 

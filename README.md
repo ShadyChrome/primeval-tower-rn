@@ -4,9 +4,9 @@ A basic React Native Expo application with Supabase integration for authenticati
 
 ## Features
 
-- ✅ User Authentication (Sign Up / Sign In)
-- ✅ User Profile Management
+- ✅ User Authentication (Sign Up / Sign In / Anonymous)
 - ✅ Session Persistence with AsyncStorage
+- ✅ Anonymous User Support with UUID Validation
 - ✅ Modern UI with React Native Elements
 - ✅ TypeScript Support
 - ✅ Cross-platform (iOS, Android, Web)
@@ -48,50 +48,7 @@ const supabaseUrl = 'your_supabase_project_url'
 const supabaseAnonKey = 'your_supabase_anon_key'
 ```
 
-### 4. Set up Database Schema
-
-In your Supabase dashboard, run the following SQL to create the profiles table:
-
-```sql
--- Create a table for public profiles
-create table profiles (
-  id uuid references auth.users on delete cascade not null primary key,
-  updated_at timestamp with time zone,
-  username text unique,
-  avatar_url text,
-  website text,
-
-  constraint username_length check (char_length(username) >= 3)
-);
-
--- Set up Row Level Security (RLS)
-alter table profiles enable row level security;
-
-create policy "Public profiles are viewable by everyone." on profiles
-  for select using (true);
-
-create policy "Users can insert their own profile." on profiles
-  for insert with check (auth.uid() = id);
-
-create policy "Users can update own profile." on profiles
-  for update using (auth.uid() = id);
-
--- This trigger automatically creates a profile entry when a new user signs up via Supabase Auth.
-create function public.handle_new_user()
-returns trigger as $$
-begin
-  insert into public.profiles (id, updated_at)
-  values (new.id, now());
-  return new;
-end;
-$$ language plpgsql security definer;
-
-create trigger on_auth_user_created
-  after insert on auth.users
-  for each row execute procedure public.handle_new_user();
-```
-
-### 5. Run the Application
+### 4. Run the Application
 
 ```bash
 npx expo start
@@ -109,9 +66,13 @@ Then:
 primeaval-tower-rn/
 ├── components/
 │   ├── Auth.tsx          # Authentication component
-│   └── Account.tsx       # User account management
+│   ├── Account.tsx       # User account management
+│   └── Home.tsx          # Main home screen
 ├── lib/
-│   └── supabase.ts       # Supabase client configuration
+│   ├── supabase.ts       # Supabase client configuration
+│   └── anonymousUserManager.ts  # Anonymous user management
+├── types/
+│   └── supabase.ts       # TypeScript types
 ├── App.tsx               # Main app component
 └── README.md
 ```
@@ -134,12 +95,12 @@ The app provides a simple authentication flow:
 2. **Sign In**: Existing users can sign in with their credentials
 3. **Email Verification**: New users receive an email verification link
 
-### Profile Management
+### Account Management
 
 Once authenticated, users can:
 
-- View their profile information
-- Update their username and website
+- View their account information
+- Upgrade anonymous accounts to permanent accounts
 - Sign out from the application
 
 ### Session Management

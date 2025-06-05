@@ -1,85 +1,14 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { StyleSheet, View, Alert } from 'react-native'
 import { Button, Input, Header, Text, Card } from '@rneui/themed'
 import { Session } from '@supabase/supabase-js'
 
 export default function Account({ session, onBack }: { session: Session; onBack?: () => void }) {
-  const [loading, setLoading] = useState(true)
-  const [username, setUsername] = useState('')
-  const [website, setWebsite] = useState('')
-  const [avatarUrl, setAvatarUrl] = useState('')
+  const [loading, setLoading] = useState(false)
   const [email, setEmail] = useState('')
 
   const isAnonymous = session.user.is_anonymous
-
-  useEffect(() => {
-    if (session && !isAnonymous) getProfile()
-    else setLoading(false)
-  }, [session, isAnonymous])
-
-  async function getProfile() {
-    try {
-      setLoading(true)
-      if (!session?.user) throw new Error('No user on the session!')
-
-      const { data, error, status } = await supabase
-        .from('profiles')
-        .select(`username, website, avatar_url`)
-        .eq('id', session?.user.id)
-        .single()
-      if (error && status !== 406) {
-        throw error
-      }
-
-      if (data) {
-        setUsername(data.username)
-        setWebsite(data.website)
-        setAvatarUrl(data.avatar_url)
-      }
-    } catch (error) {
-      if (error instanceof Error) {
-        Alert.alert(error.message)
-      }
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  async function updateProfile({
-    username,
-    website,
-    avatar_url,
-  }: {
-    username: string
-    website: string
-    avatar_url: string
-  }) {
-    try {
-      setLoading(true)
-      if (!session?.user) throw new Error('No user on the session!')
-
-      const updates = {
-        id: session?.user.id,
-        username,
-        website,
-        avatar_url,
-        updated_at: new Date(),
-      }
-
-      const { error } = await supabase.from('profiles').upsert(updates)
-
-      if (error) {
-        throw error
-      }
-    } catch (error) {
-      if (error instanceof Error) {
-        Alert.alert(error.message)
-      }
-    } finally {
-      setLoading(false)
-    }
-  }
 
   async function upgradeAccount() {
     if (!email.trim()) {
@@ -101,7 +30,7 @@ export default function Account({ session, onBack }: { session: Session; onBack?
 
       Alert.alert(
         'Check your email',
-        'We sent you a verification link. Please check your email and click the link to verify your account. After verification, you can set a password and access profile settings.',
+        'We sent you a verification link. Please check your email and click the link to verify your account. After verification, you can set a password.',
         [{ text: 'OK', onPress: onBack }]
       )
     } catch (error) {
@@ -116,7 +45,7 @@ export default function Account({ session, onBack }: { session: Session; onBack?
         <Card.Title>Guest Account</Card.Title>
         <Card.Divider />
         <Text style={styles.anonymousText}>
-          You're currently browsing as a guest. Create a permanent account to access profile settings and save your data across devices.
+          You're currently browsing as a guest. Create a permanent account to access additional features and save your data across devices.
         </Text>
         
         <Input
@@ -147,29 +76,24 @@ export default function Account({ session, onBack }: { session: Session; onBack?
     </View>
   )
 
-  const renderProfileView = () => (
+  const renderUserView = () => (
     <View style={styles.content}>
-      <View style={[styles.verticallySpaced, styles.mt20]}>
-        <Input label="Email" value={session?.user?.email} disabled />
-      </View>
-      <View style={styles.verticallySpaced}>
-        <Input label="Username" value={username || ''} onChangeText={(text) => setUsername(text)} />
-      </View>
-      <View style={styles.verticallySpaced}>
-        <Input label="Website" value={website || ''} onChangeText={(text) => setWebsite(text)} />
-      </View>
+      <Card containerStyle={styles.card}>
+        <Card.Title>Account</Card.Title>
+        <Card.Divider />
+        
+        <View style={[styles.verticallySpaced, styles.mt20]}>
+          <Input label="Email" value={session?.user?.email} disabled />
+        </View>
 
-      <View style={[styles.verticallySpaced, styles.mt20]}>
-        <Button
-          title={loading ? 'Loading ...' : 'Update'}
-          onPress={() => updateProfile({ username, website, avatar_url: avatarUrl })}
-          disabled={loading}
-        />
-      </View>
-
-      <View style={styles.verticallySpaced}>
-        <Button title="Sign Out" onPress={() => supabase.auth.signOut()} />
-      </View>
+        <View style={[styles.verticallySpaced, styles.mt20]}>
+          <Button
+            title="Sign Out"
+            onPress={() => supabase.auth.signOut()}
+            buttonStyle={styles.primaryButton}
+          />
+        </View>
+      </Card>
     </View>
   )
 
@@ -178,7 +102,7 @@ export default function Account({ session, onBack }: { session: Session; onBack?
       {onBack && (
         <Header
           centerComponent={{ 
-            text: isAnonymous ? 'Account' : 'Profile', 
+            text: isAnonymous ? 'Account' : 'Account', 
             style: { color: '#fff', fontSize: 18 } 
           }}
           leftComponent={{
@@ -189,7 +113,7 @@ export default function Account({ session, onBack }: { session: Session; onBack?
           backgroundColor="#2089dc"
         />
       )}
-      {isAnonymous ? renderAnonymousUserView() : renderProfileView()}
+      {isAnonymous ? renderAnonymousUserView() : renderUserView()}
     </View>
   )
 }

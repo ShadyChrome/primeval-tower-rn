@@ -28,6 +28,45 @@ export class AnonymousUserManager {
   }
 
   /**
+   * Check if stored UUID exists in Supabase auth.users table
+   * If not found, clear async storage and sign out user
+   */
+  static async validateStoredUserId(): Promise<boolean> {
+    try {
+      const storedUserId = await this.getStoredAnonymousUserId()
+      if (!storedUserId) {
+        return true // No stored ID, nothing to validate
+      }
+
+      // Check if the current session exists and matches stored ID
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      if (!session || !session.user) {
+        // No active session, clear stored data and require login
+        await this.clearAnonymousUserData()
+        return false
+      }
+
+      // If we have a session but the user ID doesn't match what we stored
+      // or if we can't verify the user exists, clear data and require re-login
+      if (session.user.id !== storedUserId) {
+        console.log('Stored user ID does not match current session, clearing data')
+        await this.clearAnonymousUserData()
+        await supabase.auth.signOut()
+        return false
+      }
+
+      return true
+    } catch (error) {
+      console.error('Error validating stored user ID:', error)
+      // On error, clear data and require re-login for safety
+      await this.clearAnonymousUserData()
+      await supabase.auth.signOut()
+      return false
+    }
+  }
+
+  /**
    * Clear stored anonymous user data
    */
   static async clearAnonymousUserData(): Promise<void> {
