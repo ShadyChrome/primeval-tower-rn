@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { StyleSheet, View, Alert } from 'react-native'
-import { Button, Input, Header } from '@rneui/themed'
+import { Button, Input, Header, Text, Card } from '@rneui/themed'
 import { Session } from '@supabase/supabase-js'
 
 export default function Account({ session, onBack }: { session: Session; onBack?: () => void }) {
@@ -9,10 +9,14 @@ export default function Account({ session, onBack }: { session: Session; onBack?
   const [username, setUsername] = useState('')
   const [website, setWebsite] = useState('')
   const [avatarUrl, setAvatarUrl] = useState('')
+  const [email, setEmail] = useState('')
+
+  const isAnonymous = session.user.is_anonymous
 
   useEffect(() => {
-    if (session) getProfile()
-  }, [session])
+    if (session && !isAnonymous) getProfile()
+    else setLoading(false)
+  }, [session, isAnonymous])
 
   async function getProfile() {
     try {
@@ -77,11 +81,106 @@ export default function Account({ session, onBack }: { session: Session; onBack?
     }
   }
 
+  async function upgradeAccount() {
+    if (!email.trim()) {
+      Alert.alert('Please enter an email address')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const { error: updateError } = await supabase.auth.updateUser({
+        email: email.trim(),
+      })
+
+      if (updateError) {
+        Alert.alert('Error', updateError.message)
+        setLoading(false)
+        return
+      }
+
+      Alert.alert(
+        'Check your email',
+        'We sent you a verification link. Please check your email and click the link to verify your account. After verification, you can set a password and access profile settings.',
+        [{ text: 'OK', onPress: onBack }]
+      )
+    } catch (error) {
+      Alert.alert('Error', 'Failed to upgrade account')
+    }
+    setLoading(false)
+  }
+
+  const renderAnonymousUserView = () => (
+    <View style={styles.content}>
+      <Card containerStyle={styles.card}>
+        <Card.Title>Guest Account</Card.Title>
+        <Card.Divider />
+        <Text style={styles.anonymousText}>
+          You're currently browsing as a guest. Create a permanent account to access profile settings and save your data across devices.
+        </Text>
+        
+        <Input
+          label="Email Address"
+          value={email}
+          onChangeText={setEmail}
+          placeholder="your@email.com"
+          autoCapitalize="none"
+          keyboardType="email-address"
+          leftIcon={{ type: 'font-awesome', name: 'envelope' }}
+        />
+        
+        <View style={styles.anonymousActions}>
+          <Button
+            title="Create Account"
+            onPress={upgradeAccount}
+            loading={loading}
+            buttonStyle={styles.primaryButton}
+          />
+          <Button
+            title="Sign Out"
+            onPress={() => supabase.auth.signOut()}
+            type="outline"
+            buttonStyle={styles.secondaryButton}
+          />
+        </View>
+      </Card>
+    </View>
+  )
+
+  const renderProfileView = () => (
+    <View style={styles.content}>
+      <View style={[styles.verticallySpaced, styles.mt20]}>
+        <Input label="Email" value={session?.user?.email} disabled />
+      </View>
+      <View style={styles.verticallySpaced}>
+        <Input label="Username" value={username || ''} onChangeText={(text) => setUsername(text)} />
+      </View>
+      <View style={styles.verticallySpaced}>
+        <Input label="Website" value={website || ''} onChangeText={(text) => setWebsite(text)} />
+      </View>
+
+      <View style={[styles.verticallySpaced, styles.mt20]}>
+        <Button
+          title={loading ? 'Loading ...' : 'Update'}
+          onPress={() => updateProfile({ username, website, avatar_url: avatarUrl })}
+          disabled={loading}
+        />
+      </View>
+
+      <View style={styles.verticallySpaced}>
+        <Button title="Sign Out" onPress={() => supabase.auth.signOut()} />
+      </View>
+    </View>
+  )
+
   return (
     <View style={styles.container}>
       {onBack && (
         <Header
-          centerComponent={{ text: 'Profile', style: { color: '#fff', fontSize: 18 } }}
+          centerComponent={{ 
+            text: isAnonymous ? 'Account' : 'Profile', 
+            style: { color: '#fff', fontSize: 18 } 
+          }}
           leftComponent={{
             icon: 'arrow-back',
             color: '#fff',
@@ -90,29 +189,7 @@ export default function Account({ session, onBack }: { session: Session; onBack?
           backgroundColor="#2089dc"
         />
       )}
-      <View style={styles.content}>
-        <View style={[styles.verticallySpaced, styles.mt20]}>
-          <Input label="Email" value={session?.user?.email} disabled />
-        </View>
-        <View style={styles.verticallySpaced}>
-          <Input label="Username" value={username || ''} onChangeText={(text) => setUsername(text)} />
-        </View>
-        <View style={styles.verticallySpaced}>
-          <Input label="Website" value={website || ''} onChangeText={(text) => setWebsite(text)} />
-        </View>
-
-        <View style={[styles.verticallySpaced, styles.mt20]}>
-          <Button
-            title={loading ? 'Loading ...' : 'Update'}
-            onPress={() => updateProfile({ username, website, avatar_url: avatarUrl })}
-            disabled={loading}
-          />
-        </View>
-
-        <View style={styles.verticallySpaced}>
-          <Button title="Sign Out" onPress={() => supabase.auth.signOut()} />
-        </View>
-      </View>
+      {isAnonymous ? renderAnonymousUserView() : renderProfileView()}
     </View>
   )
 }
@@ -132,5 +209,32 @@ const styles = StyleSheet.create({
   },
   mt20: {
     marginTop: 20,
+  },
+  card: {
+    borderRadius: 8,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  anonymousText: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 20,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  anonymousActions: {
+    gap: 12,
+    marginTop: 16,
+  },
+  primaryButton: {
+    backgroundColor: '#2089dc',
+    borderRadius: 8,
+  },
+  secondaryButton: {
+    borderColor: '#2089dc',
+    borderRadius: 8,
   },
 }) 

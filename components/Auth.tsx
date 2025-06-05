@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Alert, StyleSheet, View, AppState } from 'react-native'
 import { supabase } from '../lib/supabase'
-import { Button, Input } from '@rneui/themed'
+import { Button, Input, Text } from '@rneui/themed'
 
 // Tells Supabase Auth to continuously refresh the session automatically if
 // the app is in the foreground. When this is added, you will continue to receive
@@ -46,8 +46,23 @@ export default function Auth() {
     setLoading(false)
   }
 
+  async function signInAnonymously() {
+    setLoading(true)
+    const { error } = await supabase.auth.signInAnonymously()
+
+    if (error) Alert.alert(error.message)
+    setLoading(false)
+  }
+
   return (
     <View style={styles.container}>
+      <View style={styles.header}>
+        <Text h3 style={styles.headerTitle}>Welcome</Text>
+        <Text style={styles.headerSubtitle}>
+          Sign in to your account or continue as guest
+        </Text>
+      </View>
+
       <View style={[styles.verticallySpaced, styles.mt20]}>
         <Input
           label="Email"
@@ -75,6 +90,23 @@ export default function Auth() {
       <View style={styles.verticallySpaced}>
         <Button title="Sign up" disabled={loading} onPress={() => signUpWithEmail()} />
       </View>
+      
+      <View style={styles.divider}>
+        <View style={styles.dividerLine} />
+        <Text style={styles.dividerText}>OR</Text>
+        <View style={styles.dividerLine} />
+      </View>
+
+      <View style={styles.verticallySpaced}>
+        <Button 
+          title="Continue as Guest" 
+          disabled={loading} 
+          onPress={() => signInAnonymously()}
+          type="outline"
+          buttonStyle={styles.guestButton}
+          titleStyle={styles.guestButtonText}
+        />
+      </View>
     </View>
   )
 }
@@ -84,6 +116,19 @@ const styles = StyleSheet.create({
     marginTop: 40,
     padding: 12,
   },
+  header: {
+    alignItems: 'center',
+    marginBottom: 30,
+  },
+  headerTitle: {
+    color: '#2089dc',
+    marginBottom: 8,
+  },
+  headerSubtitle: {
+    color: '#666',
+    textAlign: 'center',
+    fontSize: 16,
+  },
   verticallySpaced: {
     paddingTop: 4,
     paddingBottom: 4,
@@ -91,5 +136,28 @@ const styles = StyleSheet.create({
   },
   mt20: {
     marginTop: 20,
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#ddd',
+  },
+  dividerText: {
+    marginHorizontal: 15,
+    color: '#666',
+    fontSize: 14,
+  },
+  guestButton: {
+    borderColor: '#2089dc',
+    borderWidth: 2,
+  },
+  guestButtonText: {
+    color: '#2089dc',
+    fontWeight: 'bold',
   },
 }) 

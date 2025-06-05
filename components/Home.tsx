@@ -1,6 +1,6 @@
-import React from 'react'
-import { View, Text, StyleSheet, ScrollView } from 'react-native'
-import { Button, Card } from '@rneui/themed'
+import React, { useState } from 'react'
+import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native'
+import { Button, Card, Input } from '@rneui/themed'
 import { Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 
@@ -10,12 +10,60 @@ interface HomeProps {
 }
 
 export default function Home({ session, onProfilePress }: HomeProps) {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [showUpgrade, setShowUpgrade] = useState(false)
+
+  const isAnonymous = session.user.is_anonymous
+
   const handleSignOut = async () => {
     await supabase.auth.signOut()
   }
 
-  return (
-    <ScrollView style={styles.container}>
+  const handleUpgradeAccount = async () => {
+    if (!email.trim()) {
+      Alert.alert('Please enter an email address')
+      return
+    }
+
+    setLoading(true)
+    try {
+      // First, update the user with an email
+      const { error: updateError } = await supabase.auth.updateUser({
+        email: email.trim(),
+      })
+
+      if (updateError) {
+        Alert.alert('Error', updateError.message)
+        setLoading(false)
+        return
+      }
+
+      Alert.alert(
+        'Check your email',
+        'We sent you a verification link. Please check your email and click the link to verify your account. After verification, you can set a password.',
+        [{ text: 'OK', onPress: () => setShowUpgrade(false) }]
+      )
+    } catch (error) {
+      Alert.alert('Error', 'Failed to upgrade account')
+    }
+    setLoading(false)
+  }
+
+  const renderWelcomeMessage = () => {
+    if (isAnonymous) {
+      return (
+        <View style={styles.header}>
+          <Text style={styles.welcomeText}>Welcome, Guest!</Text>
+          <Text style={styles.subtitle}>
+            You're browsing as a guest. Create an account to save your progress.
+          </Text>
+        </View>
+      )
+    }
+
+    return (
       <View style={styles.header}>
         <Text style={styles.welcomeText}>
           Welcome, {session.user.email}!
@@ -24,7 +72,33 @@ export default function Home({ session, onProfilePress }: HomeProps) {
           Your React Native app with Supabase is ready to go.
         </Text>
       </View>
+    )
+  }
 
+  const renderQuickActions = () => {
+    if (isAnonymous) {
+      return (
+        <Card containerStyle={styles.card}>
+          <Card.Title>Account Actions</Card.Title>
+          <Card.Divider />
+          <View style={styles.cardContent}>
+            <Button
+              title="Create Account"
+              onPress={() => setShowUpgrade(true)}
+              buttonStyle={[styles.button, styles.primaryButton]}
+            />
+            <Button
+              title="Sign Out"
+              onPress={handleSignOut}
+              buttonStyle={[styles.button, styles.secondaryButton]}
+              type="outline"
+            />
+          </View>
+        </Card>
+      )
+    }
+
+    return (
       <Card containerStyle={styles.card}>
         <Card.Title>Quick Actions</Card.Title>
         <Card.Divider />
@@ -42,34 +116,123 @@ export default function Home({ session, onProfilePress }: HomeProps) {
           />
         </View>
       </Card>
+    )
+  }
 
+  const renderUpgradeForm = () => {
+    if (!showUpgrade) return null
+
+    return (
       <Card containerStyle={styles.card}>
-        <Card.Title>Features Available</Card.Title>
+        <Card.Title>Create Your Account</Card.Title>
         <Card.Divider />
-        <View style={styles.featureList}>
-          <Text style={styles.featureItem}>✅ User Authentication</Text>
-          <Text style={styles.featureItem}>✅ Profile Management</Text>
-          <Text style={styles.featureItem}>✅ Session Persistence</Text>
-          <Text style={styles.featureItem}>✅ Cross-platform Support</Text>
+        <View style={styles.cardContent}>
+          <Text style={styles.upgradeText}>
+            Convert your guest account to a permanent account to save your data and access it from any device.
+          </Text>
+          <Input
+            label="Email Address"
+            leftIcon={{ type: 'font-awesome', name: 'envelope' }}
+            onChangeText={setEmail}
+            value={email}
+            placeholder="your@email.com"
+            autoCapitalize="none"
+            keyboardType="email-address"
+          />
+          <View style={styles.upgradeActions}>
+            <Button
+              title="Cancel"
+              onPress={() => setShowUpgrade(false)}
+              type="outline"
+              buttonStyle={[styles.button, styles.secondaryButton]}
+            />
+            <Button
+              title="Create Account"
+              onPress={handleUpgradeAccount}
+              loading={loading}
+              buttonStyle={[styles.button, styles.primaryButton]}
+            />
+          </View>
         </View>
       </Card>
+    )
+  }
+
+  const renderFeatures = () => {
+    const baseFeatures = [
+      '✅ User Authentication',
+      '✅ Session Persistence',
+      '✅ Cross-platform Support',
+    ]
+
+    const anonymousFeatures = [
+      ...baseFeatures,
+      '🔄 Guest Mode Active',
+      '⚠️ Limited to this device',
+    ]
+
+    const permanentFeatures = [
+      ...baseFeatures,
+      '✅ Profile Management',
+      '✅ Data Synchronization',
+    ]
+
+    const features = isAnonymous ? anonymousFeatures : permanentFeatures
+
+    return (
+      <Card containerStyle={styles.card}>
+        <Card.Title>Available Features</Card.Title>
+        <Card.Divider />
+        <View style={styles.featureList}>
+          {features.map((feature, index) => (
+            <Text key={index} style={styles.featureItem}>
+              {feature}
+            </Text>
+          ))}
+        </View>
+      </Card>
+    )
+  }
+
+  return (
+    <ScrollView style={styles.container}>
+      {renderWelcomeMessage()}
+      {renderUpgradeForm()}
+      {renderQuickActions()}
+      {renderFeatures()}
 
       <Card containerStyle={styles.card}>
         <Card.Title>Next Steps</Card.Title>
         <Card.Divider />
         <View style={styles.nextSteps}>
-          <Text style={styles.stepText}>
-            • Add your Supabase credentials to get started
-          </Text>
-          <Text style={styles.stepText}>
-            • Customize the UI to match your brand
-          </Text>
-          <Text style={styles.stepText}>
-            • Add more features like real-time updates
-          </Text>
-          <Text style={styles.stepText}>
-            • Deploy your app to app stores
-          </Text>
+          {isAnonymous ? (
+            <>
+              <Text style={styles.stepText}>
+                • Create an account to save your progress
+              </Text>
+              <Text style={styles.stepText}>
+                • Access your data from any device
+              </Text>
+              <Text style={styles.stepText}>
+                • Unlock all app features
+              </Text>
+            </>
+          ) : (
+            <>
+              <Text style={styles.stepText}>
+                • Customize your profile settings
+              </Text>
+              <Text style={styles.stepText}>
+                • Invite friends to join
+              </Text>
+              <Text style={styles.stepText}>
+                • Explore premium features
+              </Text>
+              <Text style={styles.stepText}>
+                • Enable notifications
+              </Text>
+            </>
+          )}
         </View>
       </Card>
     </ScrollView>
@@ -133,5 +296,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     lineHeight: 20,
+  },
+  upgradeText: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  upgradeActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
   },
 }) 
