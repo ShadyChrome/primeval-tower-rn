@@ -53,13 +53,6 @@ export default function Auth() {
 
     if (error) {
       Alert.alert(error.message)
-    } else if (data) {
-      // Check if this is a returning anonymous user
-              const storedUserId = await AnonymousUserManager.getStoredAnonymousUserId()
-      if (storedUserId && data.session?.user?.id === storedUserId) {
-        // Don't show alert for now, let them discover their data is still there
-        console.log('Welcome back, returning anonymous user!')
-      }
     }
     setLoading(false)
   }
@@ -109,7 +102,7 @@ export default function Auth() {
 
       <View style={styles.verticallySpaced}>
         <Button 
-          title="Continue as Guest" 
+          title="Sign in as Guest" 
           disabled={loading} 
           onPress={() => signInAnonymously()}
           type="outline"

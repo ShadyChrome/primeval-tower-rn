@@ -16,23 +16,12 @@ export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('home')
 
   useEffect(() => {
-    // Validate stored user ID first, then get session
+    // Simple initialization - just validate stored data and get current session
     const initializeAuth = async () => {
       await AnonymousUserManager.validateStoredUserId()
       
-      supabase.auth.getSession().then(async ({ data: { session } }) => {
-        setSession(session)
-        
-        // If we have an anonymous session that was automatically restored by Supabase,
-        // make sure we store the user ID for future reference
-        if (session && session.user.is_anonymous) {
-          const storedUserId = await AnonymousUserManager.getStoredAnonymousUserId()
-          if (!storedUserId) {
-            // Only store if we don't already have one
-            await AnonymousUserManager.storeAnonymousUserId(session.user.id)
-          }
-        }
-      })
+      const { data: { session } } = await supabase.auth.getSession()
+      setSession(session)
     }
 
     initializeAuth()
@@ -41,15 +30,6 @@ export default function App() {
       setSession(session)
       // Reset to home screen when authentication state changes
       setCurrentScreen('home')
-      
-      // Store anonymous user ID when session changes
-      if (session && session.user.is_anonymous) {
-        const storedUserId = await AnonymousUserManager.getStoredAnonymousUserId()
-        if (!storedUserId) {
-          // Only store if we don't already have one
-          await AnonymousUserManager.storeAnonymousUserId(session.user.id)
-        }
-      }
     })
   }, [])
 

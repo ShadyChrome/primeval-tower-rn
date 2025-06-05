@@ -22,14 +22,14 @@ export default function Home({ session, onProfilePress }: HomeProps) {
   // Check if this is a returning anonymous user
   React.useEffect(() => {
     const checkReturningUser = async () => {
-      if (isAnonymous && session.user.id) {
-        // Check if the session was actually restored (not just that we had a stored ID)
-        const wasRestored = await AnonymousUserManager.wasSessionRestored(session.user.id)
-        setIsReturningAnonymous(wasRestored)
+      if (isAnonymous) {
+        // Simply check if we have a stored user ID (they've been here before)
+        const storedUserId = await AnonymousUserManager.getStoredAnonymousUserId()
+        setIsReturningAnonymous(storedUserId !== null)
       }
     }
     checkReturningUser()
-  }, [session.user.id, isAnonymous])
+  }, [isAnonymous])
 
   const handleSignOut = async () => {
     await AnonymousUserManager.handleSignOut(isAnonymous ?? false)
@@ -77,7 +77,7 @@ export default function Home({ session, onProfilePress }: HomeProps) {
           </Text>
           <Text style={styles.subtitle}>
             {isReturningAnonymous 
-              ? "Great to see you again! Your previous session has been restored."
+              ? "Great to see you again! You're continuing as a guest."
               : "You're browsing as a guest. Create an account to save your progress."
             }
           </Text>

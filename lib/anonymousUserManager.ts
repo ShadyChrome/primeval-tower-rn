@@ -72,27 +72,23 @@ export class AnonymousUserManager {
   static async clearAnonymousUserData(): Promise<void> {
     try {
       await AsyncStorage.removeItem(ANONYMOUS_USER_ID_KEY)
-      // Clear any session restoration flags
-      const keys = await AsyncStorage.getAllKeys()
-      const sessionRestoredKeys = keys.filter(key => key.startsWith('session_restored_for_'))
-      if (sessionRestoredKeys.length > 0) {
-        await AsyncStorage.multiRemove(sessionRestoredKeys)
-      }
     } catch (error) {
       console.error('Error clearing anonymous user data:', error)
     }
   }
 
   /**
-   * Simplified anonymous sign-in that tracks returning users by UUID only
+   * Anonymous sign-in with honest behavior
+   * Note: Supabase always creates new database entries for anonymous users
+   * We track "returning" users for UI purposes and future data continuity
    */
   static async signInAnonymously(): Promise<{ data?: any; error?: any }> {
     try {
-      // Check if we have a stored anonymous user ID
+      // Check if user has signed in as guest before
       const storedUserId = await this.getStoredAnonymousUserId()
       const isReturningUser = storedUserId !== null
 
-      // Always create a fresh session - let Supabase handle tokens
+      // Supabase always creates a new anonymous user in the database
       const { data, error } = await supabase.auth.signInAnonymously()
 
       if (error) {
@@ -101,12 +97,11 @@ export class AnonymousUserManager {
 
       if (data.session && data.user) {
         if (isReturningUser) {
-          console.log('Returning anonymous user - fresh session created')
-          // Mark this session as representing a returning user
-          await this.markSessionRestored(storedUserId!)
+          console.log('Welcome back, returning anonymous user!')
+          // This creates a new DB entry but we treat them as "returning" for UX
         } else {
           console.log('New anonymous user created')
-          // Store the new user ID for future reference
+          // Store this ID as their "guest identity" for future sessions
           await this.storeAnonymousUserId(data.user.id)
         }
       }
@@ -156,26 +151,5 @@ export class AnonymousUserManager {
   static async isReturningAnonymousUser(currentUserId: string): Promise<boolean> {
     const storedUserId = await this.getStoredAnonymousUserId()
     return storedUserId !== null
-  }
-
-  /**
-   * Mark that a session restoration was successful
-   */
-  static async markSessionRestored(userId: string): Promise<void> {
-    await AsyncStorage.setItem('session_restored_for_' + userId, 'true')
-  }
-
-  /**
-   * Check if the current session was restored (vs newly created)
-   */
-  static async wasSessionRestored(userId: string): Promise<boolean> {
-    try {
-      const restored = await AsyncStorage.getItem('session_restored_for_' + userId)
-      // Clear the flag after checking
-      await AsyncStorage.removeItem('session_restored_for_' + userId)
-      return restored === 'true'
-    } catch {
-      return false
-    }
   }
 } 
