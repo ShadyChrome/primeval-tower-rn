@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { Alert, StyleSheet, View, AppState } from 'react-native'
 import { supabase } from '../lib/supabase'
+import { AnonymousUserManager } from '../lib/anonymousUserManager'
 import { Button, Input, Text } from '@rneui/themed'
 
 // Tells Supabase Auth to continuously refresh the session automatically if
@@ -48,9 +49,18 @@ export default function Auth() {
 
   async function signInAnonymously() {
     setLoading(true)
-    const { error } = await supabase.auth.signInAnonymously()
+    const { data, error } = await AnonymousUserManager.signInAnonymously()
 
-    if (error) Alert.alert(error.message)
+    if (error) {
+      Alert.alert(error.message)
+    } else if (data) {
+      // Check if this is a returning anonymous user
+              const storedUserId = await AnonymousUserManager.getStoredAnonymousUserId()
+      if (storedUserId && data.session?.user?.id === storedUserId) {
+        // Don't show alert for now, let them discover their data is still there
+        console.log('Welcome back, returning anonymous user!')
+      }
+    }
     setLoading(false)
   }
 

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native'
 import { Button, Card, Input } from '@rneui/themed'
 import { Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
+import { AnonymousUserManager } from '../lib/anonymousUserManager'
 
 interface HomeProps {
   session: Session
@@ -14,11 +15,24 @@ export default function Home({ session, onProfilePress }: HomeProps) {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [showUpgrade, setShowUpgrade] = useState(false)
+  const [isReturningAnonymous, setIsReturningAnonymous] = useState(false)
 
   const isAnonymous = session.user.is_anonymous
 
+  // Check if this is a returning anonymous user
+  React.useEffect(() => {
+    const checkReturningUser = async () => {
+      if (isAnonymous && session.user.id) {
+        // Check if the session was actually restored (not just that we had a stored ID)
+        const wasRestored = await AnonymousUserManager.wasSessionRestored(session.user.id)
+        setIsReturningAnonymous(wasRestored)
+      }
+    }
+    checkReturningUser()
+  }, [session.user.id, isAnonymous])
+
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
+    await AnonymousUserManager.handleSignOut(isAnonymous ?? false)
   }
 
   const handleUpgradeAccount = async () => {
@@ -40,6 +54,9 @@ export default function Home({ session, onProfilePress }: HomeProps) {
         return
       }
 
+      // Clear anonymous user data since they're converting to permanent user
+      await AnonymousUserManager.convertToPermanentUser()
+
       Alert.alert(
         'Check your email',
         'We sent you a verification link. Please check your email and click the link to verify your account. After verification, you can set a password.',
@@ -55,9 +72,14 @@ export default function Home({ session, onProfilePress }: HomeProps) {
     if (isAnonymous) {
       return (
         <View style={styles.header}>
-          <Text style={styles.welcomeText}>Welcome, Guest!</Text>
+          <Text style={styles.welcomeText}>
+            {isReturningAnonymous ? 'Welcome back, Guest!' : 'Welcome, Guest!'}
+          </Text>
           <Text style={styles.subtitle}>
-            You're browsing as a guest. Create an account to save your progress.
+            {isReturningAnonymous 
+              ? "Great to see you again! Your previous session has been restored."
+              : "You're browsing as a guest. Create an account to save your progress."
+            }
           </Text>
         </View>
       )

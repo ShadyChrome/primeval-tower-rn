@@ -36,6 +36,7 @@ To prevent abuse of anonymous sign-ins:
 ✅ **Account Upgrade Flow** - Convert anonymous users to permanent accounts
 ✅ **Profile Management** - Anonymous users see upgrade prompts instead of profile settings
 ✅ **Session Handling** - Anonymous sessions persist like regular user sessions
+✅ **Anonymous User Persistence** - Anonymous users retain their ID when signing out/back in
 
 ## How It Works
 
@@ -43,6 +44,7 @@ To prevent abuse of anonymous sign-ins:
 2. **Limited Experience**: Anonymous users see different content and upgrade prompts
 3. **Account Upgrade**: Users can convert to permanent accounts by providing an email
 4. **Data Persistence**: Anonymous user data remains tied to their ID during conversion
+5. **Session Restoration**: Anonymous users retain their user ID when signing out and back in
 
 ## Testing
 
@@ -61,6 +63,12 @@ Once you enable anonymous authentication in your Supabase dashboard:
 3. **Test Profile Access**:
    - Anonymous users should see upgrade prompts instead of profile settings
    - Permanent users should see normal profile management
+
+4. **Test Anonymous User Persistence**:
+   - Sign in as guest, note the user ID in console
+   - Sign out and sign back in as guest
+   - Verify the same user ID is restored (check console logs)
+   - Verify "Welcome back, Guest!" message appears
 
 ## Important Notes
 

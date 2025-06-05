@@ -2,6 +2,7 @@ import 'react-native-url-polyfill/auto'
 import { useState, useEffect } from 'react'
 import { View, StyleSheet } from 'react-native'
 import { supabase } from './lib/supabase'
+import { AnonymousUserManager } from './lib/anonymousUserManager'
 import Auth from './components/Auth'
 import Account from './components/Account'
 import Home from './components/Home'
@@ -15,14 +16,33 @@ export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('home')
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session)
+      
+      // If we have an anonymous session that was automatically restored by Supabase,
+      // make sure we store the user ID for future reference
+      if (session && session.user.is_anonymous) {
+        const storedUserId = await AnonymousUserManager.getStoredAnonymousUserId()
+        if (!storedUserId) {
+          // Only store if we don't already have one
+          await AnonymousUserManager.storeAnonymousUserId(session.user.id)
+        }
+      }
     })
 
-    supabase.auth.onAuthStateChange((_event, session) => {
+    supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session)
       // Reset to home screen when authentication state changes
       setCurrentScreen('home')
+      
+      // Store anonymous user ID when session changes
+      if (session && session.user.is_anonymous) {
+        const storedUserId = await AnonymousUserManager.getStoredAnonymousUserId()
+        if (!storedUserId) {
+          // Only store if we don't already have one
+          await AnonymousUserManager.storeAnonymousUserId(session.user.id)
+        }
+      }
     })
   }, [])
 
