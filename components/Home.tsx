@@ -4,6 +4,7 @@ import { Button, Card, Input } from '@rneui/themed'
 import { Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import { AnonymousUserManager } from '../lib/anonymousUserManager'
+import { GuestDataManager, GuestData } from '../lib/guestDataManager'
 
 interface HomeProps {
   session: Session
@@ -16,16 +17,26 @@ export default function Home({ session, onProfilePress }: HomeProps) {
   const [loading, setLoading] = useState(false)
   const [showUpgrade, setShowUpgrade] = useState(false)
   const [isReturningAnonymous, setIsReturningAnonymous] = useState(false)
+  const [guestData, setGuestData] = useState<GuestData | null>(null)
+  const [deviceInfo, setDeviceInfo] = useState<{ deviceId: string; hasData: boolean } | null>(null)
 
   const isAnonymous = session.user.is_anonymous
 
-  // Check if this is a returning anonymous user
+  // Check if this is a returning anonymous user and load guest data
   React.useEffect(() => {
     const checkReturningUser = async () => {
       if (isAnonymous) {
-        // Simply check if we have a stored user ID (they've been here before)
-        const storedUserId = await AnonymousUserManager.getStoredAnonymousUserId()
-        setIsReturningAnonymous(storedUserId !== null)
+        // Check if we have an existing guest session based on device
+        const isReturning = await AnonymousUserManager.isReturningGuestDevice()
+        setIsReturningAnonymous(isReturning)
+        
+        // Load guest data
+        const data = await GuestDataManager.getCurrentUserData()
+        setGuestData(data)
+        
+        // Get device info for debugging
+        const info = await GuestDataManager.getDeviceInfo()
+        setDeviceInfo(info)
       }
     }
     checkReturningUser()
@@ -68,6 +79,26 @@ export default function Home({ session, onProfilePress }: HomeProps) {
     setLoading(false)
   }
 
+  const simulateGameProgress = async () => {
+    const currentProgress = guestData?.game_progress as any || { level: 1, score: 0, achievements: [] }
+    const newProgress = {
+      ...currentProgress,
+      level: currentProgress.level + 1,
+      score: currentProgress.score + 100,
+      lastPlayed: new Date().toISOString()
+    }
+    
+    const success = await GuestDataManager.updateGameProgress(newProgress)
+    if (success) {
+      // Reload data to show the update
+      const updatedData = await GuestDataManager.getCurrentUserData()
+      setGuestData(updatedData)
+      Alert.alert('Success', 'Game progress updated!')
+    } else {
+      Alert.alert('Error', 'Failed to update progress')
+    }
+  }
+
   const renderWelcomeMessage = () => {
     if (isAnonymous) {
       return (
@@ -81,6 +112,11 @@ export default function Home({ session, onProfilePress }: HomeProps) {
               : "You're browsing as a guest. Create an account to save your progress."
             }
           </Text>
+          {deviceInfo && (
+            <Text style={styles.deviceInfo}>
+              Device ID: {deviceInfo.deviceId.substring(0, 20)}...
+            </Text>
+          )}
         </View>
       )
     }
@@ -97,45 +133,63 @@ export default function Home({ session, onProfilePress }: HomeProps) {
     )
   }
 
-  const renderQuickActions = () => {
-    if (isAnonymous) {
-      return (
-        <Card containerStyle={styles.card}>
-          <Card.Title>Account Actions</Card.Title>
-          <Card.Divider />
-          <View style={styles.cardContent}>
-            <Button
-              title="Create Account"
-              onPress={() => setShowUpgrade(true)}
-              buttonStyle={[styles.button, styles.primaryButton]}
-            />
-            <Button
-              title="Sign Out"
-              onPress={handleSignOut}
-              buttonStyle={[styles.button, styles.secondaryButton]}
-              type="outline"
-            />
-          </View>
-        </Card>
-      )
-    }
+  const clearAllLocalData = async () => {
+    Alert.alert(
+      'Clear All Local Data',
+      'This will sign you out and clear all locally stored data. Use this for testing when database is cleared.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear All',
+          style: 'destructive',
+          onPress: async () => {
+            await AnonymousUserManager.clearAllLocalData()
+            Alert.alert('Success', 'All local data cleared. You will be redirected to login.')
+          }
+        }
+      ]
+    )
+  }
+
+  const renderGuestDataDemo = () => {
+    if (!isAnonymous) return null
 
     return (
       <Card containerStyle={styles.card}>
-        <Card.Title>Quick Actions</Card.Title>
+        <Card.Title>Guest Data Persistence Demo</Card.Title>
         <Card.Divider />
         <View style={styles.cardContent}>
-          <Button
-            title="View Account"
-            onPress={onProfilePress}
-            buttonStyle={[styles.button, styles.primaryButton]}
-          />
-          <Button
-            title="Sign Out"
-            onPress={handleSignOut}
-            buttonStyle={[styles.button, styles.secondaryButton]}
-            type="outline"
-          />
+          {guestData ? (
+            <>
+              <Text style={styles.dataText}>
+                Level: {(guestData.game_progress as any)?.level || 1}
+              </Text>
+              <Text style={styles.dataText}>
+                Score: {(guestData.game_progress as any)?.score || 0}
+              </Text>
+              <Text style={styles.dataText}>
+                Created: {new Date(guestData.created_at || '').toLocaleDateString()}
+              </Text>
+              <Button
+                title="Simulate Game Progress"
+                onPress={simulateGameProgress}
+                buttonStyle={[styles.button, styles.primaryButton]}
+              />
+            </>
+          ) : (
+            <Text style={styles.dataText}>No guest data found</Text>
+          )}
+          
+          {/* Development/Testing button */}
+          <View style={styles.debugSection}>
+            <Text style={styles.debugTitle}>🔧 Development Tools</Text>
+            <Button
+              title="Clear All Local Data"
+              onPress={clearAllLocalData}
+              buttonStyle={[styles.button, styles.debugButton]}
+              titleStyle={styles.debugButtonText}
+            />
+          </View>
         </View>
       </Card>
     )
@@ -180,6 +234,36 @@ export default function Home({ session, onProfilePress }: HomeProps) {
     )
   }
 
+  const renderQuickActions = () => {
+    return (
+      <Card containerStyle={styles.card}>
+        <Card.Title>Quick Actions</Card.Title>
+        <Card.Divider />
+        <View style={styles.quickActions}>
+          {isAnonymous && (
+            <Button
+              title="Create Account"
+              onPress={() => setShowUpgrade(true)}
+              buttonStyle={[styles.button, styles.primaryButton]}
+            />
+          )}
+          <Button
+            title="View Profile"
+            onPress={onProfilePress}
+            type="outline"
+            buttonStyle={[styles.button, styles.secondaryButton]}
+          />
+          <Button
+            title="Sign Out"
+            onPress={handleSignOut}
+            type="outline"
+            buttonStyle={[styles.button, styles.signOutButton]}
+          />
+        </View>
+      </Card>
+    )
+  }
+
   const renderFeatures = () => {
     const baseFeatures = [
       '✅ User Authentication',
@@ -190,6 +274,7 @@ export default function Home({ session, onProfilePress }: HomeProps) {
     const anonymousFeatures = [
       ...baseFeatures,
       '🔄 Guest Mode Active',
+      '✅ Device-based Data Persistence',
       '⚠️ Limited to this device',
     ]
 
@@ -219,6 +304,7 @@ export default function Home({ session, onProfilePress }: HomeProps) {
   return (
     <ScrollView style={styles.container}>
       {renderWelcomeMessage()}
+      {renderGuestDataDemo()}
       {renderUpgradeForm()}
       {renderQuickActions()}
       {renderFeatures()}
@@ -230,13 +316,16 @@ export default function Home({ session, onProfilePress }: HomeProps) {
           {isAnonymous ? (
             <>
               <Text style={styles.stepText}>
-                • Create an account to save your progress
+                • Try the "Simulate Game Progress" button to test data persistence
               </Text>
               <Text style={styles.stepText}>
-                • Access your data from any device
+                • Restart the app and sign in as guest again - your data will be restored
               </Text>
               <Text style={styles.stepText}>
-                • Unlock all app features
+                • Create an account to save your progress permanently
+              </Text>
+              <Text style={styles.stepText}>
+                • Access your data from any device after creating an account
               </Text>
             </>
           ) : (
@@ -267,32 +356,53 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
   },
   header: {
-    backgroundColor: '#2089dc',
-    padding: 20,
     alignItems: 'center',
+    padding: 20,
+    backgroundColor: 'white',
+    marginBottom: 10,
   },
   welcomeText: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: 'white',
+    color: '#2089dc',
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: 'white',
+    color: '#666',
     textAlign: 'center',
+    marginBottom: 5,
+  },
+  deviceInfo: {
+    fontSize: 12,
+    color: '#999',
+    fontFamily: 'monospace',
   },
   card: {
-    margin: 16,
-    borderRadius: 8,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    margin: 10,
+    borderRadius: 10,
   },
   cardContent: {
-    gap: 12,
+    padding: 10,
+  },
+  dataText: {
+    fontSize: 16,
+    marginBottom: 8,
+    color: '#333',
+  },
+  upgradeText: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  quickActions: {
+    gap: 10,
+  },
+  upgradeActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
   },
   button: {
     borderRadius: 8,
@@ -303,6 +413,11 @@ const styles = StyleSheet.create({
   },
   secondaryButton: {
     borderColor: '#2089dc',
+    borderWidth: 2,
+  },
+  signOutButton: {
+    borderColor: '#ff6b6b',
+    borderWidth: 2,
   },
   featureList: {
     gap: 8,
@@ -317,17 +432,24 @@ const styles = StyleSheet.create({
   stepText: {
     fontSize: 14,
     color: '#666',
-    lineHeight: 20,
   },
-  upgradeText: {
+  debugSection: {
+    marginTop: 20,
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+  },
+  debugTitle: {
     fontSize: 14,
-    color: '#666',
-    marginBottom: 16,
-    textAlign: 'center',
+    fontWeight: 'bold',
+    color: '#999',
+    marginBottom: 10,
   },
-  upgradeActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
+  debugButton: {
+    backgroundColor: '#ff6b6b',
+  },
+  debugButtonText: {
+    color: 'white',
+    fontSize: 12,
   },
 }) 

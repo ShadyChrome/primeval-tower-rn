@@ -49,10 +49,12 @@ export default function Auth() {
 
   async function signInAnonymously() {
     setLoading(true)
-    const { data, error } = await AnonymousUserManager.signInAnonymously()
+    const { data, error, isReturning } = await AnonymousUserManager.signInAnonymously()
 
     if (error) {
       Alert.alert(error.message)
+    } else if (isReturning) {
+      console.log('Welcome back, returning guest!')
     }
     setLoading(false)
   }
