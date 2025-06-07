@@ -10,27 +10,33 @@ import HatchingScreen from '../src/screens/HatchingScreen'
 import PrimesScreen from '../src/screens/PrimesScreen'
 import BagScreen from '../src/screens/BagScreen'
 import ShopScreen from '../src/screens/ShopScreen'
+import { PlayerData } from '../lib/playerManager'
 
 const Tab = createBottomTabNavigator()
 
 interface MainNavigationProps {
   onLogout?: () => void
+  playerData: PlayerData
+  onRefreshPlayerData: () => Promise<void>
 }
 
-export default function MainNavigation({ onLogout }: MainNavigationProps) {
-  // Mock player data - in a real app this would come from state management
-  const playerData = {
-    playerName: "Guest Player",
-    playerLevel: 12,
-    currentXP: 850,
-    maxXP: 1000,
-    gems: 1245
-  }
+export default function MainNavigation({ 
+  onLogout, 
+  playerData, 
+  onRefreshPlayerData 
+}: MainNavigationProps) {
+  const { player } = playerData
 
   return (
     <NavigationContainer>
       <View style={styles.container}>
-        <Header {...playerData} />
+        <Header 
+          playerName={player.player_name}
+          playerLevel={player.level || 1}
+          currentXP={player.current_xp || 0}
+          maxXP={player.max_xp || 100}
+          gems={player.gems || 0}
+        />
         <Tab.Navigator
           initialRouteName="Home"
           screenOptions={{

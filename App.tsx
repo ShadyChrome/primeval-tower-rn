@@ -6,9 +6,10 @@ import {
   Text,
   MD3LightTheme,
 } from 'react-native-paper'
-import { GuestManager, GuestData } from './lib/guestManager'
+import { PlayerManager, PlayerData } from './lib/playerManager'
 import { StatusBar } from 'expo-status-bar'
 import LoginScreen from './src/screens/LoginScreen'
+import PlayerNameScreen from './src/screens/PlayerNameScreen'
 import MainNavigation from './components/MainNavigation'
 
 // Define a custom theme that fits the "warm, pastel, flat" description
@@ -25,175 +26,214 @@ const theme = {
   roundness: 2,
 }
 
-// The main App component remains, but will render content based on auth state
+// App state types
+type AppState = 'loading' | 'needsPlayerName' | 'loggedIn' | 'loginScreen'
+
 export default function App() {
-  const [isGuestSessionActive, setGuestSessionActive] = useState(false)
-  const [guestDeviceId, setGuestDeviceId] = useState<string | null>(null)
-  const [guestData, setGuestData] = useState<GuestData | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [appState, setAppState] = useState<AppState>('loading')
+  const [playerData, setPlayerData] = useState<PlayerData | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
-    const checkExistingSession = async () => {
-      console.log('Checking for existing guest session...')
-      try {
-        const deviceId = await GuestManager.getDeviceID()
-        const data = await GuestManager.loadGuestData()
-
-        if (data) {
-          console.log('Existing guest data loaded:', data)
-          setGuestData(data)
-          setGuestDeviceId(deviceId)
-          setGuestSessionActive(true)
-        } else {
-          console.log('No existing session found.')
-        }
-      } catch (error) {
-        console.error('Failed to check for existing session:', error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    checkExistingSession()
+    checkPlayerStatus()
   }, [])
 
-  const handleSignIn = async () => {
-    setIsLoading(true)
-    console.log('Signing in as guest...')
+  const checkPlayerStatus = async () => {
+    console.log('🚀 App: Checking player status...')
     try {
-      const deviceId = await GuestManager.getDeviceID()
-      let data = await GuestManager.loadGuestData()
-
-      if (!data) {
-        console.log('No guest data found, initializing with default data.')
-        const defaultData: GuestData = {
-          progress: { level: 1, score: 0 },
-          settings: { volume: 80, difficulty: 'normal' },
+      setIsLoading(true)
+      
+      // Try to load existing player data
+      console.log('🔄 App: Attempting to load existing player data...')
+      const existingPlayerData = await PlayerManager.loadPlayerData()
+      
+      if (existingPlayerData) {
+        console.log('✅ App: Existing player data found:', existingPlayerData.player.player_name)
+        setPlayerData(existingPlayerData)
+        setAppState('loggedIn')
+      } else {
+        console.log('❌ App: No player data loaded, checking for existing player...')
+        // Check if player exists but we don't have their data
+        const existingPlayer = await PlayerManager.getExistingPlayer()
+        
+        if (existingPlayer) {
+          console.log('✅ App: Player found, loading their data...')
+          // Player exists, load their data
+          const playerData = await PlayerManager.loadPlayerData(existingPlayer.id)
+          if (playerData) {
+            console.log('✅ App: Player found and data loaded:', playerData.player.player_name)
+            setPlayerData(playerData)
+            setAppState('loggedIn')
+          } else {
+            console.log('❌ App: Failed to load player data')
+            setAppState('loginScreen')
+          }
+        } else {
+          // No player found, show login screen
+          console.log('ℹ️ App: No existing player found, showing login screen')
+          setAppState('loginScreen')
         }
-        await GuestManager.saveGuestData(defaultData.progress, defaultData.settings)
-        data = defaultData
       }
-
-      setGuestData(data)
-      setGuestDeviceId(deviceId)
-      setGuestSessionActive(true)
-      console.log('Guest session started with Device ID:', deviceId)
     } catch (error) {
-      console.error('Failed to sign in as guest:', error)
+      console.error('❌ App: Error checking player status:', error)
+      setAppState('loginScreen')
     } finally {
       setIsLoading(false)
     }
   }
 
-  const handleSignOut = () => {
+  const handleStartAsGuest = async () => {
+    console.log('🔄 App: Starting sign-in process...')
+    try {
+      setIsLoading(true)
+      
+      // First check if a player already exists for this device
+      console.log('🔍 App: Checking for existing player before creating new one...')
+      const existingPlayer = await PlayerManager.getExistingPlayer()
+      
+      if (existingPlayer) {
+        console.log('✅ App: Found existing player during sign-in, loading data...')
+        // Player exists, load their data
+        const playerData = await PlayerManager.loadPlayerData(existingPlayer.id)
+        if (playerData) {
+          console.log('✅ App: Existing player signed in successfully:', playerData.player.player_name)
+          setPlayerData(playerData)
+          setAppState('loggedIn')
+          return
+        } else {
+          console.log('❌ App: Failed to load existing player data, proceeding to create new player')
+        }
+      }
+      
+      // No existing player found, proceed to player creation
+      console.log('ℹ️ App: No existing player found, starting player creation flow...')
+      setAppState('needsPlayerName')
+    } catch (error) {
+      console.error('❌ App: Error during sign-in process:', error)
+      setAppState('needsPlayerName') // Fallback to player creation
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleCreatePlayer = async (playerName: string) => {
+    console.log('Creating player with name:', playerName)
+    try {
+      setIsLoading(true)
+      
+      // Create new player
+      const newPlayer = await PlayerManager.createPlayer(playerName)
+      console.log('Player created successfully:', newPlayer)
+      
+      // Load complete player data
+      const completePlayerData = await PlayerManager.loadPlayerData(newPlayer.id)
+      
+      if (completePlayerData) {
+        setPlayerData(completePlayerData)
+        setAppState('loggedIn')
+        console.log('Player creation complete, logging in...')
+      } else {
+        throw new Error('Failed to load player data after creation')
+      }
+    } catch (error) {
+      console.error('Failed to create player:', error)
+      // Stay on the player name screen so user can try again
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleSignOut = async () => {
     console.log('Signing out...')
-    setGuestSessionActive(false)
-    setGuestDeviceId(null)
-    setGuestData(null)
+    await PlayerManager.clearCachedData()
+    setPlayerData(null)
+    setAppState('loginScreen')
   }
 
-  const handleUpdateProgress = async () => {
-    if (!guestData) return
-    console.log('Updating progress...')
-    setIsLoading(true)
-    const newProgress = {
-      ...guestData.progress,
-      level: guestData.progress.level + 1,
-      score: guestData.progress.score + 100,
+  // Update player data and pass to navigation
+  const refreshPlayerData = async () => {
+    if (playerData) {
+      const updatedData = await PlayerManager.loadPlayerData(playerData.player.id)
+      if (updatedData) {
+        setPlayerData(updatedData)
+      }
     }
-    const newData = { ...guestData, progress: newProgress }
-    setGuestData(newData)
-    await GuestManager.saveGuestData(newData.progress, newData.settings)
-    setIsLoading(false)
-    console.log('Progress updated and saved.')
-  }
-
-  const handleUpdateSettings = async () => {
-    if (!guestData) return
-    console.log('Updating settings...')
-    setIsLoading(true)
-    const newSettings = {
-      ...guestData.settings,
-      volume: guestData.settings.volume - 10,
-    }
-    const newData = { ...guestData, settings: newSettings }
-    setGuestData(newData)
-    await GuestManager.saveGuestData(newData.progress, newData.settings)
-    setIsLoading(false)
-    console.log('Settings updated and saved.')
   }
 
   const renderContent = () => {
-    if (isLoading) {
+    if (appState === 'loading' || isLoading) {
       return (
         <View style={styles.container}>
           <ActivityIndicator size="large" />
+          <Text style={styles.loadingText}>Loading...</Text>
         </View>
       )
     }
 
-    if (isGuestSessionActive) {
-      return <MainNavigation onLogout={handleSignOut} />
+    switch (appState) {
+      case 'loginScreen':
+        return <LoginScreen onSignIn={handleStartAsGuest} />
+      
+      case 'needsPlayerName':
+        return (
+          <PlayerNameScreen 
+            onCreatePlayer={handleCreatePlayer}
+            isLoading={isLoading}
+          />
+        )
+      
+      case 'loggedIn':
+        if (!playerData) {
+          return (
+            <View style={styles.container}>
+              <Text>Error: No player data available</Text>
+              <Button onPress={() => setAppState('loginScreen')}>
+                Back to Login
+              </Button>
+            </View>
+          )
+        }
+        
+        return (
+          <MainNavigation 
+            onLogout={handleSignOut} 
+            playerData={playerData}
+            onRefreshPlayerData={refreshPlayerData}
+          />
+        )
+      
+      default:
+        return (
+          <View style={styles.container}>
+            <Text>Unknown app state</Text>
+          </View>
+        )
     }
-
-    return <LoginScreen onSignIn={handleSignIn} />
   }
 
   return (
     <PaperProvider theme={theme}>
-      {isGuestSessionActive ? (
-        <>
-          {renderContent()}
-          <StatusBar style="auto" />
-        </>
-      ) : (
-        <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-          {renderContent()}
-          <StatusBar style="auto" />
-        </View>
-      )}
+      <View style={[styles.app, { backgroundColor: theme.colors.background }]}>
+        {renderContent()}
+        <StatusBar style="auto" />
+      </View>
     </PaperProvider>
   )
 }
 
 const styles = StyleSheet.create({
+  app: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
   },
-  contentContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: {
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  subtitle: {
+  loadingText: {
+    marginTop: 16,
     fontSize: 16,
-    color: '#666',
-    marginBottom: 8,
-  },
-  deviceIdText: {
-    fontSize: 12,
-    fontFamily: 'monospace',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    backgroundColor: '#f5f5f5',
-    padding: 8,
-    borderRadius: 4,
-    marginBottom: 20,
-  },
-  dataContainer: {
-    marginBottom: 20,
-    alignItems: 'center',
-  },
-  dataTitle: {
-    marginBottom: 10,
-  },
-  buttonContainer: {
-    width: '80%',
+    color: '#666666',
   },
 })
