@@ -53,12 +53,20 @@ export class GuestManager {
         return null
       }
 
-      // The RPC function returns null if no user is found.
+      // The RPC function can return null or an array of data.
       if (!data) {
         return null
       }
 
-      return data as unknown as GuestData
+      // If data is an array (which RPC calls returning table rows do),
+      // we take the first element. Otherwise, we use data as is.
+      const guestData = Array.isArray(data) ? data[0] : data;
+
+      if (!guestData) {
+        return null;
+      }
+
+      return guestData as unknown as GuestData;
     } catch (error) {
       console.error('Critical error in loadGuestData:', error)
       return null
