@@ -1,12 +1,20 @@
 import React, { useState } from 'react'
 import { View, StyleSheet, ScrollView } from 'react-native'
 import { Text, Card, Button, Surface, IconButton, Menu } from 'react-native-paper'
+import TreasureBox from '../../components/TreasureBox'
+import { PlayerData } from '../../lib/playerManager'
 
 interface HomeScreenProps {
   onLogout?: () => void
+  playerData?: PlayerData
+  onRefreshPlayerData?: () => Promise<void>
 }
 
-export default function HomeScreen({ onLogout }: HomeScreenProps) {
+export default function HomeScreen({ 
+  onLogout, 
+  playerData, 
+  onRefreshPlayerData 
+}: HomeScreenProps) {
   const [showTowerSection, setShowTowerSection] = useState(false)
   const [settingsMenuVisible, setSettingsMenuVisible] = useState(false)
   
@@ -18,6 +26,13 @@ export default function HomeScreen({ onLogout }: HomeScreenProps) {
     setSettingsMenuVisible(false)
     if (onLogout) {
       onLogout()
+    }
+  }
+
+  const handleGemsUpdated = async (newGemTotal: number) => {
+    // Refresh player data to sync with the updated gem count
+    if (onRefreshPlayerData) {
+      await onRefreshPlayerData()
     }
   }
 
@@ -55,6 +70,14 @@ export default function HomeScreen({ onLogout }: HomeScreenProps) {
             <Text variant="bodyLarge" style={styles.welcomeSubtitle}>
               Ready to climb the tower and battle ancient guardians?
             </Text>
+            
+            {/* Treasure Box Section */}
+            {playerData && (
+              <TreasureBox 
+                playerId={playerData.player.id}
+                onGemsUpdated={handleGemsUpdated}
+              />
+            )}
             
             <Surface style={styles.battlePromptCard} elevation={3}>
               <View style={styles.battlePromptContent}>

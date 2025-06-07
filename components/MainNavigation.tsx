@@ -87,7 +87,13 @@ export default function MainNavigation({
               ),
             }}
           >
-            {() => <HomeScreen onLogout={onLogout} />}
+            {() => (
+              <HomeScreen 
+                onLogout={onLogout} 
+                playerData={playerData}
+                onRefreshPlayerData={onRefreshPlayerData}
+              />
+            )}
           </Tab.Screen>
           <Tab.Screen 
             name="Bag" 
