@@ -7,31 +7,53 @@ export default function App() {
   const [isGuestSessionActive, setGuestSessionActive] = useState(false)
   const [guestDeviceId, setGuestDeviceId] = useState<string | null>(null)
   const [guestData, setGuestData] = useState<GuestData | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    const checkExistingSession = async () => {
+      console.log("Checking for existing guest session...")
+      try {
+        const deviceId = await GuestManager.getDeviceID()
+        const data = await GuestManager.loadGuestData()
+
+        if (data) {
+          console.log("Existing guest data loaded:", data)
+          setGuestData(data)
+          setGuestDeviceId(deviceId)
+          setGuestSessionActive(true)
+        } else {
+          console.log("No existing session found.")
+        }
+      } catch (error) {
+        console.error("Failed to check for existing session:", error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    checkExistingSession()
+  }, [])
 
   const handleSignIn = async () => {
     setIsLoading(true)
     console.log("Signing in as guest...")
     try {
       const deviceId = await GuestManager.getDeviceID()
-      const data = await GuestManager.loadGuestData()
+      let data = await GuestManager.loadGuestData()
 
-      setGuestDeviceId(deviceId)
-      setGuestSessionActive(true)
-
-      if (data) {
-        setGuestData(data)
-        console.log("Guest data loaded:", data)
-      } else {
-        // Initialize with default data if none is found
+      if (!data) {
+        console.log("No guest data found, initializing with default data.")
         const defaultData: GuestData = {
           progress: { level: 1, score: 0 },
           settings: { volume: 80, difficulty: 'normal' },
         }
-        setGuestData(defaultData)
-        console.log("No guest data found, initialized with default data.")
+        await GuestManager.saveGuestData(defaultData.progress, defaultData.settings)
+        data = defaultData
       }
-
+      
+      setGuestData(data)
+      setGuestDeviceId(deviceId)
+      setGuestSessionActive(true)
       console.log("Guest session started with Device ID:", deviceId)
     } catch (error) {
       console.error("Failed to sign in as guest:", error)
