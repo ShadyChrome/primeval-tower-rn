@@ -126,58 +126,6 @@ export default function HomeScreen({ onLogout }: HomeScreenProps) {
             </Surface>
           </View>
         )}
-
-        <View style={styles.quickStatsSection}>
-          <Text variant="titleMedium" style={styles.sectionTitle}>
-            Quick Stats
-          </Text>
-          
-          <View style={styles.statsGrid}>
-            <Card style={styles.statCard}>
-              <Card.Content style={styles.statContent}>
-                <Text variant="headlineSmall" style={styles.statNumber}>
-                  12
-                </Text>
-                <Text variant="bodySmall" style={styles.statLabel}>
-                  Primes Owned
-                </Text>
-              </Card.Content>
-            </Card>
-            
-            <Card style={styles.statCard}>
-              <Card.Content style={styles.statContent}>
-                <Text variant="headlineSmall" style={styles.statNumber}>
-                  847
-                </Text>
-                <Text variant="bodySmall" style={styles.statLabel}>
-                  Power Level
-                </Text>
-              </Card.Content>
-            </Card>
-            
-            <Card style={styles.statCard}>
-              <Card.Content style={styles.statContent}>
-                <Text variant="headlineSmall" style={styles.statNumber}>
-                  23
-                </Text>
-                <Text variant="bodySmall" style={styles.statLabel}>
-                  Floors Cleared
-                </Text>
-              </Card.Content>
-            </Card>
-            
-            <Card style={styles.statCard}>
-              <Card.Content style={styles.statContent}>
-                <Text variant="headlineSmall" style={styles.statNumber}>
-                  1,245
-                </Text>
-                <Text variant="bodySmall" style={styles.statLabel}>
-                  Total Gems
-                </Text>
-              </Card.Content>
-            </Card>
-          </View>
-        </View>
       </ScrollView>
     </View>
   )
@@ -301,31 +249,5 @@ const styles = StyleSheet.create({
   },
   buttonContent: {
     paddingVertical: 8,
-  },
-  quickStatsSection: {
-    marginBottom: 24,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  statCard: {
-    flex: 1,
-    minWidth: '45%',
-    backgroundColor: 'white',
-  },
-  statContent: {
-    alignItems: 'center',
-    paddingVertical: 16,
-  },
-  statNumber: {
-    fontWeight: '700',
-    color: '#A0C49D',
-    marginBottom: 4,
-  },
-  statLabel: {
-    color: '#666666',
-    textAlign: 'center',
   },
 }) 
