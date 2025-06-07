@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { View, StyleSheet, ActivityIndicator } from 'react-native'
 import {
   Provider as PaperProvider,
@@ -9,6 +9,7 @@ import {
 import { GuestManager, GuestData } from './lib/guestManager'
 import { StatusBar } from 'expo-status-bar'
 import LoginScreen from './src/screens/LoginScreen'
+import MainNavigation from './components/MainNavigation'
 
 // Define a custom theme that fits the "warm, pastel, flat" description
 const theme = {
@@ -132,31 +133,7 @@ export default function App() {
     }
 
     if (isGuestSessionActive) {
-      return (
-        <View style={styles.contentContainer}>
-          <Text variant="headlineMedium" style={styles.title}>Welcome Guest!</Text>
-          <Text style={styles.subtitle}>Your persistent Device ID is:</Text>
-          <Text style={styles.deviceIdText}>{guestDeviceId}</Text>
-          {guestData && (
-            <View style={styles.dataContainer}>
-              <Text variant="titleMedium" style={styles.dataTitle}>Game Data:</Text>
-              <Text>
-                Level: {guestData.progress.level}, Score: {guestData.progress.score}
-              </Text>
-              <Text>
-                Volume: {guestData.settings.volume}, Difficulty: {guestData.settings.difficulty}
-              </Text>
-            </View>
-          )}
-          <View style={styles.buttonContainer}>
-            <Button mode="contained" onPress={handleUpdateProgress}>Update Progress</Button>
-            <View style={{ marginVertical: 5 }} />
-            <Button mode="contained" onPress={handleUpdateSettings}>Update Settings</Button>
-            <View style={{ marginVertical: 5 }} />
-            <Button mode="outlined" onPress={handleSignOut}>Sign Out</Button>
-          </View>
-        </View>
-      )
+      return <MainNavigation onLogout={handleSignOut} />
     }
 
     return <LoginScreen onSignIn={handleSignIn} />
@@ -164,10 +141,17 @@ export default function App() {
 
   return (
     <PaperProvider theme={theme}>
-      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-        {renderContent()}
-        <StatusBar style="auto" />
-      </View>
+      {isGuestSessionActive ? (
+        <>
+          {renderContent()}
+          <StatusBar style="auto" />
+        </>
+      ) : (
+        <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+          {renderContent()}
+          <StatusBar style="auto" />
+        </View>
+      )}
     </PaperProvider>
   )
 }
