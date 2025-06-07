@@ -1,5 +1,5 @@
-import React from 'react'
-import { View, StyleSheet } from 'react-native'
+import React, { useState } from 'react'
+import { View, StyleSheet, TouchableOpacity } from 'react-native'
 import { Text, ProgressBar, Surface } from 'react-native-paper'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -19,37 +19,48 @@ export default function Header({
   gems 
 }: HeaderProps) {
   const insets = useSafeAreaInsets()
+  const [showXP, setShowXP] = useState(false)
+  
+  const toggleXPDisplay = () => {
+    setShowXP(!showXP)
+  }
   
   return (
     <Surface style={[styles.container, { paddingTop: insets.top }]} elevation={2}>
       <View style={styles.content}>
-        <View style={styles.playerInfo}>
-          <Text variant="titleMedium" style={styles.playerName}>
-            {playerName}
-          </Text>
-          <Text variant="bodySmall" style={styles.levelText}>
-            Level {playerLevel}
-          </Text>
-        </View>
-        
-        <View style={styles.progressContainer}>
-          <ProgressBar 
-            progress={currentXP / maxXP} 
-            style={styles.progressBar}
-          />
-          <Text variant="bodySmall" style={styles.xpText}>
-            {currentXP}/{maxXP} XP
-          </Text>
-        </View>
-        
-        <View style={styles.resourcesContainer}>
-          <View style={styles.gemContainer}>
-            <Text variant="bodySmall" style={styles.gemIcon}>💎</Text>
-            <Text variant="bodyMedium" style={styles.gemCount}>
-              {gems.toLocaleString()}
+        {/* Main row with player info and resources */}
+        <View style={styles.mainRow}>
+          <TouchableOpacity onPress={toggleXPDisplay} style={styles.playerInfo}>
+            <Text variant="titleMedium" style={styles.playerName}>
+              {playerName}
             </Text>
+            <Text variant="bodySmall" style={styles.levelText}>
+              Level {playerLevel}
+            </Text>
+          </TouchableOpacity>
+          
+          <View style={styles.resourcesContainer}>
+            <View style={styles.gemContainer}>
+              <Text variant="bodySmall" style={styles.gemIcon}>💎</Text>
+              <Text variant="bodyMedium" style={styles.gemCount}>
+                {gems.toLocaleString()}
+              </Text>
+            </View>
           </View>
         </View>
+        
+        {/* XP bar - only shown when toggled */}
+        {showXP && (
+          <View style={styles.progressContainer}>
+            <ProgressBar 
+              progress={currentXP / maxXP} 
+              style={styles.progressBar}
+            />
+            <Text variant="bodySmall" style={styles.xpText}>
+              {currentXP}/{maxXP} XP
+            </Text>
+          </View>
+        )}
       </View>
     </Surface>
   )
@@ -62,10 +73,12 @@ const styles = StyleSheet.create({
     borderBottomColor: '#E0E0E0',
   },
   content: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
+  },
+  mainRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
   },
   playerInfo: {
@@ -80,8 +93,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   progressContainer: {
-    flex: 2,
-    marginHorizontal: 16,
+    marginTop: 12,
   },
   progressBar: {
     height: 8,
