@@ -41,3 +41,5 @@ yarn-error.*
 .git
 .idea
 .env
+android/
+ios/

@@ -1,8 +1,30 @@
 import { useState, useEffect } from 'react'
-import { View, Text, Button, StyleSheet, ActivityIndicator } from 'react-native'
+import { View, StyleSheet, ActivityIndicator } from 'react-native'
+import {
+  Provider as PaperProvider,
+  Button,
+  Text,
+  MD3LightTheme,
+} from 'react-native-paper'
 import { GuestManager, GuestData } from './lib/guestManager'
 import { StatusBar } from 'expo-status-bar'
+import LoginScreen from './src/screens/LoginScreen'
 
+// Define a custom theme that fits the "warm, pastel, flat" description
+const theme = {
+  ...MD3LightTheme,
+  colors: {
+    ...MD3LightTheme.colors,
+    primary: '#A0C49D', // A soft, pastel green
+    secondary: '#C4D7B2',
+    background: '#F7EFE5',
+    surface: '#FFFFFF',
+    text: '#333333',
+  },
+  roundness: 2,
+}
+
+// The main App component remains, but will render content based on auth state
 export default function App() {
   const [isGuestSessionActive, setGuestSessionActive] = useState(false)
   const [guestDeviceId, setGuestDeviceId] = useState<string | null>(null)
@@ -11,21 +33,21 @@ export default function App() {
 
   useEffect(() => {
     const checkExistingSession = async () => {
-      console.log("Checking for existing guest session...")
+      console.log('Checking for existing guest session...')
       try {
         const deviceId = await GuestManager.getDeviceID()
         const data = await GuestManager.loadGuestData()
 
         if (data) {
-          console.log("Existing guest data loaded:", data)
+          console.log('Existing guest data loaded:', data)
           setGuestData(data)
           setGuestDeviceId(deviceId)
           setGuestSessionActive(true)
         } else {
-          console.log("No existing session found.")
+          console.log('No existing session found.')
         }
       } catch (error) {
-        console.error("Failed to check for existing session:", error)
+        console.error('Failed to check for existing session:', error)
       } finally {
         setIsLoading(false)
       }
@@ -36,13 +58,13 @@ export default function App() {
 
   const handleSignIn = async () => {
     setIsLoading(true)
-    console.log("Signing in as guest...")
+    console.log('Signing in as guest...')
     try {
       const deviceId = await GuestManager.getDeviceID()
       let data = await GuestManager.loadGuestData()
 
       if (!data) {
-        console.log("No guest data found, initializing with default data.")
+        console.log('No guest data found, initializing with default data.')
         const defaultData: GuestData = {
           progress: { level: 1, score: 0 },
           settings: { volume: 80, difficulty: 'normal' },
@@ -50,21 +72,20 @@ export default function App() {
         await GuestManager.saveGuestData(defaultData.progress, defaultData.settings)
         data = defaultData
       }
-      
+
       setGuestData(data)
       setGuestDeviceId(deviceId)
       setGuestSessionActive(true)
-      console.log("Guest session started with Device ID:", deviceId)
+      console.log('Guest session started with Device ID:', deviceId)
     } catch (error) {
-      console.error("Failed to sign in as guest:", error)
+      console.error('Failed to sign in as guest:', error)
     } finally {
       setIsLoading(false)
     }
   }
 
   const handleSignOut = () => {
-    console.log("Signing out...")
-    // This just resets the UI state. The device ID remains in local storage.
+    console.log('Signing out...')
     setGuestSessionActive(false)
     setGuestDeviceId(null)
     setGuestData(null)
@@ -72,7 +93,7 @@ export default function App() {
 
   const handleUpdateProgress = async () => {
     if (!guestData) return
-    console.log("Updating progress...")
+    console.log('Updating progress...')
     setIsLoading(true)
     const newProgress = {
       ...guestData.progress,
@@ -83,12 +104,12 @@ export default function App() {
     setGuestData(newData)
     await GuestManager.saveGuestData(newData.progress, newData.settings)
     setIsLoading(false)
-    console.log("Progress updated and saved.")
+    console.log('Progress updated and saved.')
   }
 
   const handleUpdateSettings = async () => {
     if (!guestData) return
-    console.log("Updating settings...")
+    console.log('Updating settings...')
     setIsLoading(true)
     const newSettings = {
       ...guestData.settings,
@@ -98,60 +119,62 @@ export default function App() {
     setGuestData(newData)
     await GuestManager.saveGuestData(newData.progress, newData.settings)
     setIsLoading(false)
-    console.log("Settings updated and saved.")
+    console.log('Settings updated and saved.')
   }
 
   const renderContent = () => {
     if (isLoading) {
-      return <ActivityIndicator size="large" />
+      return (
+        <View style={styles.container}>
+          <ActivityIndicator size="large" />
+        </View>
+      )
     }
 
     if (isGuestSessionActive) {
       return (
         <View style={styles.contentContainer}>
-          <Text style={styles.title}>Welcome Guest!</Text>
+          <Text variant="headlineMedium" style={styles.title}>Welcome Guest!</Text>
           <Text style={styles.subtitle}>Your persistent Device ID is:</Text>
           <Text style={styles.deviceIdText}>{guestDeviceId}</Text>
           {guestData && (
             <View style={styles.dataContainer}>
-              <Text style={styles.dataTitle}>Game Data:</Text>
-              <Text>Level: {guestData.progress.level}, Score: {guestData.progress.score}</Text>
-              <Text>Volume: {guestData.settings.volume}, Difficulty: {guestData.settings.difficulty}</Text>
+              <Text variant="titleMedium" style={styles.dataTitle}>Game Data:</Text>
+              <Text>
+                Level: {guestData.progress.level}, Score: {guestData.progress.score}
+              </Text>
+              <Text>
+                Volume: {guestData.settings.volume}, Difficulty: {guestData.settings.difficulty}
+              </Text>
             </View>
           )}
           <View style={styles.buttonContainer}>
-            <Button title="Update Progress" onPress={handleUpdateProgress} />
+            <Button mode="contained" onPress={handleUpdateProgress}>Update Progress</Button>
             <View style={{ marginVertical: 5 }} />
-            <Button title="Update Settings" onPress={handleUpdateSettings} />
+            <Button mode="contained" onPress={handleUpdateSettings}>Update Settings</Button>
             <View style={{ marginVertical: 5 }} />
-            <Button title="Sign Out" onPress={handleSignOut} />
+            <Button mode="outlined" onPress={handleSignOut}>Sign Out</Button>
           </View>
         </View>
       )
     }
 
-    return (
-      <View style={styles.contentContainer}>
-        <Text style={styles.title}>You are not signed in.</Text>
-        <View style={styles.buttonContainer}>
-          <Button title="Sign in as Guest" onPress={handleSignIn} />
-        </View>
-      </View>
-    )
+    return <LoginScreen onSignIn={handleSignIn} />
   }
 
   return (
-    <View style={styles.container}>
-      {renderContent()}
-      <StatusBar style="auto" />
-    </View>
+    <PaperProvider theme={theme}>
+      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        {renderContent()}
+        <StatusBar style="auto" />
+      </View>
+    </PaperProvider>
   )
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
@@ -161,8 +184,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    textAlign: 'center',
     marginBottom: 20,
   },
   subtitle: {
@@ -172,7 +194,6 @@ const styles = StyleSheet.create({
   },
   deviceIdText: {
     fontSize: 12,
-    color: '#333',
     fontFamily: 'monospace',
     borderWidth: 1,
     borderColor: '#ddd',
@@ -186,8 +207,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dataTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
     marginBottom: 10,
   },
   buttonContainer: {
