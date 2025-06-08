@@ -1,6 +1,8 @@
 import React, { useState } from 'react'
 import { View, StyleSheet, ScrollView, FlatList } from 'react-native'
 import { Text, Card, Chip, Searchbar, SegmentedButtons, Surface } from 'react-native-paper'
+import { ElementIcon } from '../../components/OptimizedImage'
+import { ElementType } from '../assets/ImageAssets'
 
 interface Prime {
   id: string
@@ -95,9 +97,16 @@ export default function PrimesScreen() {
       <Card.Content style={styles.primeCardContent}>
         <View style={styles.primeHeader}>
           <View style={styles.primeInfo}>
-            <Text variant="titleLarge" style={styles.primeName}>
-              {prime.name}
-            </Text>
+            <View style={styles.primeNameRow}>
+              <ElementIcon 
+                element={prime.element as ElementType} 
+                size="medium" 
+                style={styles.elementIcon}
+              />
+              <Text variant="titleLarge" style={styles.primeName}>
+                {prime.name}
+              </Text>
+            </View>
             <Text variant="bodyMedium" style={styles.primeLevel}>
               Level {prime.level}
             </Text>
@@ -258,10 +267,17 @@ const styles = StyleSheet.create({
   primeInfo: {
     flex: 1,
   },
+  primeNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  elementIcon: {
+    marginRight: 8,
+  },
   primeName: {
     fontWeight: '700',
     color: '#333333',
-    marginBottom: 4,
   },
   primeLevel: {
     color: '#666666',

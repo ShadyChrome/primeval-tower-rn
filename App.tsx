@@ -11,6 +11,7 @@ import { StatusBar } from 'expo-status-bar'
 import LoginScreen from './src/screens/LoginScreen'
 import PlayerNameScreen from './src/screens/PlayerNameScreen'
 import MainNavigation from './components/MainNavigation'
+import { ImageAssets } from './src/assets/ImageAssets'
 
 // Define a custom theme that fits the "warm, pastel, flat" description
 const theme = {
@@ -35,6 +36,8 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
+    // Preload images for better performance
+    ImageAssets.preloadElementImages()
     checkPlayerStatus()
   }, [])
 
