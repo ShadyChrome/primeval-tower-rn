@@ -17,17 +17,30 @@ export class TreasureBoxManager {
         throw error
       }
       
+      console.log('🔍 Raw server response:', data)
+      
       if (data && data.length > 0) {
         const status = data[0]
-        console.log('✅ Treasure box status:', {
+        console.log('✅ Treasure box status details:', {
           accumulated_gems: status.accumulated_gems,
           is_full: status.is_full,
           gems_per_hour: status.gems_per_hour,
-          max_storage: status.max_storage
+          max_storage: status.max_storage,
+          last_claim_time: status.last_claim_time,
+          last_claim_time_type: typeof status.last_claim_time,
+          time_until_full: status.time_until_full
         })
+        
+        // Additional validation
+        if (!status.last_claim_time) {
+          console.warn('⚠️ No last_claim_time in server response - this will cause timer reset!')
+          console.warn('⚠️ You may need to update your Supabase function to return last_claim_time')
+        }
+        
         return status
       }
       
+      console.warn('⚠️ No data returned from calculate_treasure_box_gems function')
       return null
     } catch (error) {
       console.error('Error getting treasure box status:', error)

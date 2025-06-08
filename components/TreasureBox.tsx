@@ -18,31 +18,106 @@ export default function TreasureBox({ playerId, onGemsUpdated }: TreasureBoxProp
   const [lastClaimMessage, setLastClaimMessage] = useState('')
   const [showLootModal, setShowLootModal] = useState(false)
   const [claimedGems, setClaimedGems] = useState(0)
+  const [accumulationTime, setAccumulationTime] = useState('00:00:00')
+  const [clientAccumulatedGems, setClientAccumulatedGems] = useState(0)
   
   // Animation for treasure box glow and chest opening
   const glowAnimation = useRef(new Animated.Value(0)).current
-  const shakeAnimation = useRef(new Animated.Value(0)).current
+  const iconShakeAnimation = useRef(new Animated.Value(0)).current
   const scaleAnimation = useRef(new Animated.Value(1)).current
+  
+  // Ref to store current status to avoid stale closure issues
+  const statusRef = useRef(status)
 
   useEffect(() => {
+    // Only load initial status - no polling!
     loadTreasureBoxStatus()
     
-    // Set up interval to refresh status every 30 seconds
-    const interval = setInterval(loadTreasureBoxStatus, 30000)
+    // Start client-side timer that updates every second
+    // But it will only work once status is loaded
+    const timerInterval = setInterval(updateClientSideTimer, 1000)
     
-    return () => clearInterval(interval)
+    return () => {
+      clearInterval(timerInterval)
+    }
   }, [playerId])
 
   useEffect(() => {
+    statusRef.current = status
     if (status) {
       startAnimations()
+      updateClientSideTimer()
     }
   }, [status])
 
-  const loadTreasureBoxStatus = async () => {
+  const updateClientSideTimer = () => {
+    const currentStatus = statusRef.current
+    
+    if (!currentStatus) {
+      console.log('🚨 No status available yet, skipping timer update')
+      return
+    }
+    
+    if (!currentStatus.last_claim_time) {
+      console.log('🚨 No last_claim_time found in status:', currentStatus)
+      setAccumulationTime('00:00:00')
+      setClientAccumulatedGems(0)
+      return
+    }
+
+    console.log('⏰ Client-side timer calculation:', {
+      last_claim_time: currentStatus.last_claim_time,
+      current_time: new Date().toISOString()
+    })
+
+    const lastClaimDate = new Date(currentStatus.last_claim_time)
+    const now = new Date()
+    const diffInSeconds = Math.floor((now.getTime() - lastClaimDate.getTime()) / 1000)
+
+    console.log('⏰ Time calculation:', {
+      lastClaimDate: lastClaimDate.toISOString(),
+      now: now.toISOString(),
+      diffInSeconds,
+      diffInHours: diffInSeconds / 3600
+    })
+
+    // Cap at 30 hours (108000 seconds)
+    const cappedSeconds = Math.min(diffInSeconds, 30 * 60 * 60)
+
+    const hours = Math.floor(cappedSeconds / 3600)
+    const minutes = Math.floor((cappedSeconds % 3600) / 60)
+    const seconds = cappedSeconds % 60
+
+    // Format as hh:mm:ss
+    const formattedTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+    
+    // Calculate client-side accumulated gems
+    const hoursElapsed = Math.min(diffInSeconds / 3600, 30)
+    const calculatedGems = Math.floor(hoursElapsed * (currentStatus.gems_per_hour || 10))
+    const cappedGems = Math.min(calculatedGems, currentStatus.max_storage || 300)
+    
+    console.log('⏰ Client calculation:', {
+      formattedTime,
+      hoursElapsed,
+      calculatedGems: cappedGems
+    })
+    
+    setAccumulationTime(formattedTime)
+    setClientAccumulatedGems(cappedGems)
+  }
+
+  const loadTreasureBoxStatus = async (forceTimerUpdate = false) => {
     try {
       const treasureStatus = await TreasureBoxManager.getTreasureBoxStatus(playerId)
       setStatus(treasureStatus)
+      
+      // Force timer update if requested (useful after claiming)
+      if (forceTimerUpdate && treasureStatus) {
+        // Update timer with new status
+        setTimeout(() => {
+          updateClientSideTimer()
+        }, 100)
+      }
     } catch (error) {
       console.error('Error loading treasure box status:', error)
     } finally {
@@ -53,8 +128,9 @@ export default function TreasureBox({ playerId, onGemsUpdated }: TreasureBoxProp
   const startAnimations = () => {
     if (!status) return
     
+    // Use client-side calculated gems for animations
     const fillPercentage = TreasureBoxManager.calculateFillPercentage(
-      status.accumulated_gems, 
+      clientAccumulatedGems, 
       status.max_storage
     )
     
@@ -76,21 +152,21 @@ export default function TreasureBox({ playerId, onGemsUpdated }: TreasureBoxProp
         ])
       ).start()
 
-      // Shake animation for chest with loot
-      if (fillPercentage > 25) {
+      // Shake animation for treasure chest icon only
+      if (fillPercentage > 0) {
         Animated.loop(
           Animated.sequence([
-            Animated.timing(shakeAnimation, {
+            Animated.timing(iconShakeAnimation, {
               toValue: 1,
               duration: 100,
               useNativeDriver: true,
             }),
-            Animated.timing(shakeAnimation, {
+            Animated.timing(iconShakeAnimation, {
               toValue: -1,
               duration: 100,
               useNativeDriver: true,
             }),
-            Animated.timing(shakeAnimation, {
+            Animated.timing(iconShakeAnimation, {
               toValue: 0,
               duration: 100,
               useNativeDriver: true,
@@ -101,6 +177,13 @@ export default function TreasureBox({ playerId, onGemsUpdated }: TreasureBoxProp
       }
     }
   }
+
+  // Re-run animations when client gems change
+  useEffect(() => {
+    if (status && clientAccumulatedGems !== undefined) {
+      startAnimations()
+    }
+  }, [clientAccumulatedGems])
 
   const startOpeningAnimation = () => {
     return new Promise<void>((resolve) => {
@@ -125,7 +208,7 @@ export default function TreasureBox({ playerId, onGemsUpdated }: TreasureBoxProp
   }
 
   const handleClaimGems = async () => {
-    if (!status || status.accumulated_gems <= 0 || claiming) return
+    if (!status || clientAccumulatedGems <= 0 || claiming) return
     
     try {
       setClaiming(true)
@@ -139,13 +222,18 @@ export default function TreasureBox({ playerId, onGemsUpdated }: TreasureBoxProp
         setClaimedGems(result.gems_claimed)
         setShowLootModal(true)
         
+        // Immediately reset timer display (optimistic update)
+        setAccumulationTime('00:00:00')
+        
         // Notify parent component about gem update
         if (onGemsUpdated) {
           onGemsUpdated(result.new_gem_total)
         }
         
-        // Refresh status after claiming
-        await loadTreasureBoxStatus()
+        // Wait a moment for server to process, then refresh status with timer update
+        setTimeout(async () => {
+          await loadTreasureBoxStatus(true)
+        }, 500)
       } else {
         setLastClaimMessage(result?.message || 'Failed to claim gems')
         setTimeout(() => setLastClaimMessage(''), 3000)
@@ -162,8 +250,9 @@ export default function TreasureBox({ playerId, onGemsUpdated }: TreasureBoxProp
   const getTreasureChestColor = () => {
     if (!status) return '#A0C49D'
     
+    // Use client-side calculated gems
     const fillPercentage = TreasureBoxManager.calculateFillPercentage(
-      status.accumulated_gems, 
+      clientAccumulatedGems, 
       status.max_storage
     )
     const state = TreasureBoxManager.getTreasureBoxState(fillPercentage)
@@ -178,14 +267,15 @@ export default function TreasureBox({ playerId, onGemsUpdated }: TreasureBoxProp
   }
 
   const getBoxGlowStyle = () => {
-    if (!status || status.accumulated_gems <= 0) return {}
+    if (!status || clientAccumulatedGems <= 0) return {}
     
+    // Use client-side calculated gems
     const fillPercentage = TreasureBoxManager.calculateFillPercentage(
-      status.accumulated_gems, 
+      clientAccumulatedGems, 
       status.max_storage
     )
     
-    if (fillPercentage >= 25) {
+    if (fillPercentage > 0) {
       return {
         shadowColor: getTreasureChestColor(),
         shadowOffset: { width: 0, height: 0 },
@@ -201,17 +291,30 @@ export default function TreasureBox({ playerId, onGemsUpdated }: TreasureBoxProp
     return {}
   }
 
-  const getShakeTransform = () => {
+  const getIconShakeTransform = () => {
+    return {
+      transform: [
+        {
+          translateX: iconShakeAnimation.interpolate({
+            inputRange: [-1, 0, 1],
+            outputRange: [-3, 0, 3],
+          })
+        },
+        {
+          rotate: iconShakeAnimation.interpolate({
+            inputRange: [-1, 0, 1],
+            outputRange: ['-2deg', '0deg', '2deg'],
+          })
+        }
+      ]
+    }
+  }
+
+  const getOpeningTransform = () => {
     return {
       transform: [
         { 
           scale: scaleAnimation 
-        },
-        {
-          translateX: shakeAnimation.interpolate({
-            inputRange: [-1, 0, 1],
-            outputRange: [-2, 0, 2],
-          })
         }
       ]
     }
@@ -242,12 +345,13 @@ export default function TreasureBox({ playerId, onGemsUpdated }: TreasureBoxProp
     )
   }
 
+  // Use client-side calculations for display
   const fillPercentage = TreasureBoxManager.calculateFillPercentage(
-    status.accumulated_gems, 
+    clientAccumulatedGems, 
     status.max_storage
   )
   const timeUntilFull = TreasureBoxManager.formatTimeUntilFull(status.time_until_full)
-  const canClaim = status.accumulated_gems > 0
+  const canClaim = clientAccumulatedGems > 0
 
   return (
     <>
@@ -261,6 +365,9 @@ export default function TreasureBox({ playerId, onGemsUpdated }: TreasureBoxProp
               <Text variant="bodySmall" style={styles.subtitle}>
                 Generates {status.gems_per_hour} gems/hour
               </Text>
+              <Text variant="bodySmall" style={styles.accumulationText}>
+                Accumulating: {accumulationTime}
+              </Text>
             </View>
 
             <TouchableOpacity 
@@ -268,15 +375,17 @@ export default function TreasureBox({ playerId, onGemsUpdated }: TreasureBoxProp
               onPress={handleClaimGems}
               disabled={!canClaim || claiming}
             >
-              <Animated.View style={[styles.treasureBox, getShakeTransform()]}>
-                <MaterialCommunityIcons 
-                  name={'treasure-chest'}
-                  size={64}
-                  color={getTreasureChestColor()}
-                  style={styles.treasureChestIcon}
-                />
+              <Animated.View style={[styles.treasureBox, getOpeningTransform()]}>
+                <Animated.View style={getIconShakeTransform()}>
+                  <MaterialCommunityIcons 
+                    name={'treasure-chest'}
+                    size={64}
+                    color={getTreasureChestColor()}
+                    style={styles.treasureChestIcon}
+                  />
+                </Animated.View>
                 <Text variant="headlineSmall" style={styles.gemsCount}>
-                  {status.accumulated_gems}
+                  {clientAccumulatedGems}
                 </Text>
                 <View style={styles.gemsLabelContainer}>
                   <MaterialCommunityIcons 
@@ -298,10 +407,10 @@ export default function TreasureBox({ playerId, onGemsUpdated }: TreasureBoxProp
               />
               <View style={styles.progressInfo}>
                 <Text variant="bodySmall" style={styles.progressText}>
-                  {fillPercentage}% full ({status.accumulated_gems}/{status.max_storage})
+                  {fillPercentage}% full ({clientAccumulatedGems}/{status.max_storage})
                 </Text>
                 <Text variant="bodySmall" style={styles.timeText}>
-                  {status.is_full ? 'Full!' : `Full in: ${timeUntilFull}`}
+                  {fillPercentage >= 100 ? 'Full!' : `Full in: ${timeUntilFull}`}
                 </Text>
               </View>
             </View>
@@ -315,7 +424,7 @@ export default function TreasureBox({ playerId, onGemsUpdated }: TreasureBoxProp
                 style={styles.claimButton}
                 contentStyle={styles.claimButtonContent}
               >
-                {claiming ? 'Opening...' : `Claim ${status.accumulated_gems} Gems`}
+                {claiming ? 'Opening...' : `Claim ${clientAccumulatedGems} Gems`}
               </Button>
             )}
 
@@ -370,6 +479,11 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     color: '#666666',
+  },
+  accumulationText: {
+    color: '#999999',
+    fontStyle: 'italic',
+    marginTop: 4,
   },
   treasureBoxContainer: {
     marginBottom: 20,
