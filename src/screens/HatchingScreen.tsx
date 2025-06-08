@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { View, StyleSheet, ScrollView } from 'react-native'
 import { Text, Card, Button, Chip, Surface } from 'react-native-paper'
+import { MaterialCommunityIcons } from '@expo/vector-icons'
 
 export default function HatchingScreen() {
   const [selectedEgg, setSelectedEgg] = useState<string | null>(null)
@@ -68,9 +69,16 @@ export default function HatchingScreen() {
                 <Text variant="bodySmall" style={styles.eggRarity}>
                   {egg.rarity}
                 </Text>
-                <Text variant="titleSmall" style={styles.eggCost}>
-                  💎 {egg.cost}
-                </Text>
+                <View style={styles.eggCostContainer}>
+                  <MaterialCommunityIcons 
+                    name="diamond" 
+                    size={14} 
+                    color="#A0C49D" 
+                  />
+                  <Text variant="titleSmall" style={styles.eggCost}>
+                    {egg.cost}
+                  </Text>
+                </View>
               </Card.Content>
             </Card>
           ))}
@@ -111,7 +119,18 @@ export default function HatchingScreen() {
                       selectedEnhancers.includes(enhancer.id) && styles.selectedEnhancerCost
                     ]}
                   >
-                    💎 {enhancer.cost}
+                    <View style={styles.enhancerCostContent}>
+                      <MaterialCommunityIcons 
+                        name="diamond" 
+                        size={12} 
+                        color={selectedEnhancers.includes(enhancer.id) ? "white" : "#666666"} 
+                      />
+                      <Text style={[styles.enhancerCostText, {
+                        color: selectedEnhancers.includes(enhancer.id) ? "white" : "#666666"
+                      }]}>
+                        {enhancer.cost}
+                      </Text>
+                    </View>
                   </Chip>
                 </Card.Content>
               </Card>
@@ -126,9 +145,16 @@ export default function HatchingScreen() {
             <Text variant="titleMedium" style={styles.totalCostLabel}>
               Total Cost:
             </Text>
-            <Text variant="headlineSmall" style={styles.totalCostValue}>
-              💎 {totalCost.toLocaleString()}
-            </Text>
+            <View style={styles.totalCostContent}>
+              <MaterialCommunityIcons 
+                name="diamond" 
+                size={24} 
+                color="#A0C49D" 
+              />
+              <Text variant="headlineSmall" style={styles.totalCostValue}>
+                {totalCost.toLocaleString()}
+              </Text>
+            </View>
           </View>
           
           <Button 
@@ -204,6 +230,11 @@ const styles = StyleSheet.create({
     color: '#666666',
     marginBottom: 8,
   },
+  eggCostContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
   eggCost: {
     fontWeight: '600',
     color: '#A0C49D',
@@ -242,6 +273,15 @@ const styles = StyleSheet.create({
   selectedEnhancerCost: {
     backgroundColor: '#A0C49D',
   },
+  enhancerCostContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  enhancerCostText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
   hatchSection: {
     padding: 20,
     borderRadius: 12,
@@ -266,5 +306,10 @@ const styles = StyleSheet.create({
   },
   hatchButtonContent: {
     paddingVertical: 12,
+  },
+  totalCostContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
 }) 

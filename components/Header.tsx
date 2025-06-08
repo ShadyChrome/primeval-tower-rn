@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { View, StyleSheet, TouchableOpacity } from 'react-native'
 import { Text, ProgressBar, Surface } from 'react-native-paper'
+import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 interface HeaderProps {
@@ -41,7 +42,12 @@ export default function Header({
           
           <View style={styles.resourcesContainer}>
             <View style={styles.gemContainer}>
-              <Text variant="bodySmall" style={styles.gemIcon}>💎</Text>
+              <MaterialCommunityIcons 
+                name="diamond" 
+                size={16} 
+                color="white" 
+                style={styles.gemIcon}
+              />
               <Text variant="bodyMedium" style={styles.gemCount}>
                 {gems.toLocaleString()}
               </Text>

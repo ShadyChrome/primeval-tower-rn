@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { View, StyleSheet, TouchableOpacity, Animated } from 'react-native'
 import { Text, Card, Button, ProgressBar, ActivityIndicator } from 'react-native-paper'
+import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { TreasureBoxManager } from '../lib/treasureBoxManager'
 import { TreasureBoxStatus } from '../types/supabase'
+import LootModal from './LootModal'
 
 interface TreasureBoxProps {
   playerId: string
@@ -14,9 +16,13 @@ export default function TreasureBox({ playerId, onGemsUpdated }: TreasureBoxProp
   const [loading, setLoading] = useState(true)
   const [claiming, setClaiming] = useState(false)
   const [lastClaimMessage, setLastClaimMessage] = useState('')
+  const [showLootModal, setShowLootModal] = useState(false)
+  const [claimedGems, setClaimedGems] = useState(0)
   
-  // Animation for treasure box glow
-  const glowAnimation = new Animated.Value(0)
+  // Animation for treasure box glow and chest opening
+  const glowAnimation = useRef(new Animated.Value(0)).current
+  const shakeAnimation = useRef(new Animated.Value(0)).current
+  const scaleAnimation = useRef(new Animated.Value(1)).current
 
   useEffect(() => {
     loadTreasureBoxStatus()
@@ -29,7 +35,7 @@ export default function TreasureBox({ playerId, onGemsUpdated }: TreasureBoxProp
 
   useEffect(() => {
     if (status) {
-      startGlowAnimation()
+      startAnimations()
     }
   }, [status])
 
@@ -44,7 +50,7 @@ export default function TreasureBox({ playerId, onGemsUpdated }: TreasureBoxProp
     }
   }
 
-  const startGlowAnimation = () => {
+  const startAnimations = () => {
     if (!status) return
     
     const fillPercentage = TreasureBoxManager.calculateFillPercentage(
@@ -52,23 +58,70 @@ export default function TreasureBox({ playerId, onGemsUpdated }: TreasureBoxProp
       status.max_storage
     )
     
-    // Only animate glow if there are gems to claim
+    // Only animate if there are gems to claim
     if (fillPercentage > 0) {
+      // Glow animation
       Animated.loop(
         Animated.sequence([
           Animated.timing(glowAnimation, {
             toValue: 1,
             duration: 1500,
-            useNativeDriver: true,
+            useNativeDriver: false,
           }),
           Animated.timing(glowAnimation, {
             toValue: 0,
             duration: 1500,
-            useNativeDriver: true,
+            useNativeDriver: false,
           }),
         ])
       ).start()
+
+      // Shake animation for chest with loot
+      if (fillPercentage > 25) {
+        Animated.loop(
+          Animated.sequence([
+            Animated.timing(shakeAnimation, {
+              toValue: 1,
+              duration: 100,
+              useNativeDriver: true,
+            }),
+            Animated.timing(shakeAnimation, {
+              toValue: -1,
+              duration: 100,
+              useNativeDriver: true,
+            }),
+            Animated.timing(shakeAnimation, {
+              toValue: 0,
+              duration: 100,
+              useNativeDriver: true,
+            }),
+            Animated.delay(2000),
+          ])
+        ).start()
+      }
     }
+  }
+
+  const startOpeningAnimation = () => {
+    return new Promise<void>((resolve) => {
+      Animated.sequence([
+        Animated.timing(scaleAnimation, {
+          toValue: 1.2,
+          duration: 150,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnimation, {
+          toValue: 0.9,
+          duration: 150,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnimation, {
+          toValue: 1,
+          duration: 150,
+          useNativeDriver: true,
+        }),
+      ]).start(() => resolve())
+    })
   }
 
   const handleClaimGems = async () => {
@@ -76,10 +129,15 @@ export default function TreasureBox({ playerId, onGemsUpdated }: TreasureBoxProp
     
     try {
       setClaiming(true)
+      
+      // Start opening animation
+      await startOpeningAnimation()
+      
       const result = await TreasureBoxManager.claimTreasureBoxGems(playerId)
       
       if (result && result.success) {
-        setLastClaimMessage(`+${result.gems_claimed} gems claimed!`)
+        setClaimedGems(result.gems_claimed)
+        setShowLootModal(true)
         
         // Notify parent component about gem update
         if (onGemsUpdated) {
@@ -88,9 +146,6 @@ export default function TreasureBox({ playerId, onGemsUpdated }: TreasureBoxProp
         
         // Refresh status after claiming
         await loadTreasureBoxStatus()
-        
-        // Clear message after 3 seconds
-        setTimeout(() => setLastClaimMessage(''), 3000)
       } else {
         setLastClaimMessage(result?.message || 'Failed to claim gems')
         setTimeout(() => setLastClaimMessage(''), 3000)
@@ -104,8 +159,8 @@ export default function TreasureBox({ playerId, onGemsUpdated }: TreasureBoxProp
     }
   }
 
-  const getTreasureBoxEmoji = () => {
-    if (!status) return '📦'
+  const getTreasureChestColor = () => {
+    if (!status) return '#A0C49D'
     
     const fillPercentage = TreasureBoxManager.calculateFillPercentage(
       status.accumulated_gems, 
@@ -114,11 +169,11 @@ export default function TreasureBox({ playerId, onGemsUpdated }: TreasureBoxProp
     const state = TreasureBoxManager.getTreasureBoxState(fillPercentage)
     
     switch (state) {
-      case 'full': return '🏆'
-      case 'high': return '💰'
-      case 'medium': return '💎'
-      case 'low': return '📦'
-      default: return '📦'
+      case 'full': return '#FFD700'
+      case 'high': return '#FFA500'
+      case 'medium': return '#A0C49D'
+      case 'low': return '#A0C49D'
+      default: return '#999999'
     }
   }
 
@@ -130,17 +185,36 @@ export default function TreasureBox({ playerId, onGemsUpdated }: TreasureBoxProp
       status.max_storage
     )
     
-    if (fillPercentage >= 75) {
+    if (fillPercentage >= 25) {
       return {
-        shadowColor: '#FFD700',
+        shadowColor: getTreasureChestColor(),
         shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: glowAnimation,
-        shadowRadius: 10,
-        elevation: 8,
+        shadowOpacity: glowAnimation.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0.3, 0.8],
+        }),
+        shadowRadius: 15,
+        elevation: 12,
       }
     }
     
     return {}
+  }
+
+  const getShakeTransform = () => {
+    return {
+      transform: [
+        { 
+          scale: scaleAnimation 
+        },
+        {
+          translateX: shakeAnimation.interpolate({
+            inputRange: [-1, 0, 1],
+            outputRange: [-2, 0, 2],
+          })
+        }
+      ]
+    }
   }
 
   if (loading) {
@@ -176,70 +250,90 @@ export default function TreasureBox({ playerId, onGemsUpdated }: TreasureBoxProp
   const canClaim = status.accumulated_gems > 0
 
   return (
-    <Card style={[styles.card, getBoxGlowStyle()]}>
-      <Card.Content style={styles.content}>
-        <View style={styles.header}>
-          <Text variant="titleLarge" style={styles.title}>
-            Treasure Box 🏴‍☠️
-          </Text>
-          <Text variant="bodySmall" style={styles.subtitle}>
-            Generates {status.gems_per_hour} gems/hour
-          </Text>
-        </View>
+    <>
+      <Animated.View style={getBoxGlowStyle()}>
+        <Card style={styles.card}>
+          <Card.Content style={styles.content}>
+            <View style={styles.header}>
+              <Text variant="titleLarge" style={styles.title}>
+                Treasure Box
+              </Text>
+              <Text variant="bodySmall" style={styles.subtitle}>
+                Generates {status.gems_per_hour} gems/hour
+              </Text>
+            </View>
 
-        <TouchableOpacity 
-          style={styles.treasureBoxContainer}
-          onPress={handleClaimGems}
-          disabled={!canClaim || claiming}
-        >
-          <Animated.View style={styles.treasureBox}>
-            <Text style={styles.treasureBoxEmoji}>
-              {getTreasureBoxEmoji()}
-            </Text>
-            <Text variant="headlineSmall" style={styles.gemsCount}>
-              {status.accumulated_gems}
-            </Text>
-            <Text variant="bodySmall" style={styles.gemsLabel}>
-              💎 gems ready
-            </Text>
-          </Animated.View>
-        </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.treasureBoxContainer}
+              onPress={handleClaimGems}
+              disabled={!canClaim || claiming}
+            >
+              <Animated.View style={[styles.treasureBox, getShakeTransform()]}>
+                <MaterialCommunityIcons 
+                  name={'treasure-chest'}
+                  size={64}
+                  color={getTreasureChestColor()}
+                  style={styles.treasureChestIcon}
+                />
+                <Text variant="headlineSmall" style={styles.gemsCount}>
+                  {status.accumulated_gems}
+                </Text>
+                <View style={styles.gemsLabelContainer}>
+                  <MaterialCommunityIcons 
+                    name="diamond" 
+                    size={16} 
+                    color="#666666" 
+                  />
+                  <Text variant="bodySmall" style={styles.gemsLabel}>
+                    gems ready
+                  </Text>
+                </View>
+              </Animated.View>
+            </TouchableOpacity>
 
-        <View style={styles.progressSection}>
-          <ProgressBar 
-            progress={fillPercentage / 100} 
-            style={styles.progressBar}
-          />
-          <View style={styles.progressInfo}>
-            <Text variant="bodySmall" style={styles.progressText}>
-              {fillPercentage}% full ({status.accumulated_gems}/{status.max_storage})
-            </Text>
-            <Text variant="bodySmall" style={styles.timeText}>
-              {status.is_full ? 'Full!' : `Full in: ${timeUntilFull}`}
-            </Text>
-          </View>
-        </View>
+            <View style={styles.progressSection}>
+              <ProgressBar 
+                progress={fillPercentage / 100} 
+                style={styles.progressBar}
+              />
+              <View style={styles.progressInfo}>
+                <Text variant="bodySmall" style={styles.progressText}>
+                  {fillPercentage}% full ({status.accumulated_gems}/{status.max_storage})
+                </Text>
+                <Text variant="bodySmall" style={styles.timeText}>
+                  {status.is_full ? 'Full!' : `Full in: ${timeUntilFull}`}
+                </Text>
+              </View>
+            </View>
 
-        {canClaim && (
-          <Button
-            mode="contained"
-            onPress={handleClaimGems}
-            loading={claiming}
-            disabled={claiming}
-            style={styles.claimButton}
-            contentStyle={styles.claimButtonContent}
-          >
-            {claiming ? 'Claiming...' : `Claim ${status.accumulated_gems} Gems`}
-          </Button>
-        )}
+            {canClaim && (
+              <Button
+                mode="contained"
+                onPress={handleClaimGems}
+                loading={claiming}
+                disabled={claiming}
+                style={styles.claimButton}
+                contentStyle={styles.claimButtonContent}
+              >
+                {claiming ? 'Opening...' : `Claim ${status.accumulated_gems} Gems`}
+              </Button>
+            )}
 
-        {lastClaimMessage ? (
-          <Text variant="bodyMedium" style={styles.claimMessage}>
-            {lastClaimMessage}
-          </Text>
-        ) : null}
-      </Card.Content>
-    </Card>
+            {lastClaimMessage ? (
+              <Text variant="bodyMedium" style={styles.claimMessage}>
+                {lastClaimMessage}
+              </Text>
+            ) : null}
+          </Card.Content>
+        </Card>
+      </Animated.View>
+
+      <LootModal
+        visible={showLootModal}
+        onDismiss={() => setShowLootModal(false)}
+        gemsReceived={claimedGems}
+      />
+    </>
   )
 }
 
@@ -290,14 +384,18 @@ const styles = StyleSheet.create({
     borderColor: '#A0C49D',
     minWidth: 150,
   },
-  treasureBoxEmoji: {
-    fontSize: 48,
+  treasureChestIcon: {
     marginBottom: 8,
   },
   gemsCount: {
     fontWeight: '700',
     color: '#A0C49D',
     marginBottom: 4,
+  },
+  gemsLabelContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   gemsLabel: {
     color: '#666666',
