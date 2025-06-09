@@ -502,16 +502,50 @@ export default function PrimesScreen() {
         )}
       </GradientCard>
 
-      {/* Primes Grid with RecyclerListView */}
+      {/* Primes Grid with RecyclerListView or Empty State */}
       <View style={styles.gridContainer}>
-        <RecyclerListView
-          dataProvider={dataProvider}
-          layoutProvider={layoutProvider}
-          rowRenderer={renderRow}
-          style={styles.recyclerList}
-          contentContainerStyle={styles.recyclerContent}
-          showsVerticalScrollIndicator={false}
-        />
+        {rowData.length > 0 ? (
+          <RecyclerListView
+            dataProvider={dataProvider}
+            layoutProvider={layoutProvider}
+            rowRenderer={renderRow}
+            style={styles.recyclerList}
+            contentContainerStyle={styles.recyclerContent}
+            showsVerticalScrollIndicator={false}
+          />
+        ) : (
+          <View style={styles.emptyStateContainer}>
+            <View style={styles.emptyStateContent}>
+              <Text variant="headlineSmall" style={styles.emptyStateTitle}>
+                No Primes Found
+              </Text>
+              <Text variant="bodyMedium" style={styles.emptyStateMessage}>
+                {hasActiveFilters 
+                  ? "Try adjusting your filters to find more Primes."
+                  : searchQuery 
+                    ? `No Primes match "${searchQuery}".`
+                    : "No Primes available."
+                }
+              </Text>
+              {hasActiveFilters && (
+                <View style={styles.resetFiltersContainer}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setFilterRarity('all')
+                      setFilterElement('all')
+                      setSearchQuery('')
+                    }}
+                    style={styles.resetButton}
+                  >
+                    <Text variant="bodyMedium" style={styles.resetButtonText}>
+                      Reset Filters
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          </View>
+        )}
       </View>
     </View>
   )
@@ -698,5 +732,36 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '500',
     color: colors.textSecondary,
+  },
+  emptyStateContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyStateContent: {
+    padding: spacing.lg,
+    alignItems: 'center',
+  },
+  emptyStateTitle: {
+    ...typography.heading,
+    fontSize: 22,
+    marginBottom: spacing.sm,
+  },
+  emptyStateMessage: {
+    ...typography.body,
+    textAlign: 'center' as 'center',
+    marginBottom: spacing.md,
+  },
+  resetFiltersContainer: {
+    marginTop: spacing.sm,
+  },
+  resetButton: {
+    padding: spacing.sm,
+    backgroundColor: colors.primary,
+    borderRadius: 8,
+  },
+  resetButtonText: {
+    ...typography.button,
+    color: colors.surface,
   },
 }) 

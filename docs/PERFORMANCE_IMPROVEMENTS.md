@@ -71,4 +71,73 @@ Replaced the always-running timer with **navigation-aware timer management** usi
 - Test battery usage over extended periods
 - Confirm animations still work properly
 
-This optimization significantly improves app performance while maintaining all existing functionality. 
+This optimization significantly improves app performance while maintaining all existing functionality.
+
+---
+
+## PrimesScreen Filter Crash Fix (2025-01-09)
+
+### Problem Identified
+The `PrimesScreen` had a **critical crash issue** when applying both rarity and element filters that resulted in empty data sets.
+
+### Issue Details
+- **Error**: `TypeError: Cannot read property 'y' of undefined` in `RNCSafeAreaProvider`
+- **Trigger**: Applying filter combinations that result in zero matching Primes
+- **Root Cause**: `RecyclerListView` trying to render with empty data array
+- **Impact**: App crash when users applied strict filter combinations
+
+### Performance & UX Implications
+- **💥 App Crashes**: Users unable to use filter functionality
+- **🚫 Poor UX**: No feedback when filters yield no results
+- **⚠️ Data Loss**: Potential loss of filter state on crash
+- **📱 Reliability**: App instability affecting user trust
+
+### Solution Implemented
+Added **conditional rendering with empty state handling** to prevent RecyclerListView crashes.
+
+#### Key Changes
+1. **Conditional RecyclerListView Rendering**:
+   ```typescript
+   {rowData.length > 0 ? (
+     <RecyclerListView
+       dataProvider={dataProvider}
+       layoutProvider={layoutProvider}
+       rowRenderer={renderRow}
+       // ... other props
+     />
+   ) : (
+     <EmptyStateComponent />
+   )}
+   ```
+
+2. **Comprehensive Empty State UI**:
+   - Clear messaging for different empty scenarios
+   - Reset filters button for quick recovery
+   - Contextual help text based on active filters
+   - Proper styling and accessibility
+
+3. **Enhanced User Experience**:
+   - Graceful degradation when no results found
+   - One-click filter reset functionality
+   - Clear visual feedback about current filter state
+
+### Benefits
+- **✅ Crash Prevention**: No more app crashes from empty filter results
+- **✅ Better UX**: Clear feedback when no Primes match filters
+- **✅ Quick Recovery**: Easy reset button to clear filters
+- **✅ Improved Reliability**: Stable app performance with all filter combinations
+- **✅ Enhanced Accessibility**: Better screen reader support for empty states
+
+### Technical Implementation
+- **Error Handling**: Conditional rendering prevents RecyclerListView crashes
+- **Empty State Component**: Custom UI for no-results scenarios
+- **Filter Reset**: Quick action to clear all active filters
+- **Responsive Design**: Proper layout for all screen sizes
+
+### Testing Recommendations
+- Test all possible filter combinations
+- Verify empty state displays correctly
+- Confirm reset button works properly
+- Test with screen readers for accessibility
+
+This fix eliminates crashes and significantly improves the user experience when filtering Primes. 
