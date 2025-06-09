@@ -17,6 +17,7 @@
     "expo": "~53.0.10",
     "expo-constants": "^17.1.6",
     "expo-device": "^7.1.4",
+    "expo-linear-gradient": "~14.1.5",
     "expo-status-bar": "~2.2.3",
     "react": "19.0.0",
     "react-native": "0.79.3",
@@ -27,8 +28,8 @@
     "react-native-screens": "^4.11.1",
     "react-native-url-polyfill": "^2.0.0",
     "react-native-vector-icons": "^10.2.0",
-    "supabase": "^2.24.3",
-    "expo-linear-gradient": "~14.1.5"
+    "recyclerlistview": "^4.2.3",
+    "supabase": "^2.24.3"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
