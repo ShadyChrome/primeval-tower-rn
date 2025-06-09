@@ -25,6 +25,10 @@ export default function TreasureBox({ playerId, onGemsUpdated }: TreasureBoxProp
   const iconShakeAnimation = useRef(new Animated.Value(0)).current
   const scaleAnimation = useRef(new Animated.Value(1)).current
   
+  // Animation loop references for proper cleanup
+  const glowLoopRef = useRef<Animated.CompositeAnimation | null>(null)
+  const shakeLoopRef = useRef<Animated.CompositeAnimation | null>(null)
+  
   // Ref to store current status to avoid stale closure issues
   const statusRef = useRef(status)
 
@@ -129,6 +133,9 @@ export default function TreasureBox({ playerId, onGemsUpdated }: TreasureBoxProp
   const startAnimations = () => {
     if (!status) return
     
+    // Stop any existing animations first
+    stopAnimations()
+    
     // Use client-side calculated gems for animations
     const fillPercentage = TreasureBoxManager.calculateFillPercentage(
       clientAccumulatedGems, 
@@ -138,7 +145,7 @@ export default function TreasureBox({ playerId, onGemsUpdated }: TreasureBoxProp
     // Only animate if there are gems to claim
     if (fillPercentage > 0) {
       // Glow animation
-      Animated.loop(
+      glowLoopRef.current = Animated.loop(
         Animated.sequence([
           Animated.timing(glowAnimation, {
             toValue: 1,
@@ -151,11 +158,12 @@ export default function TreasureBox({ playerId, onGemsUpdated }: TreasureBoxProp
             useNativeDriver: false,
           }),
         ])
-      ).start()
+      )
+      glowLoopRef.current.start()
 
       // Shake animation for treasure chest icon only
       if (fillPercentage > 0) {
-        Animated.loop(
+        shakeLoopRef.current = Animated.loop(
           Animated.sequence([
             Animated.timing(iconShakeAnimation, {
               toValue: 1,
@@ -174,17 +182,43 @@ export default function TreasureBox({ playerId, onGemsUpdated }: TreasureBoxProp
             }),
             Animated.delay(2000),
           ])
-        ).start()
+        )
+        shakeLoopRef.current.start()
       }
     }
+  }
+
+  const stopAnimations = () => {
+    if (glowLoopRef.current) {
+      glowLoopRef.current.stop()
+      glowLoopRef.current = null
+    }
+    if (shakeLoopRef.current) {
+      shakeLoopRef.current.stop()
+      shakeLoopRef.current = null
+    }
+    // Reset animation values
+    glowAnimation.setValue(0)
+    iconShakeAnimation.setValue(0)
   }
 
   // Re-run animations when client gems change
   useEffect(() => {
     if (status && clientAccumulatedGems !== undefined) {
-      startAnimations()
+      if (clientAccumulatedGems > 0) {
+        startAnimations()
+      } else {
+        stopAnimations()
+      }
     }
   }, [clientAccumulatedGems])
+
+  // Cleanup animations on unmount
+  useEffect(() => {
+    return () => {
+      stopAnimations()
+    }
+  }, [])
 
   const startOpeningAnimation = () => {
     return new Promise<void>((resolve) => {
@@ -223,8 +257,9 @@ export default function TreasureBox({ playerId, onGemsUpdated }: TreasureBoxProp
         setClaimedGems(result.gems_claimed)
         setShowLootModal(true)
         
-        // Immediately reset timer display (optimistic update)
+        // Immediately reset client state (optimistic update)
         setAccumulationTime('00:00:00')
+        setClientAccumulatedGems(0) // This will trigger stopAnimations via useEffect
         
         // Notify parent component about gem update
         if (onGemsUpdated) {
