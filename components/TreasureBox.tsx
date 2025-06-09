@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { View, StyleSheet, TouchableOpacity, Animated } from 'react-native'
-import { Text, Card, Button, ProgressBar, ActivityIndicator } from 'react-native-paper'
+import { Text, ActivityIndicator } from 'react-native-paper'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { TreasureBoxManager } from '../lib/treasureBoxManager'
 import { TreasureBoxStatus } from '../types/supabase'
@@ -15,13 +15,12 @@ export default function TreasureBox({ playerId, onGemsUpdated }: TreasureBoxProp
   const [status, setStatus] = useState<TreasureBoxStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [claiming, setClaiming] = useState(false)
-  const [lastClaimMessage, setLastClaimMessage] = useState('')
   const [showLootModal, setShowLootModal] = useState(false)
   const [claimedGems, setClaimedGems] = useState(0)
   const [accumulationTime, setAccumulationTime] = useState('00:00:00')
   const [clientAccumulatedGems, setClientAccumulatedGems] = useState(0)
   
-  // Animation for treasure box glow and chest opening
+  // Animation for treasure box glow and chest shaking
   const glowAnimation = useRef(new Animated.Value(0)).current
   const iconShakeAnimation = useRef(new Animated.Value(0)).current
   const scaleAnimation = useRef(new Animated.Value(1)).current
@@ -234,14 +233,9 @@ export default function TreasureBox({ playerId, onGemsUpdated }: TreasureBoxProp
         setTimeout(async () => {
           await loadTreasureBoxStatus(true)
         }, 500)
-      } else {
-        setLastClaimMessage(result?.message || 'Failed to claim gems')
-        setTimeout(() => setLastClaimMessage(''), 3000)
       }
     } catch (error) {
       console.error('Error claiming gems:', error)
-      setLastClaimMessage('Error claiming gems')
-      setTimeout(() => setLastClaimMessage(''), 3000)
     } finally {
       setClaiming(false)
     }
@@ -322,120 +316,60 @@ export default function TreasureBox({ playerId, onGemsUpdated }: TreasureBoxProp
 
   if (loading) {
     return (
-      <Card style={styles.card}>
-        <Card.Content style={styles.loadingContent}>
-          <ActivityIndicator size="large" />
-          <Text variant="bodyMedium" style={styles.loadingText}>
-            Loading treasure box...
-          </Text>
-        </Card.Content>
-      </Card>
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="#A0C49D" />
+      </View>
     )
   }
 
   if (!status) {
     return (
-      <Card style={styles.card}>
-        <Card.Content style={styles.content}>
-          <Text variant="bodyMedium" style={styles.errorText}>
-            Unable to load treasure box
-          </Text>
-        </Card.Content>
-      </Card>
+      <View style={styles.container}>
+        <Text variant="bodyMedium" style={styles.errorText}>
+          Unable to load treasure box
+        </Text>
+      </View>
     )
   }
 
-  // Use client-side calculations for display
-  const fillPercentage = TreasureBoxManager.calculateFillPercentage(
-    clientAccumulatedGems, 
-    status.max_storage
-  )
-  const timeUntilFull = TreasureBoxManager.formatTimeUntilFull(status.time_until_full)
   const canClaim = clientAccumulatedGems > 0
 
   return (
     <>
-      <Animated.View style={getBoxGlowStyle()}>
-        <Card style={styles.card}>
-          <Card.Content style={styles.content}>
-            <View style={styles.header}>
-              <Text variant="titleLarge" style={styles.title}>
-                Treasure Box
-              </Text>
-              <Text variant="bodySmall" style={styles.subtitle}>
-                Generates {status.gems_per_hour} gems/hour
-              </Text>
-              <Text variant="bodySmall" style={styles.accumulationText}>
-                Accumulating: {accumulationTime}
-              </Text>
-            </View>
-
-            <TouchableOpacity 
-              style={styles.treasureBoxContainer}
-              onPress={handleClaimGems}
-              disabled={!canClaim || claiming}
-            >
-              <Animated.View style={[styles.treasureBox, getOpeningTransform()]}>
-                <Animated.View style={getIconShakeTransform()}>
-                  <MaterialCommunityIcons 
-                    name={'treasure-chest'}
-                    size={64}
-                    color={getTreasureChestColor()}
-                    style={styles.treasureChestIcon}
-                  />
-                </Animated.View>
-                <Text variant="headlineSmall" style={styles.gemsCount}>
-                  {clientAccumulatedGems}
-                </Text>
-                <View style={styles.gemsLabelContainer}>
-                  <MaterialCommunityIcons 
-                    name="diamond" 
-                    size={16} 
-                    color="#666666" 
-                  />
-                  <Text variant="bodySmall" style={styles.gemsLabel}>
-                    gems ready
+      <View style={styles.container}>
+        <TouchableOpacity 
+          style={styles.treasureBoxContainer}
+          onPress={handleClaimGems}
+          disabled={!canClaim || claiming}
+          activeOpacity={0.7}
+        >
+          {/* Separate glow animation view */}
+          <Animated.View style={getBoxGlowStyle()}>
+            {/* Transform animation view */}
+            <Animated.View style={[styles.treasureBox, getOpeningTransform()]}>
+              <Animated.View style={getIconShakeTransform()}>
+                <MaterialCommunityIcons 
+                  name="treasure-chest"
+                  size={80}
+                  color={getTreasureChestColor()}
+                  style={styles.treasureChestIcon}
+                />
+              </Animated.View>
+              {clientAccumulatedGems > 0 && (
+                <View style={styles.gemsBadge}>
+                  <Text variant="bodySmall" style={styles.gemsBadgeText}>
+                    {clientAccumulatedGems}
                   </Text>
                 </View>
-              </Animated.View>
-            </TouchableOpacity>
-
-            <View style={styles.progressSection}>
-              <ProgressBar 
-                progress={fillPercentage / 100} 
-                style={styles.progressBar}
-              />
-              <View style={styles.progressInfo}>
-                <Text variant="bodySmall" style={styles.progressText}>
-                  {fillPercentage}% full ({clientAccumulatedGems}/{status.max_storage})
-                </Text>
-                <Text variant="bodySmall" style={styles.timeText}>
-                  {fillPercentage >= 100 ? 'Full!' : `Full in: ${timeUntilFull}`}
-                </Text>
-              </View>
-            </View>
-
-            {canClaim && (
-              <Button
-                mode="contained"
-                onPress={handleClaimGems}
-                loading={claiming}
-                disabled={claiming}
-                style={styles.claimButton}
-                contentStyle={styles.claimButtonContent}
-              >
-                {claiming ? 'Opening...' : `Claim ${clientAccumulatedGems} Gems`}
-              </Button>
-            )}
-
-            {lastClaimMessage ? (
-              <Text variant="bodyMedium" style={styles.claimMessage}>
-                {lastClaimMessage}
-              </Text>
-            ) : null}
-          </Card.Content>
-        </Card>
-      </Animated.View>
+              )}
+            </Animated.View>
+          </Animated.View>
+        </TouchableOpacity>
+        
+        <Text variant="bodyMedium" style={styles.accumulationTime}>
+          {accumulationTime}
+        </Text>
+      </View>
 
       <LootModal
         visible={showLootModal}
@@ -447,108 +381,53 @@ export default function TreasureBox({ playerId, onGemsUpdated }: TreasureBoxProp
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    marginVertical: 8,
-  },
-  content: {
-    padding: 20,
+  container: {
     alignItems: 'center',
-  },
-  loadingContent: {
-    padding: 20,
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 12,
-    color: '#666666',
-  },
-  errorText: {
-    color: '#D32F2F',
-    textAlign: 'center',
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  title: {
-    fontWeight: '700',
-    color: '#333333',
-    marginBottom: 4,
-  },
-  subtitle: {
-    color: '#666666',
-  },
-  accumulationText: {
-    color: '#999999',
-    fontStyle: 'italic',
-    marginTop: 4,
+    paddingVertical: 16,
   },
   treasureBoxContainer: {
-    marginBottom: 20,
+    alignItems: 'center',
+    marginBottom: 12,
   },
   treasureBox: {
     alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    backgroundColor: '#F7EFE5',
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#A0C49D',
-    minWidth: 150,
+    justifyContent: 'center',
+    position: 'relative',
   },
   treasureChestIcon: {
-    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
-  gemsCount: {
+  gemsBadge: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    backgroundColor: '#FF6B6B',
+    borderRadius: 12,
+    minWidth: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  gemsBadgeText: {
+    color: '#FFFFFF',
     fontWeight: '700',
-    color: '#A0C49D',
-    marginBottom: 4,
+    fontSize: 12,
   },
-  gemsLabelContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  gemsLabel: {
+  accumulationTime: {
     color: '#666666',
-  },
-  progressSection: {
-    width: '100%',
-    marginBottom: 16,
-  },
-  progressBar: {
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#E0E0E0',
-    marginBottom: 8,
-  },
-  progressInfo: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  progressText: {
-    color: '#666666',
-  },
-  timeText: {
-    color: '#A0C49D',
-    fontWeight: '500',
-  },
-  claimButton: {
-    backgroundColor: '#A0C49D',
-    borderRadius: 8,
-    marginTop: 8,
-  },
-  claimButtonContent: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-  },
-  claimMessage: {
-    marginTop: 12,
-    color: '#A0C49D',
     fontWeight: '600',
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  errorText: {
+    color: '#D32F2F',
     textAlign: 'center',
   },
 }) 

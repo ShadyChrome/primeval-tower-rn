@@ -1,10 +1,17 @@
 # Active Context: Primeval Tower
 
 ## Current Work Focus
-**🎨 MAJOR DESIGN TRANSFORMATION COMPLETE!** The app has been completely transformed with a beautiful, modern design system inspired by wellness/mindfulness apps. The new design features soft pastels, gradients, and elegant card layouts that create a calming, nurturing user experience.
+**🎨 TREASURE BOX REDESIGN COMPLETE!** Just finished simplifying the TreasureBox component to match user requirements - now features a clean, minimalist design with just a clickable treasure icon and accumulating time display.
 
 ## Recent Changes
-- **✨ IMPLEMENTED BEAUTIFUL DESIGN SYSTEM:** Created comprehensive design system with:
+- **✨ REDESIGNED TREASURE BOX COMPONENT:** 
+  - Simplified from complex card-based UI to clean icon + time layout
+  - Maintained all core functionality (claiming, animations, timer calculations)
+  - Removed 200+ lines of complex UI code (cards, progress bars, buttons)
+  - Increased icon size to 80px for better touch target
+  - Added gem count badge when loot is available
+  - Preserved all animations (glow, shake, scale) for visual feedback
+- **🎨 PREVIOUSLY IMPLEMENTED BEAUTIFUL DESIGN SYSTEM:** Created comprehensive design system with:
   - Soft pastel color palette (coral, lavender, mint, peach)
   - Linear gradient backgrounds throughout the app
   - Modern card components with elegant shadows and rounded corners
@@ -23,7 +30,7 @@
 ## Next Steps
 1. **🎨 COMPLETE DESIGN ROLLOUT:** Apply the new design system to remaining screens:
    - Transform HatchingScreen, PrimesScreen, BagScreen, ShopScreen with new components
-   - Update MainNavigation and TreasureBox components with new styling
+   - Update MainNavigation with new styling
    - Implement ProgressCard in relevant screens for progress tracking
 2. **📱 ENHANCE UX:** Add micro-interactions and animations using react-native-reanimated
 3. **🛠️ GAME FUNCTIONALITY:** Build on the beautiful foundation to add core game mechanics
@@ -36,7 +43,9 @@
 ## Important Patterns and Preferences
 - **Documentation-First:** The creation of the Memory Bank at the project's inception establishes a preference for maintaining thorough documentation throughout the development lifecycle.
 - **Clear Separation of Concerns:** The initial architecture proposal separates the client, backend, UI, and game logic, indicating a preference for clean, maintainable code.
+- **Minimalist Design Preference:** User prefers clean, simple components over complex UI elements (as demonstrated with TreasureBox redesign)
 
 ## Learnings and Project Insights
 - The game design is well-defined but complex, with many interconnected systems (Primes, Elements, Hatching, Combat, Runes). A methodical, feature-by-feature approach will be necessary.
-- The project's success heavily relies on getting the "feel" right, both in terms of the relaxing UI and the engaging combat loop. Early prototyping and user feedback will be valuable. 
+- The project's success heavily relies on getting the "feel" right, both in terms of the relaxing UI and the engaging combat loop. Early prototyping and user feedback will be valuable.
+- Users prefer clean, functional designs over feature-heavy interfaces - simplicity is key. 
