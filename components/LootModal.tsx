@@ -1,7 +1,8 @@
 import React, { useEffect, useRef } from 'react'
-import { View, StyleSheet, Animated, Dimensions } from 'react-native'
-import { Text, Portal, Modal, Card, Button } from 'react-native-paper'
+import { View, StyleSheet, Animated } from 'react-native'
+import { Text, Card, Button } from 'react-native-paper'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
+import CenteredModal from './ui/CenteredModal'
 
 interface LootModalProps {
   visible: boolean
@@ -75,98 +76,85 @@ export default function LootModal({
   })
 
   return (
-    <Portal>
-      <Modal
-        visible={visible}
-        onDismiss={onDismiss}
-        contentContainerStyle={styles.modalContainer}
-        style={styles.modal}
+    <CenteredModal
+      visible={visible}
+      onDismiss={onDismiss}
+      maxWidth={400}
+    >
+      <Animated.View 
+        style={[
+          styles.cardContainer,
+          {
+            transform: [{ scale: scaleAnim }]
+          }
+        ]}
       >
-        <Animated.View 
-          style={[
-            styles.cardContainer,
-            {
-              transform: [{ scale: scaleAnim }]
-            }
-          ]}
-        >
-          <Card style={styles.card}>
-            <Card.Content style={styles.content}>
-              {/* Sparkle Animation Background */}
+        <Card style={styles.card}>
+          <Card.Content style={styles.content}>
+            {/* Sparkle Animation Background */}
+            <Animated.View 
+              style={[
+                styles.sparkleBackground,
+                {
+                  transform: [{ rotate: sparkleRotation }],
+                  opacity: sparkleAnim,
+                }
+              ]}
+            >
+              <MaterialCommunityIcons 
+                name="star-four-points" 
+                size={100} 
+                color="#FFD700" 
+              />
+            </Animated.View>
+
+            <Text variant="headlineMedium" style={styles.title}>
+              {title}
+            </Text>
+
+            <View style={styles.rewardContainer}>
               <Animated.View 
                 style={[
-                  styles.sparkleBackground,
+                  styles.gemReward,
                   {
-                    transform: [{ rotate: sparkleRotation }],
-                    opacity: sparkleAnim,
+                    transform: [{ scale: bounceScale }]
                   }
                 ]}
               >
                 <MaterialCommunityIcons 
-                  name="star-four-points" 
-                  size={100} 
-                  color="#FFD700" 
+                  name="diamond" 
+                  size={48} 
+                  color="#A0C49D" 
                 />
+                <Text variant="headlineSmall" style={styles.gemAmount}>
+                  +{gemsReceived}
+                </Text>
+                <Text variant="bodyMedium" style={styles.gemLabel}>
+                  Gems
+                </Text>
               </Animated.View>
+            </View>
 
-              <Text variant="headlineMedium" style={styles.title}>
-                {title}
-              </Text>
-
-              <View style={styles.rewardContainer}>
-                <Animated.View 
-                  style={[
-                    styles.gemReward,
-                    {
-                      transform: [{ scale: bounceScale }]
-                    }
-                  ]}
-                >
-                  <MaterialCommunityIcons 
-                    name="diamond" 
-                    size={48} 
-                    color="#A0C49D" 
-                  />
-                  <Text variant="headlineSmall" style={styles.gemAmount}>
-                    +{gemsReceived}
-                  </Text>
-                  <Text variant="bodyMedium" style={styles.gemLabel}>
-                    Gems
-                  </Text>
-                </Animated.View>
-              </View>
-
-              <Button
-                mode="contained"
-                onPress={onDismiss}
-                style={styles.collectButton}
-                contentStyle={styles.collectButtonContent}
-              >
-                Awesome!
-              </Button>
-            </Card.Content>
-          </Card>
-        </Animated.View>
-      </Modal>
-    </Portal>
+            <Button
+              mode="contained"
+              onPress={onDismiss}
+              style={styles.collectButton}
+              contentStyle={styles.collectButtonContent}
+            >
+              Awesome!
+            </Button>
+          </Card.Content>
+        </Card>
+      </Animated.View>
+    </CenteredModal>
   )
 }
 
-const { width } = Dimensions.get('window')
+
 
 const styles = StyleSheet.create({
-  modal: {
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
   cardContainer: {
-    width: width * 0.85,
-    maxWidth: 400,
+    width: '100%',
   },
   card: {
     backgroundColor: '#FFFFFF',

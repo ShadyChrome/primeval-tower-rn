@@ -1,9 +1,15 @@
 # Active Context: Primeval Tower
 
 ## Current Work Focus
-**🎨 TREASURE BOX REDESIGN COMPLETE!** Just finished simplifying the TreasureBox component to match user requirements - now features a clean, minimalist design with just a clickable treasure icon and accumulating time display.
+**🎯 MODAL DIALOG SYSTEM IMPLEMENTATION COMPLETE!** Just finished implementing a comprehensive modal dialog system with centered positioning and converted the settings menu to a modern modal dialog for better mobile UX.
 
 ## Recent Changes
+- **🎯 MODAL DIALOG SYSTEM IMPLEMENTATION:** 
+  - Created `CenteredModal` component for consistent modal positioning across all devices
+  - Converted settings menu from dropdown Menu to full `SettingsModal` component for better mobile UX
+  - Updated `LootModal` to use the new centered modal system
+  - All modals now open perfectly centered on the device screen with consistent styling
+  - Added proper Portal-based modal overlay with customizable background opacity
 - **✨ REDESIGNED TREASURE BOX COMPONENT:** 
   - Simplified from complex card-based UI to clean icon + time layout
   - Maintained all core functionality (claiming, animations, timer calculations)

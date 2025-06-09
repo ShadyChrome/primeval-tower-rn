@@ -1,10 +1,11 @@
 import React, { useState } from 'react'
 import { View, StyleSheet, ScrollView } from 'react-native'
-import { Text, Button, IconButton, Menu } from 'react-native-paper'
+import { Text, Button, IconButton } from 'react-native-paper'
 import { LinearGradient } from 'expo-linear-gradient'
 import TreasureBox from '../../components/TreasureBox'
 import ModernCard from '../../components/ui/ModernCard'
 import GradientCard from '../../components/ui/GradientCard'
+import SettingsModal from '../../components/ui/SettingsModal'
 import { PlayerData } from '../../lib/playerManager'
 import { colors, spacing, typography, shadows } from '../theme/designSystem'
 
@@ -27,7 +28,6 @@ export default function HomeScreen({
   const maxFloor = 100
 
   const handleLogout = () => {
-    setSettingsMenuVisible(false)
     if (onLogout) {
       onLogout()
     }
@@ -42,26 +42,14 @@ export default function HomeScreen({
 
   return (
     <View style={styles.container}>
-      {/* Settings Menu */}
+      {/* Settings Button */}
       <View style={styles.headerActions}>
-        <Menu
-          visible={settingsMenuVisible}
-          onDismiss={() => setSettingsMenuVisible(false)}
-          anchor={
-            <IconButton
-              icon="cog"
-              size={24}
-              iconColor="#666666"
-              onPress={() => setSettingsMenuVisible(true)}
-            />
-          }
-        >
-          <Menu.Item
-            onPress={handleLogout}
-            title="Logout"
-            leadingIcon="logout"
-          />
-        </Menu>
+        <IconButton
+          icon="cog"
+          size={24}
+          iconColor="#666666"
+          onPress={() => setSettingsMenuVisible(true)}
+        />
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.contentContainer}>
@@ -158,6 +146,14 @@ export default function HomeScreen({
           </View>
         )}
       </ScrollView>
+
+      {/* Settings Modal */}
+      <SettingsModal
+        visible={settingsMenuVisible}
+        onDismiss={() => setSettingsMenuVisible(false)}
+        onLogout={handleLogout}
+        playerName={playerData?.player.player_name}
+      />
     </View>
   )
 }
