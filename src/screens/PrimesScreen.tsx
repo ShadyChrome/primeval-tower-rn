@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { View, StyleSheet, TouchableOpacity, Dimensions } from 'react-native'
-import { Text, Searchbar, Chip } from 'react-native-paper'
+import { Text, Searchbar, Chip, IconButton } from 'react-native-paper'
 import { RecyclerListView, DataProvider, LayoutProvider } from 'recyclerlistview'
 import { LinearGradient } from 'expo-linear-gradient'
 import { ElementIcon } from '../../components/OptimizedImage'
@@ -29,6 +29,7 @@ export default function PrimesScreen() {
   const [searchQuery, setSearchQuery] = useState('')
   const [filterRarity, setFilterRarity] = useState('all')
   const [filterElement, setFilterElement] = useState('all')
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false)
 
   // Mock data for owned Primes
   const primes: Prime[] = [
@@ -133,6 +134,9 @@ export default function PrimesScreen() {
     return matchesSearch && matchesRarity && matchesElement
   })
 
+  // Check if any filters are active
+  const hasActiveFilters = filterRarity !== 'all' || filterElement !== 'all'
+
   // RecyclerListView setup
   const dataProvider = new DataProvider((r1, r2) => r1.id !== r2.id).cloneWithRows(filteredPrimes)
   
@@ -147,6 +151,10 @@ export default function PrimesScreen() {
   const handlePrimePress = (prime: Prime) => {
     // TODO: Navigate to prime details modal/screen
     console.log('Prime selected:', prime.name)
+  }
+
+  const toggleSearchExpanded = () => {
+    setIsSearchExpanded(!isSearchExpanded)
   }
 
   const renderPrimeCard = (type: string | number, prime: Prime, index: number) => {
@@ -259,38 +267,59 @@ export default function PrimesScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Compact Search & Filter Section */}
+      {/* Collapsible Search & Filter Section */}
       <GradientCard 
         gradientType="aurora" 
         style={styles.searchSection}
         size="small"
         elevation="light"
       >
-        <Searchbar
-          placeholder="Search Primes..."
-          onChangeText={setSearchQuery}
-          value={searchQuery}
-          style={styles.searchBar}
-          inputStyle={styles.searchInput}
-          iconColor={colors.textSecondary}
-          placeholderTextColor={colors.textTertiary}
-        />
-        
-        {renderFilterChip(rarityOptions, filterRarity, setFilterRarity, "Rarity")}
-        {renderFilterChip(elementOptions, filterElement, setFilterElement, "Element")}
-      </GradientCard>
-
-      {/* Collection Stats */}
-      <ModernCard style={styles.statsCard} variant="compact">
-        <View style={styles.statsContent}>
-          <Text variant="titleMedium" style={styles.collectionTitle}>
-            Your Collection
-          </Text>
-          <Text variant="bodyMedium" style={styles.collectionStats}>
-            {filteredPrimes.length} of {primes.length} Primes
-          </Text>
+        {/* Search Bar and Collection Stats Row */}
+        <View style={styles.searchHeaderRow}>
+          <View style={styles.searchBarContainer}>
+            <Searchbar
+              placeholder="Search Primes..."
+              onChangeText={setSearchQuery}
+              value={searchQuery}
+              style={styles.searchBar}
+              inputStyle={styles.searchInput}
+              iconColor={colors.textSecondary}
+              placeholderTextColor={colors.textTertiary}
+            />
+          </View>
+          
+          <View style={styles.headerRightSection}>
+            <View style={styles.collectionStats}>
+              <Text variant="bodySmall" style={styles.collectionCount}>
+                {filteredPrimes.length}/{primes.length}
+              </Text>
+              <Text variant="bodySmall" style={styles.collectionLabel}>
+                Primes
+              </Text>
+            </View>
+            
+            <TouchableOpacity 
+              onPress={toggleSearchExpanded}
+              style={styles.expandButton}
+            >
+              <IconButton
+                icon={isSearchExpanded ? "chevron-up" : "tune"}
+                size={20}
+                iconColor={hasActiveFilters ? colors.primary : colors.textSecondary}
+                style={styles.expandIcon}
+              />
+            </TouchableOpacity>
+          </View>
         </View>
-      </ModernCard>
+        
+        {/* Collapsible Filters */}
+        {isSearchExpanded && (
+          <View style={styles.filtersContainer}>
+            {renderFilterChip(rarityOptions, filterRarity, setFilterRarity, "Rarity")}
+            {renderFilterChip(elementOptions, filterElement, setFilterElement, "Element")}
+          </View>
+        )}
+      </GradientCard>
 
       {/* Primes Grid with RecyclerListView */}
       <View style={styles.gridContainer}>
@@ -316,14 +345,53 @@ const styles = StyleSheet.create({
     margin: spacing.lg,
     marginBottom: spacing.md,
   },
+  searchHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  searchBarContainer: {
+    flex: 1,
+  },
   searchBar: {
     backgroundColor: colors.surface,
-    marginBottom: spacing.md,
     borderRadius: 12,
     elevation: 0,
   },
   searchInput: {
     fontSize: 14,
+  },
+  headerRightSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  collectionStats: {
+    alignItems: 'center',
+    minWidth: 50,
+  },
+  collectionCount: {
+    ...typography.caption,
+    fontWeight: '700',
+    color: colors.primary,
+    fontSize: 13,
+  },
+  collectionLabel: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    fontSize: 10,
+  },
+  expandButton: {
+    borderRadius: 20,
+  },
+  expandIcon: {
+    margin: 0,
+  },
+  filtersContainer: {
+    marginTop: spacing.md,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.surface + '40',
   },
   filterGroup: {
     marginBottom: spacing.sm,
@@ -357,24 +425,6 @@ const styles = StyleSheet.create({
   },
   selectedChipText: {
     color: colors.surface,
-    fontWeight: '600',
-  },
-  statsCard: {
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.md,
-  },
-  statsContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  collectionTitle: {
-    ...typography.subheading,
-    fontSize: 18,
-  },
-  collectionStats: {
-    ...typography.body,
-    color: colors.primary,
     fontWeight: '600',
   },
   gridContainer: {
