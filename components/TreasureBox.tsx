@@ -77,7 +77,7 @@ export default function TreasureBox({ playerId, onGemsUpdated }: TreasureBoxProp
       lastClaimDate: lastClaimDate.toISOString(),
       now: now.toISOString(),
       diffInSeconds,
-      diffInHours: diffInSeconds / 3600
+      diffInMinutes: diffInSeconds / 60
     })
 
     // Cap at 30 hours (108000 seconds)
@@ -90,14 +90,16 @@ export default function TreasureBox({ playerId, onGemsUpdated }: TreasureBoxProp
     // Format as hh:mm:ss
     const formattedTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
     
-    // Calculate client-side accumulated gems
-    const hoursElapsed = Math.min(diffInSeconds / 3600, 30)
-    const calculatedGems = Math.floor(hoursElapsed * (currentStatus.gems_per_hour || 10))
+    // Calculate client-side accumulated gems based on minutes (1 gem per minute)
+    // Note: gems_per_hour from server is 60 (representing 1 gem per minute)
+    // but we calculate directly from minutes for more precise client-side updates
+    const minutesElapsed = Math.min(diffInSeconds / 60, 30 * 60) // Cap at 30 hours = 1800 minutes
+    const calculatedGems = Math.floor(minutesElapsed) // 1 gem per minute
     const cappedGems = Math.min(calculatedGems, currentStatus.max_storage || 300)
     
     console.log('⏰ Client calculation:', {
       formattedTime,
-      hoursElapsed,
+      minutesElapsed,
       calculatedGems: cappedGems
     })
     
