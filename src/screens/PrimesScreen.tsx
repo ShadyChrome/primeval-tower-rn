@@ -3,8 +3,8 @@ import { View, StyleSheet, TouchableOpacity, Dimensions } from 'react-native'
 import { Text, Searchbar, Chip, IconButton } from 'react-native-paper'
 import { RecyclerListView, DataProvider, LayoutProvider } from 'recyclerlistview'
 import { LinearGradient } from 'expo-linear-gradient'
-import { ElementIcon } from '../../components/OptimizedImage'
-import { ElementType } from '../assets/ImageAssets'
+import { ElementIcon, PrimeImage } from '../../components/OptimizedImage'
+import { ElementType, PrimeImageType, ImageAssets } from '../assets/ImageAssets'
 import ModernCard from '../../components/ui/ModernCard'
 import GradientCard from '../../components/ui/GradientCard'
 import { colors, spacing, typography, shadows } from '../theme/designSystem'
@@ -12,12 +12,12 @@ import { colors, spacing, typography, shadows } from '../theme/designSystem'
 interface Prime {
   id: string
   name: string
-  element: string
-  rarity: string
+  element: ElementType
+  rarity: 'Common' | 'Uncommon' | 'Rare' | 'Epic' | 'Legendary'
   level: number
   power: number
   abilities: string[]
-  image?: string // For future image implementation
+  imageName?: PrimeImageType
 }
 
 interface RowData {
@@ -40,79 +40,220 @@ export default function PrimesScreen() {
   const [filterElement, setFilterElement] = useState('all')
   const [isSearchExpanded, setIsSearchExpanded] = useState(false)
 
-  // Mock data for owned Primes
+  // Real mock data using actual prime assets
   const primes: Prime[] = [
+    // Ignis Primes
     {
       id: '1',
-      name: 'Flamewyrm',
+      name: 'Rathalos',
       element: 'Ignis',
       rarity: 'Epic',
       level: 25,
-      power: 847,
-      abilities: ['Fire Blast', 'Ember Shield', 'Flame Burst', 'Inferno']
+      power: 1247,
+      abilities: ['Fire Blast', 'Aerial Claw', 'Fireball', 'King of the Skies'],
+      imageName: 'Rathalos'
     },
     {
       id: '2',
-      name: 'Crystalhorn',
-      element: 'Geo',
+      name: 'Rathian',
+      element: 'Ignis',
       rarity: 'Rare',
-      level: 18,
-      power: 623,
-      abilities: ['Rock Throw', 'Stone Armor', 'Earthquake']
+      level: 22,
+      power: 1089,
+      abilities: ['Poison Tail', 'Fire Breath', 'Spike Barrage'],
+      imageName: 'Rathian'
     },
     {
       id: '3',
-      name: 'Tidecaller',
-      element: 'Azur',
-      rarity: 'Uncommon',
-      level: 12,
-      power: 345,
-      abilities: ['Water Splash', 'Bubble Shield']
+      name: 'Teostra',
+      element: 'Ignis',
+      rarity: 'Legendary',
+      level: 35,
+      power: 1892,
+      abilities: ['Supernova', 'Blast Powder', 'Fire Aura', 'Emperor\'s Roar'],
+      imageName: 'Teostra'
     },
+    
+    // Vitae Primes
     {
       id: '4',
-      name: 'Stormrider',
-      element: 'Tempest',
-      rarity: 'Legendary',
-      level: 30,
-      power: 1245,
-      abilities: ['Lightning Strike', 'Thunder Roar', 'Storm Fury', 'Hurricane']
+      name: 'Pukei-Pukei',
+      element: 'Vitae',
+      rarity: 'Uncommon',
+      level: 15,
+      power: 543,
+      abilities: ['Poison Spit', 'Tail Swing', 'Toxic Cloud'],
+      imageName: 'Pukei-Pukei'
     },
     {
       id: '5',
-      name: 'Leafdancer',
+      name: 'Great Izuchi',
       element: 'Vitae',
-      rarity: 'Rare',
-      level: 22,
-      power: 712,
-      abilities: ['Vine Whip', 'Photosynthesis', 'Nature\'s Blessing']
-    },
-    {
-      id: '6',
-      name: 'Skywhisper',
-      element: 'Aeris',
-      rarity: 'Epic',
-      level: 27,
-      power: 892,
-      abilities: ['Wind Slash', 'Gust Shield', 'Tornado']
-    },
-    {
-      id: '7',
-      name: 'Emberkin',
-      element: 'Ignis',
       rarity: 'Common',
       level: 8,
       power: 234,
-      abilities: ['Spark', 'Heat Wave']
+      abilities: ['Pack Leader', 'Tail Blade', 'Swift Strike'],
+      imageName: 'Great Izuchi'
+    },
+    {
+      id: '6',
+      name: 'Bishaten',
+      element: 'Vitae',
+      rarity: 'Rare',
+      level: 19,
+      power: 756,
+      abilities: ['Fruit Throw', 'Tail Grab', 'Acrobatic Leap', 'Persimmon Bomb'],
+      imageName: 'Bishaten'
+    },
+    
+    // Azur Primes
+    {
+      id: '7',
+      name: 'Mizutsune',
+      element: 'Azur',
+      rarity: 'Epic',
+      level: 28,
+      power: 1334,
+      abilities: ['Bubble Beam', 'Water Jet', 'Graceful Dance', 'Soap Bubble'],
+      imageName: 'Mizutsune'
     },
     {
       id: '8',
-      name: 'Aquaflow',
+      name: 'Somnacanth',
       element: 'Azur',
       rarity: 'Rare',
-      level: 19,
-      power: 667,
-      abilities: ['Water Pulse', 'Tidal Wave', 'Healing Spring']
+      level: 17,
+      power: 687,
+      abilities: ['Sleep Beam', 'Claw Swipe', 'Drowsy Mist'],
+      imageName: 'Somnacanth'
+    },
+    {
+      id: '9',
+      name: 'VioletMizu',
+      element: 'Azur',
+      rarity: 'Epic',
+      level: 31,
+      power: 1456,
+      abilities: ['Violet Beam', 'Mystic Dance', 'Enchanted Bubbles', 'Royal Grace'],
+      imageName: 'VioletMizu'
+    },
+    
+    // Geo Primes
+    {
+      id: '10',
+      name: 'Basarios',
+      element: 'Geo',
+      rarity: 'Uncommon',
+      level: 12,
+      power: 445,
+      abilities: ['Rock Shield', 'Sleep Gas', 'Body Slam'],
+      imageName: 'Basarios'
+    },
+    {
+      id: '11',
+      name: 'Garangolm',
+      element: 'Geo',
+      rarity: 'Epic',
+      level: 29,
+      power: 1398,
+      abilities: ['Earth Punch', 'Rock Barrage', 'Seismic Slam', 'Boulder Throw'],
+      imageName: 'Garangolm'
+    },
+    
+    // Tempest Primes
+    {
+      id: '12',
+      name: 'Zinogre',
+      element: 'Tempest',
+      rarity: 'Epic',
+      level: 27,
+      power: 1312,
+      abilities: ['Lightning Strike', 'Thunder Howl', 'Electric Charge', 'Storm Fury'],
+      imageName: 'Zinogre'
+    },
+    {
+      id: '13',
+      name: 'Astalos',
+      element: 'Tempest',
+      rarity: 'Rare',
+      level: 21,
+      power: 934,
+      abilities: ['Electric Dive', 'Wing Spark', 'Thunder Claw'],
+      imageName: 'Astalos'
+    },
+    {
+      id: '14',
+      name: 'Kulu-Ya-Ku',
+      element: 'Tempest',
+      rarity: 'Common',
+      level: 6,
+      power: 189,
+      abilities: ['Rock Throw', 'Peck', 'Boulder Slam'],
+      imageName: 'Kulu-Ya-Ku'
+    },
+    
+    // Aeris Primes
+    {
+      id: '15',
+      name: 'Nargacuga',
+      element: 'Aeris',
+      rarity: 'Rare',
+      level: 24,
+      power: 1123,
+      abilities: ['Shadow Strike', 'Tail Slam', 'Stealth Mode', 'Razor Sharp'],
+      imageName: 'Nargacuga'
+    },
+    {
+      id: '16',
+      name: 'Kushala Daora',
+      element: 'Aeris',
+      rarity: 'Legendary',
+      level: 33,
+      power: 1756,
+      abilities: ['Wind Barrier', 'Tornado', 'Steel Hurricane', 'Elder Wind'],
+      imageName: 'Kushala Daora'
+    },
+    {
+      id: '17',
+      name: 'Barioth',
+      element: 'Aeris',
+      rarity: 'Rare',
+      level: 20,
+      power: 867,
+      abilities: ['Ice Fang', 'Blizzard Rush', 'Frost Claw'],
+      imageName: 'Barioth'
+    },
+    
+    // Special/Legendary Primes
+    {
+      id: '18',
+      name: 'Magnamalo',
+      element: 'Tempest',
+      rarity: 'Legendary',
+      level: 32,
+      power: 1698,
+      abilities: ['Hellfire', 'Explosive Blast', 'Rampage Mode', 'Calamity Strike'],
+      imageName: 'Magnamalo'
+    },
+    {
+      id: '19',
+      name: 'Malzeno',
+      element: 'Aeris',
+      rarity: 'Legendary',
+      level: 36,
+      power: 1934,
+      abilities: ['Bloodblight', 'Vampire Strike', 'Dark Wing', 'Crimson Glow'],
+      imageName: 'Malzeno'
+    },
+    {
+      id: '20',
+      name: 'Gaismagorm',
+      element: 'Geo',
+      rarity: 'Legendary',
+      level: 38,
+      power: 2156,
+      abilities: ['Qurio Explosion', 'Energy Drain', 'Archfiend Roar', 'Apocalypse'],
+      imageName: 'Gaismagorm'
     },
   ]
 
@@ -200,7 +341,7 @@ export default function PrimesScreen() {
         <View style={styles.rarityCorner}>
           <View style={[
             styles.rarityBadge,
-            { backgroundColor: rarityColors[prime.rarity as keyof typeof rarityColors] }
+            { backgroundColor: rarityColors[prime.rarity] }
           ]}>
             <Text variant="bodySmall" style={styles.rarityText}>
               {prime.rarity.charAt(0)}
@@ -211,19 +352,28 @@ export default function PrimesScreen() {
         {/* Prime Image Container */}
         <View style={[
           styles.primeImageContainer,
-          { backgroundColor: elementColors[prime.element as keyof typeof elementColors] + '20' }
+          { backgroundColor: elementColors[prime.element] + '20' }
         ]}>
-          <ElementIcon 
-            element={prime.element as ElementType} 
-            size="large" 
-          />
+          {prime.imageName ? (
+            <PrimeImage 
+              primeName={prime.imageName}
+              width={cardWidth * 0.7}
+              height={cardWidth * 0.7}
+              style={styles.primeImage}
+            />
+          ) : (
+            <ElementIcon 
+              element={prime.element} 
+              size="large" 
+            />
+          )}
         </View>
         
         {/* Prime Info - Vertically Centered */}
         <View style={styles.primeInfo}>
           <View style={styles.nameElementRow}>
             <ElementIcon 
-              element={prime.element as ElementType} 
+              element={prime.element} 
               size="small" 
               style={styles.elementIconSmall}
             />
@@ -518,6 +668,9 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     marginBottom: spacing.xs,
+  },
+  primeImage: {
+    borderRadius: 8,
   },
   primeInfo: {
     flex: 1,

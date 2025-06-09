@@ -23,7 +23,7 @@ export default function App() {
 
   useEffect(() => {
     // Preload images for better performance
-    ImageAssets.preloadElementImages()
+    ImageAssets.preloadAllImages()
     checkPlayerStatus()
   }, [])
 

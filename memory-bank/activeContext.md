@@ -1,18 +1,26 @@
 # Active Context: Primeval Tower
 
 ## Current Work Focus
-**🎯 PRIMES SCREEN REDESIGN COMPLETE!** Just finished implementing a comprehensive redesign of the PrimesScreen with modern styling, compact search section, and 4-column grid layout following the established design system.
+**🎯 REAL PRIME ASSETS INTEGRATION COMPLETE!** Just finished implementing a comprehensive asset management system with real prime images and updated the PrimesScreen to use actual game assets instead of placeholder data.
 
 ## Recent Changes
-- **🎨 PRIMES SCREEN REDESIGN:** 
+- **🖼️ REAL PRIME ASSETS INTEGRATION:** 
+  - **Enhanced ImageAssets System:** Expanded to include 50+ prime images with proper categorization by element
+  - **PrimeImage Component:** Created optimized component for displaying prime images with performance caching
+  - **Real Mock Data:** Replaced placeholder data with 20 realistic primes using actual Monster Hunter-style assets
+  - **Asset Organization:** Properly mapped primes to elements (Ignis, Vitae, Azur, Geo, Tempest, Aeris)
+  - **Type Safety:** Added PrimeImageType for compile-time asset validation
+  - **Performance Optimization:** Implemented caching and preloading for smooth image rendering
+  - **Fallback System:** Graceful fallbacks for missing assets with proper error handling
+- **🎨 PRIMES SCREEN REDESIGN COMPLETE!** 
   - **Compact Search Section:** Replaced bulky SegmentedButtons with elegant chip-based filters
-  - **4-Column Grid Layout:** Implemented responsive grid with max 4 primes per row using FlatList with numColumns
-  - **Modern Prime Cards:** Created compact cards showing name, level, element icon, rarity badge, and colored element backgrounds
+  - **4-Column Grid Layout (Updated to 3):** Implemented responsive grid with RecyclerListView
+  - **Modern Prime Cards:** Cards now display actual prime images with proper scaling and styling
   - **Clickable Cards:** Added TouchableOpacity wrapper with handlePrimePress function for future prime details expansion
   - **Gradient Search Header:** Used GradientCard with aurora gradient for beautiful search section
-  - **Comprehensive Filters:** Added all rarity levels (common to legendary) and all elements (6 total) as chip filters
-  - **Modern Styling:** Applied design system colors, spacing, and typography throughout
-  - **Performance Optimized:** Used proper FlatList implementation with calculated card dimensions
+  - **Comprehensive Filters:** Added all rarity levels and all elements as chip filters
+  - **Collapsible Search:** Default collapsed state with integrated collection stats for space efficiency
+  - **Perfect Spacing:** Implemented proper aligned spacing between all prime cards using row-based layout
 - **🎯 MODAL DIALOG SYSTEM IMPLEMENTATION COMPLETE!** 
   - Created `CenteredModal` component for consistent modal positioning across all devices
   - Converted settings menu from dropdown Menu to full `SettingsModal` component for better mobile UX
@@ -35,12 +43,13 @@
   - **LoginScreen:** Now features gradient background with beautiful gradient cards
   - **HomeScreen:** Modernized with GradientCard for main actions and ModernCard for content
   - **PlayerNameScreen:** Elegant gradient background with sophisticated input cards
-  - **PrimesScreen:** Complete redesign with modern grid layout and compact search
+  - **PrimesScreen:** Complete redesign with modern grid layout, collapsible search, and real prime assets
 - **🛠️ CREATED REUSABLE COMPONENTS:**
   - `GradientCard`: Beautiful gradient cards with multiple color themes
   - `ModernCard`: Clean cards with proper shadows and spacing
+  - `PrimeImage`: Optimized prime image component with caching and fallbacks
   - `ProgressCard`: Wellness-inspired progress tracking (ready for implementation)
-- **📦 INSTALLED DEPENDENCIES:** Added expo-linear-gradient for beautiful gradient effects
+- **📦 INSTALLED DEPENDENCIES:** Added expo-linear-gradient and recyclerlistview for beautiful effects and performance
 - **🎯 DESIGN SYSTEM:** Created `/src/theme/designSystem.ts` with complete color palette, typography, spacing, and styling standards
 
 ## Next Steps
@@ -48,6 +57,7 @@
    - Show detailed prime information: stats, abilities, power, runes, etc.
    - Add rune equipment interface
    - Include upgrade/level up functionality
+   - Display full-size prime images with animations
 2. **🎨 COMPLETE DESIGN ROLLOUT:** Apply the new design system to remaining screens:
    - Transform HatchingScreen, BagScreen, ShopScreen with new components
    - Update MainNavigation with new styling
@@ -58,17 +68,21 @@
 6. **🔗 BACKEND INTEGRATION:** Connect screens to Supabase for data persistence
 
 ## Active Decisions and Considerations
-- **UI Component Library:** Deciding whether to build all UI components from scratch or use a library to speed up development. The key is to ensure the chosen approach can deliver the desired "warm, pastel, flat" aesthetic.
+- **Asset Management:** Established a robust asset management system that can easily scale to include more primes, animations, and other game assets
+- **Performance Strategy:** Using caching, preloading, and optimized components to ensure smooth performance even with large image assets
 
 ## Important Patterns and Preferences
 - **Documentation-First:** The creation of the Memory Bank at the project's inception establishes a preference for maintaining thorough documentation throughout the development lifecycle.
 - **Clear Separation of Concerns:** The initial architecture proposal separates the client, backend, UI, and game logic, indicating a preference for clean, maintainable code.
 - **Minimalist Design Preference:** User prefers clean, simple components over complex UI elements (as demonstrated with TreasureBox redesign and PrimesScreen grid layout)
-- **Performance-First Approach:** Using FlatList with proper optimization for grid layouts and responsive card calculations
+- **Performance-First Approach:** Using RecyclerListView with proper optimization for grid layouts and responsive card calculations
+- **Asset Organization:** Preference for well-organized, type-safe asset management with proper fallbacks and error handling
 
 ## Learnings and Project Insights
 - The game design is well-defined but complex, with many interconnected systems (Primes, Elements, Hatching, Combat, Runes). A methodical, feature-by-feature approach will be necessary.
 - The project's success heavily relies on getting the "feel" right, both in terms of the relaxing UI and the engaging combat loop. Early prototyping and user feedback will be valuable.
 - Users prefer clean, functional designs over feature-heavy interfaces - simplicity is key.
 - Grid layouts with proper responsive calculations provide much better UX than single-column lists for collection screens.
-- Consistent design system application across all screens creates a cohesive, professional appearance. 
+- Consistent design system application across all screens creates a cohesive, professional appearance.
+- Real assets make a dramatic difference in the app's visual appeal and user engagement - the prime cards now look like a professional game.
+- Proper asset management from the beginning saves significant refactoring time later in development. 

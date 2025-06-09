@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Image, ImageStyle, ViewStyle, ActivityIndicator, View } from 'react-native'
-import { ImageAssets, ElementType } from '../src/assets/ImageAssets'
+import { ImageAssets, ElementType, PrimeImageType } from '../src/assets/ImageAssets'
 
 interface OptimizedImageProps {
   element: ElementType
@@ -10,6 +10,25 @@ interface OptimizedImageProps {
   showLoadingIndicator?: boolean
   resizeMode?: 'contain' | 'cover' | 'stretch' | 'center'
   lazy?: boolean
+}
+
+interface ElementIconProps {
+  element: ElementType
+  size?: 'small' | 'medium' | 'large'
+  style?: ImageStyle
+}
+
+interface PrimeImageProps {
+  primeName: PrimeImageType
+  style?: ImageStyle
+  width?: number
+  height?: number
+}
+
+const sizeMap = {
+  small: 20,
+  medium: 32,
+  large: 48,
 }
 
 export const OptimizedImage: React.FC<OptimizedImageProps> = ({
@@ -83,25 +102,54 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
   )
 }
 
-// Element Icon component for consistent sizing
-export const ElementIcon: React.FC<{
-  element: ElementType
-  size?: 'small' | 'medium' | 'large'
-  style?: ImageStyle
-}> = ({ element, size = 'medium', style }) => {
-  const sizeMap = {
-    small: 24,
-    medium: 32,
-    large: 48,
-  }
-
+export function ElementIcon({ element, size = 'medium', style }: ElementIconProps) {
+  const imageSize = sizeMap[size]
+  
   return (
-    <OptimizedImage
-      element={element}
-      size={sizeMap[size]}
-      style={style}
-      lazy={false}
-      showLoadingIndicator={false}
+    <Image
+      source={ImageAssets.getElementImage(element)}
+      style={[
+        {
+          width: imageSize,
+          height: imageSize,
+          resizeMode: 'contain',
+        },
+        style,
+      ]}
+      // Add performance optimizations
+      resizeMode="contain"
+      fadeDuration={0}
     />
   )
+}
+
+export function PrimeImage({ primeName, style, width = 100, height = 100 }: PrimeImageProps) {
+  return (
+    <Image
+      source={ImageAssets.getPrimeImage(primeName)}
+      style={[
+        {
+          width,
+          height,
+          resizeMode: 'contain',
+        },
+        style,
+      ]}
+      // Add performance optimizations
+      resizeMode="contain"
+      fadeDuration={0}
+    />
+  )
+}
+
+// Performance optimization: Preload images on app start
+export const preloadImages = () => {
+  ImageAssets.preloadAllImages()
+}
+
+// Export individual components
+export default {
+  ElementIcon,
+  PrimeImage,
+  preloadImages,
 } 
