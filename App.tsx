@@ -4,7 +4,6 @@ import {
   Provider as PaperProvider,
   Button,
   Text,
-  MD3LightTheme,
 } from 'react-native-paper'
 import { PlayerManager, PlayerData } from './lib/playerManager'
 import { StatusBar } from 'expo-status-bar'
@@ -12,20 +11,7 @@ import LoginScreen from './src/screens/LoginScreen'
 import PlayerNameScreen from './src/screens/PlayerNameScreen'
 import MainNavigation from './components/MainNavigation'
 import { ImageAssets } from './src/assets/ImageAssets'
-
-// Define a custom theme that fits the "warm, pastel, flat" description
-const theme = {
-  ...MD3LightTheme,
-  colors: {
-    ...MD3LightTheme.colors,
-    primary: '#A0C49D', // A soft, pastel green
-    secondary: '#C4D7B2',
-    background: '#F7EFE5',
-    surface: '#FFFFFF',
-    text: '#333333',
-  },
-  roundness: 2,
-}
+import { theme, colors } from './src/theme/designSystem'
 
 // App state types
 type AppState = 'loading' | 'needsPlayerName' | 'loggedIn' | 'loginScreen'
@@ -237,6 +223,6 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#666666',
+    color: colors.textSecondary,
   },
 })

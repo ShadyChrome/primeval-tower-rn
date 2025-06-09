@@ -4,11 +4,13 @@ import {
   Text, 
   TextInput, 
   Button, 
-  Surface, 
-  Card,
   ActivityIndicator 
 } from 'react-native-paper'
+import { LinearGradient } from 'expo-linear-gradient'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import GradientCard from '../../components/ui/GradientCard'
+import ModernCard from '../../components/ui/ModernCard'
+import { colors, spacing, typography, shadows } from '../theme/designSystem'
 
 interface PlayerNameScreenProps {
   onCreatePlayer: (playerName: string) => Promise<void>
@@ -68,22 +70,31 @@ export default function PlayerNameScreen({
   }
 
   return (
-    <KeyboardAvoidingView 
-      style={[styles.container, { paddingTop: insets.top }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    <LinearGradient
+      colors={colors.gradients.aurora as [string, string]}
+      style={styles.container}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
     >
-      <View style={styles.content}>
-        <Surface style={styles.headerSurface} elevation={2}>
-          <Text variant="headlineMedium" style={styles.title}>
-            Welcome to Primeval Tower! 🏰
-          </Text>
-          <Text variant="bodyLarge" style={styles.subtitle}>
-            Choose your adventurer name
-          </Text>
-        </Surface>
+      <KeyboardAvoidingView 
+        style={[styles.keyboardView, { paddingTop: insets.top }]}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <View style={styles.content}>
+          <GradientCard 
+            gradientType="sunset" 
+            style={styles.headerCard}
+            size="large"
+          >
+            <Text variant="headlineMedium" style={styles.title}>
+              Welcome to Primeval Tower! 🏰
+            </Text>
+            <Text variant="bodyLarge" style={styles.subtitle}>
+              Choose your adventurer name
+            </Text>
+          </GradientCard>
 
-        <Card style={styles.inputCard}>
-          <Card.Content>
+          <ModernCard variant="large" style={styles.inputCard}>
             <Text variant="titleMedium" style={styles.inputLabel}>
               Player Name
             </Text>
@@ -109,8 +120,7 @@ export default function PlayerNameScreen({
               • Letters, numbers, spaces, _, - only
               • This will be displayed in the game
             </Text>
-          </Card.Content>
-        </Card>
+          </ModernCard>
 
         <View style={styles.buttonContainer}>
           {isLoading ? (
@@ -146,87 +156,90 @@ export default function PlayerNameScreen({
         </View>
       </View>
     </KeyboardAvoidingView>
+    </LinearGradient>
   )
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7EFE5',
+  },
+  keyboardView: {
+    flex: 1,
   },
   content: {
     flex: 1,
-    padding: 20,
+    padding: spacing.lg,
     justifyContent: 'space-between',
   },
-  headerSurface: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 24,
+  headerCard: {
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: spacing.xl,
   },
   title: {
+    ...typography.heading,
+    color: colors.surface,
     textAlign: 'center',
-    color: '#333333',
-    fontWeight: '600',
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   subtitle: {
+    ...typography.body,
+    color: colors.surface,
+    opacity: 0.9,
     textAlign: 'center',
-    color: '#666666',
   },
   inputCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    marginBottom: 24,
+    marginBottom: spacing.xl,
   },
   inputLabel: {
-    marginBottom: 12,
-    color: '#333333',
-    fontWeight: '500',
+    ...typography.subheading,
+    marginBottom: spacing.md,
   },
   textInput: {
-    marginBottom: 8,
+    marginBottom: spacing.sm,
+    backgroundColor: colors.surface,
   },
   textInputContent: {
     fontSize: 16,
   },
   errorText: {
-    color: '#D32F2F',
-    marginBottom: 8,
+    color: '#E57373',
+    marginBottom: spacing.sm,
+    fontSize: 14,
   },
   helperText: {
-    color: '#666666',
+    ...typography.caption,
     lineHeight: 18,
   },
   buttonContainer: {
-    marginBottom: 24,
+    marginBottom: spacing.xl,
   },
   loadingContainer: {
     alignItems: 'center',
-    paddingVertical: 20,
+    paddingVertical: spacing.lg,
   },
   loadingText: {
-    marginTop: 12,
-    color: '#666666',
+    ...typography.body,
+    marginTop: spacing.md,
   },
   createButton: {
-    borderRadius: 8,
+    backgroundColor: colors.primary,
+    borderRadius: 16,
+    ...shadows.light,
   },
   createButtonContent: {
-    paddingVertical: 8,
+    paddingVertical: spacing.md,
   },
   bottomInfo: {
     alignItems: 'center',
   },
   infoText: {
-    color: '#666666',
-    marginBottom: 8,
-    fontWeight: '500',
+    ...typography.body,
+    marginBottom: spacing.sm,
+    fontWeight: '600',
   },
   starterItems: {
-    color: '#666666',
+    ...typography.body,
     textAlign: 'center',
     lineHeight: 20,
   },

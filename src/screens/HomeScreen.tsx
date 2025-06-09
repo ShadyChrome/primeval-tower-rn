@@ -1,8 +1,12 @@
 import React, { useState } from 'react'
 import { View, StyleSheet, ScrollView } from 'react-native'
-import { Text, Card, Button, Surface, IconButton, Menu } from 'react-native-paper'
+import { Text, Button, IconButton, Menu } from 'react-native-paper'
+import { LinearGradient } from 'expo-linear-gradient'
 import TreasureBox from '../../components/TreasureBox'
+import ModernCard from '../../components/ui/ModernCard'
+import GradientCard from '../../components/ui/GradientCard'
 import { PlayerData } from '../../lib/playerManager'
+import { colors, spacing, typography, shadows } from '../theme/designSystem'
 
 interface HomeScreenProps {
   onLogout?: () => void
@@ -79,7 +83,11 @@ export default function HomeScreen({
               />
             )}
             
-            <Surface style={styles.battlePromptCard} elevation={3}>
+            <GradientCard 
+              gradientType="sunset" 
+              style={styles.battlePromptCard}
+              size="large"
+            >
               <View style={styles.battlePromptContent}>
                 <Text variant="titleLarge" style={styles.battlePromptTitle}>
                   Continue Your Journey
@@ -96,7 +104,7 @@ export default function HomeScreen({
                   Enter Tower
                 </Button>
               </View>
-            </Surface>
+            </GradientCard>
           </View>
         ) : (
           /* Tower Battle Section */
@@ -117,7 +125,7 @@ export default function HomeScreen({
               Floor {currentFloor} of {maxFloor}
             </Text>
             
-            <Surface style={styles.towerCard} elevation={3}>
+            <ModernCard variant="large" style={styles.towerCard}>
               <View style={styles.towerInfo}>
                 <Text variant="titleLarge" style={styles.floorNumber}>
                   Floor {currentFloor}
@@ -146,7 +154,7 @@ export default function HomeScreen({
                   View Team
                 </Button>
               </View>
-            </Surface>
+            </ModernCard>
           </View>
         )}
       </ScrollView>
@@ -157,40 +165,36 @@ export default function HomeScreen({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7EFE5',
+    backgroundColor: colors.background,
   },
   headerActions: {
     position: 'absolute',
-    top: 8,
-    right: 8,
+    top: spacing.sm,
+    right: spacing.sm,
     zIndex: 1,
   },
   scrollView: {
     flex: 1,
   },
   contentContainer: {
-    padding: 16,
+    padding: spacing.lg,
   },
   mainHomeSection: {
-    marginBottom: 24,
+    marginBottom: spacing.xl,
     alignItems: 'center',
   },
   welcomeTitle: {
-    fontWeight: '700',
-    color: '#333333',
-    marginBottom: 8,
+    ...typography.heading,
+    marginBottom: spacing.sm,
     textAlign: 'center',
   },
   welcomeSubtitle: {
-    color: '#666666',
-    marginBottom: 24,
+    ...typography.body,
+    marginBottom: spacing.xl,
     textAlign: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.md,
   },
   battlePromptCard: {
-    padding: 24,
-    borderRadius: 12,
-    backgroundColor: 'white',
     width: '100%',
     alignItems: 'center',
   },
@@ -198,79 +202,83 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   battlePromptTitle: {
-    fontWeight: '700',
-    color: '#333333',
-    marginBottom: 8,
+    ...typography.subheading,
+    color: colors.surface,
+    marginBottom: spacing.sm,
     textAlign: 'center',
   },
   battlePromptDescription: {
-    color: '#666666',
-    marginBottom: 20,
+    ...typography.body,
+    color: colors.surface,
+    opacity: 0.9,
+    marginBottom: spacing.lg,
     textAlign: 'center',
   },
   mainBattleButton: {
-    backgroundColor: '#A0C49D',
+    backgroundColor: colors.surface,
     minWidth: 150,
+    borderRadius: 16,
+    ...shadows.light,
   },
   mainBattleButtonContent: {
-    paddingVertical: 12,
-    paddingHorizontal: 24,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
   },
   towerSection: {
-    marginBottom: 24,
+    marginBottom: spacing.xl,
   },
   towerHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   backButton: {
-    marginRight: 8,
-    marginLeft: -8,
+    marginRight: spacing.sm,
+    marginLeft: -spacing.sm,
   },
   sectionTitle: {
-    fontWeight: '600',
-    color: '#333333',
-    marginBottom: 8,
+    ...typography.subheading,
+    marginBottom: spacing.sm,
   },
   floorProgress: {
-    color: '#666666',
-    marginBottom: 16,
+    ...typography.body,
+    marginBottom: spacing.md,
   },
   towerCard: {
-    padding: 20,
-    borderRadius: 12,
-    backgroundColor: 'white',
+    // Card styles are handled by ModernCard component
   },
   towerInfo: {
-    marginBottom: 20,
+    marginBottom: spacing.lg,
   },
   floorNumber: {
-    fontWeight: '700',
-    color: '#A0C49D',
-    marginBottom: 4,
+    ...typography.subheading,
+    color: colors.primary,
+    marginBottom: spacing.xs,
   },
   floorDescription: {
-    color: '#333333',
-    marginBottom: 8,
+    ...typography.body,
+    color: colors.text,
+    marginBottom: spacing.sm,
   },
   floorHint: {
-    color: '#666666',
+    ...typography.caption,
     fontStyle: 'italic',
   },
   actionButtons: {
     flexDirection: 'row',
-    gap: 12,
+    gap: spacing.md,
   },
   battleButton: {
     flex: 1,
-    backgroundColor: '#A0C49D',
+    backgroundColor: colors.primary,
+    borderRadius: 16,
   },
   secondaryButton: {
     flex: 1,
-    borderColor: '#A0C49D',
+    borderColor: colors.primary,
+    borderRadius: 16,
   },
   buttonContent: {
-    paddingVertical: 8,
+    paddingVertical: spacing.sm,
   },
 }) 

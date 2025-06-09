@@ -13,7 +13,16 @@ Primeval Tower is a mobile game where players fight with "Primes" in arena battl
 ## Goals
 - Create an engaging and relaxing gameplay experience.
 - Implement a fair and enticing monetization model.
-- Design a modern, flat, and warm user interface with a pastel color theme.
+- Design a modern, soft, and beautiful user interface with **pastel colors, gradients, and card-based layouts** inspired by wellness/mindfulness apps.
+
+## Design Language
+**NEW: Beautiful, Modern Design System**
+- **Soft pastel color palette**: Coral, lavender, mint, peach tones
+- **Gradient backgrounds**: Smooth linear gradients throughout the app
+- **Card-based layouts**: Modern cards with rounded corners and elegant shadows
+- **Generous spacing**: Clean, breathable layouts with proper visual hierarchy
+- **Friendly typography**: Readable fonts with clear hierarchy
+- **Wellness aesthetic**: Calming, nurturing feel rather than aggressive gaming UI
 
 ## Project Scope
 **In Scope:**
