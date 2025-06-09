@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { View, StyleSheet, TouchableOpacity, Animated } from 'react-native'
 import { Text, ActivityIndicator } from 'react-native-paper'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
+import { useFocusEffect } from '@react-navigation/native'
 import { TreasureBoxManager } from '../lib/treasureBoxManager'
 import { TreasureBoxStatus } from '../types/supabase'
 import LootModal from './LootModal'
@@ -29,21 +30,38 @@ export default function TreasureBox({ playerId, onGemsUpdated }: TreasureBoxProp
   const glowLoopRef = useRef<Animated.CompositeAnimation | null>(null)
   const shakeLoopRef = useRef<Animated.CompositeAnimation | null>(null)
   
+  // Timer reference for cleanup
+  const timerRef = useRef<NodeJS.Timeout | null>(null)
+  
   // Ref to store current status to avoid stale closure issues
   const statusRef = useRef(status)
 
+  // Load initial status only once
   useEffect(() => {
-    // Only load initial status - no polling!
     loadTreasureBoxStatus()
-    
-    // Start client-side timer that updates every second
-    // But it will only work once status is loaded
-    const timerInterval = setInterval(updateClientSideTimer, 1000)
-    
-    return () => {
-      clearInterval(timerInterval)
-    }
   }, [playerId])
+
+  // Navigation-aware timer management
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('🔄 TreasureBox: Screen focused - starting timer')
+      
+      // Start the timer when screen becomes focused
+      if (statusRef.current) {
+        updateClientSideTimer() // Immediate update
+        timerRef.current = setInterval(updateClientSideTimer, 1000)
+      }
+      
+      return () => {
+        // Cleanup timer when screen loses focus or unmounts
+        console.log('⏸️ TreasureBox: Screen unfocused - pausing timer')
+        if (timerRef.current) {
+          clearInterval(timerRef.current)
+          timerRef.current = null
+        }
+      }
+    }, [status]) // Re-run when status changes
+  )
 
   useEffect(() => {
     statusRef.current = status
