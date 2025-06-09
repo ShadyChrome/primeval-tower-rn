@@ -28,7 +28,7 @@ interface RowData {
 
 const screenWidth = Dimensions.get('window').width
 const cardMargin = spacing.sm
-const cardsPerRow = 3
+const cardsPerRow = 2
 const totalHorizontalPadding = spacing.lg * 2
 const totalCardMargins = cardMargin * (cardsPerRow - 1)
 const cardWidth = (screenWidth - totalHorizontalPadding - totalCardMargins) / cardsPerRow
@@ -707,13 +707,14 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   primeInfo: {
-    flex: 1,
+    flex: 0.5,
     padding: spacing.sm,
     justifyContent: 'center',
   },
   nameElementRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: spacing.xs,
   },
   elementIconSmall: {
@@ -723,10 +724,11 @@ const styles = StyleSheet.create({
     ...typography.caption,
     fontWeight: '600',
     color: colors.text,
-    flex: 1,
+    textAlign: 'center',
   },
   levelContainer: {
     alignItems: 'center',
+    justifyContent: 'center',
   },
   primeLevel: {
     fontSize: 11,
