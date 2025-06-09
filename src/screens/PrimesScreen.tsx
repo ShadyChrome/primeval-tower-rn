@@ -20,10 +20,19 @@ interface Prime {
   image?: string // For future image implementation
 }
 
+interface RowData {
+  type: 'ROW'
+  items: Prime[]
+  index: number
+}
+
 const screenWidth = Dimensions.get('window').width
 const cardMargin = spacing.sm
 const cardsPerRow = 3
-const cardWidth = (screenWidth - (spacing.lg * 2) - (cardMargin * (cardsPerRow - 1))) / cardsPerRow
+const totalHorizontalPadding = spacing.lg * 2
+const totalCardMargins = cardMargin * (cardsPerRow - 1)
+const cardWidth = (screenWidth - totalHorizontalPadding - totalCardMargins) / cardsPerRow
+const cardHeight = cardWidth * 1.3
 
 export default function PrimesScreen() {
   const [searchQuery, setSearchQuery] = useState('')
@@ -137,14 +146,29 @@ export default function PrimesScreen() {
   // Check if any filters are active
   const hasActiveFilters = filterRarity !== 'all' || filterElement !== 'all'
 
+  // Create rows of primes for proper spacing
+  const createRows = (primes: Prime[]): RowData[] => {
+    const rows: RowData[] = []
+    for (let i = 0; i < primes.length; i += cardsPerRow) {
+      rows.push({
+        type: 'ROW',
+        items: primes.slice(i, i + cardsPerRow),
+        index: Math.floor(i / cardsPerRow)
+      })
+    }
+    return rows
+  }
+
+  const rowData = createRows(filteredPrimes)
+
   // RecyclerListView setup
-  const dataProvider = new DataProvider((r1, r2) => r1.id !== r2.id).cloneWithRows(filteredPrimes)
+  const dataProvider = new DataProvider((r1, r2) => r1.index !== r2.index).cloneWithRows(rowData)
   
   const layoutProvider = new LayoutProvider(
-    () => 'PRIME_CARD',
+    () => 'ROW',
     (type, dim) => {
-      dim.width = cardWidth
-      dim.height = cardWidth * 1.3 // Aspect ratio for card height
+      dim.width = screenWidth
+      dim.height = cardHeight + cardMargin // Card height + bottom margin
     }
   )
 
@@ -157,79 +181,86 @@ export default function PrimesScreen() {
     setIsSearchExpanded(!isSearchExpanded)
   }
 
-  const renderPrimeCard = (type: string | number, prime: Prime, index: number) => {
-    const rowIndex = Math.floor(index / cardsPerRow)
-    const columnIndex = index % cardsPerRow
-    
-    // Calculate margins for proper spacing
-    const marginLeft = columnIndex === 0 ? 0 : cardMargin / 2
-    const marginRight = columnIndex === cardsPerRow - 1 ? 0 : cardMargin / 2
-    const marginTop = rowIndex === 0 ? 0 : cardMargin
-
-    return (
-      <TouchableOpacity 
-        style={[
-          styles.primeCardTouchable,
-          {
-            marginLeft,
-            marginRight,
-            marginTop,
-          }
-        ]}
-        onPress={() => handlePrimePress(prime)}
-        activeOpacity={0.8}
+  const renderPrimeCard = (prime: Prime, isLast: boolean = false) => (
+    <TouchableOpacity 
+      key={prime.id}
+      style={[
+        styles.primeCardTouchable,
+        !isLast && styles.cardMarginRight
+      ]}
+      onPress={() => handlePrimePress(prime)}
+      activeOpacity={0.8}
+    >
+      <ModernCard 
+        style={styles.primeCard} 
+        variant="compact"
+        noPadding
       >
-        <ModernCard 
-          style={styles.primeCard} 
-          variant="compact"
-          noPadding
-        >
-          {/* Rarity Badge - Top Right Corner */}
-          <View style={styles.rarityCorner}>
-            <View style={[
-              styles.rarityBadge,
-              { backgroundColor: rarityColors[prime.rarity as keyof typeof rarityColors] }
-            ]}>
-              <Text variant="bodySmall" style={styles.rarityText}>
-                {prime.rarity.charAt(0)}
-              </Text>
-            </View>
-          </View>
-
-          {/* Prime Image Container */}
+        {/* Rarity Badge - Top Right Corner */}
+        <View style={styles.rarityCorner}>
           <View style={[
-            styles.primeImageContainer,
-            { backgroundColor: elementColors[prime.element as keyof typeof elementColors] + '20' }
+            styles.rarityBadge,
+            { backgroundColor: rarityColors[prime.rarity as keyof typeof rarityColors] }
           ]}>
+            <Text variant="bodySmall" style={styles.rarityText}>
+              {prime.rarity.charAt(0)}
+            </Text>
+          </View>
+        </View>
+
+        {/* Prime Image Container */}
+        <View style={[
+          styles.primeImageContainer,
+          { backgroundColor: elementColors[prime.element as keyof typeof elementColors] + '20' }
+        ]}>
+          <ElementIcon 
+            element={prime.element as ElementType} 
+            size="large" 
+          />
+        </View>
+        
+        {/* Prime Info - Vertically Centered */}
+        <View style={styles.primeInfo}>
+          <View style={styles.nameElementRow}>
             <ElementIcon 
               element={prime.element as ElementType} 
-              size="large" 
+              size="small" 
+              style={styles.elementIconSmall}
             />
+            <Text variant="bodySmall" style={styles.primeName} numberOfLines={1}>
+              {prime.name}
+            </Text>
           </View>
           
-          {/* Prime Info - Vertically Centered */}
-          <View style={styles.primeInfo}>
-            <View style={styles.nameElementRow}>
-              <ElementIcon 
-                element={prime.element as ElementType} 
-                size="small" 
-                style={styles.elementIconSmall}
-              />
-              <Text variant="bodySmall" style={styles.primeName} numberOfLines={1}>
-                {prime.name}
-              </Text>
-            </View>
-            
-            <View style={styles.levelContainer}>
-              <Text variant="bodySmall" style={styles.primeLevel}>
-                Level {prime.level}
-              </Text>
-            </View>
+          <View style={styles.levelContainer}>
+            <Text variant="bodySmall" style={styles.primeLevel}>
+              Level {prime.level}
+            </Text>
           </View>
-        </ModernCard>
-      </TouchableOpacity>
-    )
-  }
+        </View>
+      </ModernCard>
+    </TouchableOpacity>
+  )
+
+  const renderRow = (type: string | number, rowData: RowData) => (
+    <View style={styles.rowContainer}>
+      <View style={styles.cardsRow}>
+        {rowData.items.map((prime, index) => 
+          renderPrimeCard(prime, index === rowData.items.length - 1)
+        )}
+        {/* Fill empty spaces with invisible placeholders for consistent spacing */}
+        {Array.from({ length: cardsPerRow - rowData.items.length }).map((_, index) => (
+          <View 
+            key={`placeholder-${index}`} 
+            style={[
+              styles.primeCardTouchable,
+              index < cardsPerRow - rowData.items.length - 1 && styles.cardMarginRight
+            ]} 
+          />
+        ))}
+      </View>
+    </View>
+  )
 
   const renderFilterChip = (
     options: string[], 
@@ -326,7 +357,7 @@ export default function PrimesScreen() {
         <RecyclerListView
           dataProvider={dataProvider}
           layoutProvider={layoutProvider}
-          rowRenderer={renderPrimeCard}
+          rowRenderer={renderRow}
           style={styles.recyclerList}
           contentContainerStyle={styles.recyclerContent}
           showsVerticalScrollIndicator={false}
@@ -355,7 +386,7 @@ const styles = StyleSheet.create({
   },
   searchBar: {
     backgroundColor: colors.surface,
-    borderRadius: 12,
+    borderRadius: 10,
     elevation: 0,
   },
   searchInput: {
@@ -368,7 +399,7 @@ const styles = StyleSheet.create({
   },
   collectionStats: {
     alignItems: 'center',
-    minWidth: 50,
+    minWidth: 45,
   },
   collectionCount: {
     ...typography.caption,
@@ -382,13 +413,17 @@ const styles = StyleSheet.create({
     fontSize: 10,
   },
   expandButton: {
-    borderRadius: 20,
+    borderRadius: 16,
+    width: 32,
+    height: 32,
   },
   expandIcon: {
     margin: 0,
+    width: 32,
+    height: 32,
   },
   filtersContainer: {
-    marginTop: spacing.md,
+    marginTop: spacing.sm,
     paddingTop: spacing.sm,
     borderTopWidth: 1,
     borderTopColor: colors.surface + '40',
@@ -430,7 +465,6 @@ const styles = StyleSheet.create({
   gridContainer: {
     flex: 1,
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.xl,
   },
   recyclerList: {
     flex: 1,
@@ -438,8 +472,20 @@ const styles = StyleSheet.create({
   recyclerContent: {
     paddingBottom: spacing.xl,
   },
+  rowContainer: {
+    width: '100%',
+    marginBottom: cardMargin,
+  },
+  cardsRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+  },
   primeCardTouchable: {
     width: cardWidth,
+    height: cardHeight,
+  },
+  cardMarginRight: {
+    marginRight: cardMargin,
   },
   primeCard: {
     width: '100%',
