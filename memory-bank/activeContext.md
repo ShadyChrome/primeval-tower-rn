@@ -1,9 +1,28 @@
 # Active Context: Primeval Tower
 
 ## Current Work Focus
-**🖼️ ASSET ORGANIZATION COMPLETE:** Just completed comprehensive asset reorganization and optimization, moving high-resolution PNGs to separate folder while updating all code references to use optimized WebP files for runtime performance.
+**🎨 PASTEL RARITY COLORS COMPLETE:** Just updated all rarity colors to use beautiful pastel tones that match the game's wellness aesthetic, creating a cohesive and calming visual experience.
 
 ## Recent Changes
+- **🎨 PASTEL RARITY COLOR SYSTEM:**
+  - **Beautiful Pastel Palette:** Updated all rarity colors to soft, wellness-inspired tones
+  - **Common**: `#ADB5BD` (soft gray) - calm and neutral
+  - **Rare**: `#74C0FC` (pastel blue) - peaceful and trustworthy  
+  - **Epic**: `#B197FC` (lavender purple) - mystical and elegant
+  - **Legendary**: `#FFCC8A` (warm peach) - premium yet gentle
+  - **Mythical**: `#FFA8A8` (soft coral) - ultimate tier with warm energy
+  - **Consistent Application:** Updated across PrimesScreen, HatchingScreen, and BagScreen
+  - **Design Harmony:** Colors now perfectly complement the game's pastel gradient system
+- **🎯 COMPLETE RARITY SYSTEM OVERHAUL:**
+  - **New 5-Tier System:** Updated from Common/Uncommon/Rare/Epic/Legendary to Common/Rare/Epic/Legendary/Mythical
+  - **Type Definitions:** Updated all Prime interfaces and rarity type definitions across the codebase
+  - **Mock Data Updates:** Converted existing Uncommon primes to appropriate new rarities (Rare or Common)
+  - **Color System:** Remapped rarity colors to accommodate new tiers with Mythical getting the premium gold color
+  - **Egg System:** Updated HatchingScreen with new egg types including Legendary and Mythical eggs
+  - **Shop Integration:** Added Legendary (2500 gems) and Mythical (5000 gems) eggs to shop offerings
+  - **Filter Options:** Updated all filter chips and dropdown options to reflect new rarity system
+  - **Documentation:** Updated Game Overview and all feature plans to use new rarity terminology
+  - **Element Probability:** Adjusted element probability percentages to match new 5-tier system in documentation
 - **🖼️ ASSET REORGANIZATION AND OPTIMIZATION:** 
   - **File Structure Optimization:** Moved high-resolution PNG files (2-3MB each) to `assets/primes-png/` for development use
   - **Runtime Optimization:** Kept optimized WebP files (10-17KB each) in `assets/primes/` for app performance
@@ -34,7 +53,7 @@
   - **Centered Layout:** Prime names and levels perfectly centered in compact white container (50% height reduction)
   - **Clickable Cards:** Added TouchableOpacity wrapper with handlePrimePress function for future prime details expansion
   - **Gradient Search Header:** Used GradientCard with aurora gradient for beautiful search section
-  - **Comprehensive Filters:** Added all rarity levels and all elements as chip filters
+  - **Comprehensive Filters:** Added all rarity levels (Common, Rare, Epic, Legendary, Mythical) and all elements as chip filters
   - **Collapsible Search:** Default collapsed state with integrated collection stats for space efficiency
   - **Perfect Spacing:** Implemented proper aligned spacing between all prime cards using row-based layout
 - **🎯 MODAL DIALOG SYSTEM IMPLEMENTATION COMPLETE!** 

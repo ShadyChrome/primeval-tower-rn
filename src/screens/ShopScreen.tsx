@@ -77,6 +77,22 @@ export default function ShopScreen() {
       currency: 'gems',
       category: 'eggs'
     },
+    {
+      id: 'legendary_egg',
+      name: 'Legendary Egg',
+      description: 'Premium egg with legendary Prime chances',
+      price: 2500,
+      currency: 'gems',
+      category: 'eggs'
+    },
+    {
+      id: 'mythical_egg',
+      name: 'Mythical Egg',
+      description: 'Ultimate egg with mythical Prime chances',
+      price: 5000,
+      currency: 'gems',
+      category: 'eggs'
+    },
     // Enhancers
     {
       id: 'element_enhancer',

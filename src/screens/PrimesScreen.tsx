@@ -13,7 +13,7 @@ interface Prime {
   id: string
   name: string
   element: ElementType
-  rarity: 'Common' | 'Uncommon' | 'Rare' | 'Epic' | 'Legendary'
+  rarity: 'Common' | 'Rare' | 'Epic' | 'Legendary' | 'Mythical'
   level: number
   power: number
   abilities: string[]
@@ -79,7 +79,7 @@ export default function PrimesScreen() {
       id: '4',
       name: 'Pukei-Pukei',
       element: 'Vitae',
-      rarity: 'Uncommon',
+      rarity: 'Rare',
       level: 15,
       power: 543,
       abilities: ['Poison Spit', 'Tail Swing', 'Toxic Cloud'],
@@ -143,7 +143,7 @@ export default function PrimesScreen() {
       id: '10',
       name: 'Basarios',
       element: 'Geo',
-      rarity: 'Uncommon',
+      rarity: 'Common',
       level: 12,
       power: 445,
       abilities: ['Rock Shield', 'Sleep Gas', 'Body Slam'],
@@ -267,14 +267,14 @@ export default function PrimesScreen() {
   }
 
   const rarityColors = {
-    'Common': '#868E96',
-    'Uncommon': '#51CF66',
-    'Rare': '#339AF0',
-    'Epic': '#9775FA',
-    'Legendary': '#FFD43B'
+    'Common': '#ADB5BD',
+    'Rare': '#74C0FC',
+    'Epic': '#B197FC',
+    'Legendary': '#FFCC8A',
+    'Mythical': '#FFA8A8'
   }
 
-  const rarityOptions = ['all', 'common', 'uncommon', 'rare', 'epic', 'legendary']
+  const rarityOptions = ['all', 'common', 'rare', 'epic', 'legendary', 'mythical']
   const elementOptions = ['all', 'ignis', 'vitae', 'azur', 'geo', 'tempest', 'aeris']
 
   const filteredPrimes = primes.filter(prime => {

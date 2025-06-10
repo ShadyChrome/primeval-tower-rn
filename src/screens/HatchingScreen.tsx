@@ -8,11 +8,11 @@ export default function HatchingScreen() {
   const [selectedEnhancers, setSelectedEnhancers] = useState<string[]>([])
 
   const eggTypes = [
-    { id: 'common', name: 'Common Egg', cost: 100, rarity: 'Common', color: '#95A5A6' },
-    { id: 'uncommon', name: 'Uncommon Egg', cost: 250, rarity: 'Uncommon', color: '#27AE60' },
-    { id: 'rare', name: 'Rare Egg', cost: 500, rarity: 'Rare', color: '#3498DB' },
-    { id: 'epic', name: 'Epic Egg', cost: 1000, rarity: 'Epic', color: '#9B59B6' },
-    { id: 'legendary', name: 'Legendary Egg', cost: 2500, rarity: 'Legendary', color: '#F39C12' },
+    { id: 'common', name: 'Common Egg', cost: 100, rarity: 'Common', color: '#ADB5BD' },
+    { id: 'rare', name: 'Rare Egg', cost: 250, rarity: 'Rare', color: '#74C0FC' },
+    { id: 'epic', name: 'Epic Egg', cost: 500, rarity: 'Epic', color: '#B197FC' },
+    { id: 'legendary', name: 'Legendary Egg', cost: 1000, rarity: 'Legendary', color: '#FFCC8A' },
+    { id: 'mythical', name: 'Mythical Egg', cost: 2500, rarity: 'Mythical', color: '#FFA8A8' },
   ]
 
   const enhancers = [

@@ -50,7 +50,7 @@ export default function BagScreen() {
       id: '3',
       name: 'Swift Current',
       type: 'Speed',
-      rarity: 'Uncommon',
+      rarity: 'Common',
       primaryStat: 'SPD +8%',
       synergy: 'Flow',
       level: 3,
@@ -101,11 +101,11 @@ export default function BagScreen() {
   ]
 
   const rarityColors = {
-    'Common': '#95A5A6',
-    'Uncommon': '#27AE60',
-    'Rare': '#3498DB',
-    'Epic': '#9B59B6',
-    'Legendary': '#F39C12'
+    'Common': '#ADB5BD',
+    'Rare': '#74C0FC',
+    'Epic': '#B197FC',
+    'Legendary': '#FFCC8A',
+    'Mythical': '#FFA8A8'
   }
 
   const renderRuneCard = ({ item: rune }: { item: Rune }) => (

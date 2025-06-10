@@ -8,7 +8,7 @@
 ## Primes
 
 * **Acquisition:** Primes hatch from Eggs that can be purchased using Gems.
-* **Rarity:** Common, Uncommon, Rare, Epic, Legendary
+* **Rarity:** Common, Rare, Epic, Legendary, Mythical
 * **Element Affiliation:** Ignis, Vitae, Azur, Geo, Tempest, Aeris
 * **Abilities:** Each Prime can have up to four Abilities. Abilities have levels that increase when duplicate Primes are hatched.
 * **Uniqueness:** A player can only ever own one Prime with the same name.
@@ -55,10 +55,10 @@
   1. Based on Rarity of hatched Prime:
 
      * Common: 80% Lower, 20% Higher
-     * Uncommon: 70% Lower, 30% Higher
-     * Rare: 60% Lower, 40% Higher
-     * Epic: 50% Lower, 50% Higher
-     * Legendary: 40% Lower, 60% Higher
+     * Rare: 70% Lower, 30% Higher
+     * Epic: 60% Lower, 40% Higher
+     * Legendary: 50% Lower, 50% Higher
+     * Mythical: 40% Lower, 60% Higher
   2. Uniform distribution among chosen elements.
   3. A Prime of that element is selected to hatch.
 
