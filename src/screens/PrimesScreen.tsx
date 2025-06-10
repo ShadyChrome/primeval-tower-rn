@@ -7,6 +7,7 @@ import { ElementIcon, PrimeImage } from '../../components/OptimizedImage'
 import { ElementType, PrimeImageType, ImageAssets } from '../assets/ImageAssets'
 import ModernCard from '../../components/ui/ModernCard'
 import GradientCard from '../../components/ui/GradientCard'
+import PrimeDetailsModal from '../components/modals/PrimeDetailsModal'
 import { colors, spacing, typography, shadows } from '../theme/designSystem'
 
 interface Prime {
@@ -39,6 +40,8 @@ export default function PrimesScreen() {
   const [filterRarity, setFilterRarity] = useState('all')
   const [filterElement, setFilterElement] = useState('all')
   const [isSearchExpanded, setIsSearchExpanded] = useState(false)
+  const [selectedPrime, setSelectedPrime] = useState<Prime | null>(null)
+  const [isModalVisible, setIsModalVisible] = useState(false)
 
   // Real mock data using actual prime assets
   const primes: Prime[] = [
@@ -314,8 +317,13 @@ export default function PrimesScreen() {
   )
 
   const handlePrimePress = (prime: Prime) => {
-    // TODO: Navigate to prime details modal/screen
-    console.log('Prime selected:', prime.name)
+    setSelectedPrime(prime)
+    setIsModalVisible(true)
+  }
+
+  const handleModalDismiss = () => {
+    setIsModalVisible(false)
+    setSelectedPrime(null)
   }
 
   const toggleSearchExpanded = () => {
@@ -554,6 +562,13 @@ export default function PrimesScreen() {
           </View>
         )}
       </View>
+
+      {/* Prime Details Modal */}
+      <PrimeDetailsModal
+        visible={isModalVisible}
+        onDismiss={handleModalDismiss}
+        prime={selectedPrime}
+      />
     </View>
   )
 }
