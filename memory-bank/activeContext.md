@@ -1,9 +1,18 @@
 # Active Context: Primeval Tower
 
 ## Current Work Focus
-**🎨 PASTEL RARITY COLORS COMPLETE:** Just updated all rarity colors to use beautiful pastel tones that match the game's wellness aesthetic, creating a cohesive and calming visual experience.
+**🎨 TREASURE BOX COLOR INTEGRATION COMPLETE:** Extended the beautiful pastel rarity color system to the treasure box, creating perfect visual harmony between all game elements.
 
 ## Recent Changes
+- **🎨 TREASURE BOX COLOR HARMONY:**
+  - **Perfect Integration:** Treasure box fill levels now use the same pastel rarity colors
+  - **Empty/Default**: `#ADB5BD` (Common - Soft Gray) - neutral state
+  - **Low (25-49%)**: `#74C0FC` (Rare - Pastel Blue) - gentle progress
+  - **Medium (50-74%)**: `#B197FC` (Epic - Lavender Purple) - meaningful accumulation
+  - **High (75-99%)**: `#FFCC8A` (Legendary - Warm Peach) - exciting anticipation
+  - **Full (100%)**: `#FFA8A8` (Mythical - Soft Coral) - ultimate reward ready
+  - **Visual Consistency:** Treasure box now harmonizes perfectly with prime cards and eggs
+  - **Loading State:** Updated ActivityIndicator to use Epic purple for consistency
 - **🎨 PASTEL RARITY COLOR SYSTEM:**
   - **Beautiful Pastel Palette:** Updated all rarity colors to soft, wellness-inspired tones
   - **Common**: `#ADB5BD` (soft gray) - calm and neutral

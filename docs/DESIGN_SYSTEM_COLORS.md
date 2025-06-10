@@ -58,6 +58,18 @@ The app uses beautiful linear gradients throughout:
 4. **Hierarchy**: Clear visual distinction between tiers without harsh contrasts
 5. **Consistency**: Same colors used across all screens and components
 
+## Treasure Box Integration
+
+The treasure box uses the same rarity color progression to show fill levels:
+
+- **Empty/Default** (0-24%): `#ADB5BD` (Common - Soft Gray)
+- **Low Fill** (25-49%): `#74C0FC` (Rare - Pastel Blue) 
+- **Medium Fill** (50-74%): `#B197FC` (Epic - Lavender Purple)
+- **High Fill** (75-99%): `#FFCC8A` (Legendary - Warm Peach)
+- **Full** (100%): `#FFA8A8` (Mythical - Soft Coral)
+
+This creates intuitive visual progression where players immediately understand the treasure box state through familiar rarity colors.
+
 ## Implementation
 
 All rarity colors are consistently applied across:
@@ -65,6 +77,7 @@ All rarity colors are consistently applied across:
 - Egg selection interface (`HatchingScreen.tsx`) 
 - Inventory rune displays (`BagScreen.tsx`)
 - Shop item categories (`ShopScreen.tsx`)
+- Treasure box fill levels (`TreasureBox.tsx`)
 - Modal and detail views (planned)
 
 The color system ensures that whether players are collecting, battling, or managing their inventory, they experience the same calming, beautiful aesthetic that makes Primeval Tower feel like a peaceful escape. 

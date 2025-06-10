@@ -297,7 +297,7 @@ export default function TreasureBox({ playerId, onGemsUpdated }: TreasureBoxProp
   }
 
   const getTreasureChestColor = () => {
-    if (!status) return '#A0C49D'
+    if (!status) return '#ADB5BD'
     
     // Use client-side calculated gems
     const fillPercentage = TreasureBoxManager.calculateFillPercentage(
@@ -307,11 +307,11 @@ export default function TreasureBox({ playerId, onGemsUpdated }: TreasureBoxProp
     const state = TreasureBoxManager.getTreasureBoxState(fillPercentage)
     
     switch (state) {
-      case 'full': return '#FFD700'
-      case 'high': return '#FFA500'
-      case 'medium': return '#A0C49D'
-      case 'low': return '#A0C49D'
-      default: return '#999999'
+      case 'full': return '#FFA8A8'      // Mythical - Soft Coral
+      case 'high': return '#FFCC8A'      // Legendary - Warm Peach
+      case 'medium': return '#B197FC'    // Epic - Lavender Purple
+      case 'low': return '#74C0FC'       // Rare - Pastel Blue
+      default: return '#ADB5BD'          // Common - Soft Gray
     }
   }
 
@@ -372,7 +372,7 @@ export default function TreasureBox({ playerId, onGemsUpdated }: TreasureBoxProp
   if (loading) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator size="large" color="#A0C49D" />
+        <ActivityIndicator size="large" color="#B197FC" />
       </View>
     )
   }
