@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { View, StyleSheet, TouchableOpacity, Dimensions } from 'react-native'
-import { Text, Searchbar, Chip, IconButton, Button } from 'react-native-paper'
+import { Text, Searchbar, Chip, IconButton } from 'react-native-paper'
 import { RecyclerListView, DataProvider, LayoutProvider } from 'recyclerlistview'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useNavigation } from '@react-navigation/native'
@@ -9,7 +9,7 @@ import { ElementIcon, PrimeImage } from '../../components/OptimizedImage'
 import { ElementType, PrimeImageType, ImageAssets } from '../assets/ImageAssets'
 import ModernCard from '../../components/ui/ModernCard'
 import GradientCard from '../../components/ui/GradientCard'
-import PrimeDetailsModal from '../components/modals/PrimeDetailsModal'
+
 import { colors, spacing, typography, shadows } from '../theme/designSystem'
 
 interface Prime {
@@ -50,9 +50,7 @@ export default function PrimesScreen() {
   const [filterRarity, setFilterRarity] = useState('all')
   const [filterElement, setFilterElement] = useState('all')
   const [isSearchExpanded, setIsSearchExpanded] = useState(false)
-  const [selectedPrime, setSelectedPrime] = useState<Prime | null>(null)
-  const [isModalVisible, setIsModalVisible] = useState(false)
-  const [useScreenView, setUseScreenView] = useState(false)
+
 
   // Real mock data using actual prime assets
   const primes: Prime[] = [
@@ -328,17 +326,7 @@ export default function PrimesScreen() {
   )
 
   const handlePrimePress = (prime: Prime) => {
-    if (useScreenView) {
-      navigation.navigate('PrimeDetails', { prime })
-    } else {
-      setSelectedPrime(prime)
-      setIsModalVisible(true)
-    }
-  }
-
-  const handleModalDismiss = () => {
-    setIsModalVisible(false)
-    setSelectedPrime(null)
+    navigation.navigate('PrimeDetails', { prime })
   }
 
   const toggleSearchExpanded = () => {
@@ -528,31 +516,7 @@ export default function PrimesScreen() {
           <View style={styles.filtersContainer}>
             {renderFilterChip(rarityOptions, filterRarity, setFilterRarity, "Rarity")}
             {renderFilterChip(elementOptions, filterElement, setFilterElement, "Element")}
-            
-            {/* View Mode Toggle */}
-            <View style={styles.viewModeContainer}>
-              <Text variant="bodySmall" style={styles.filterLabel}>View Mode:</Text>
-              <View style={styles.viewModeButtons}>
-                <Button
-                  mode={!useScreenView ? "contained" : "outlined"}
-                  onPress={() => setUseScreenView(false)}
-                  style={[styles.viewModeButton, !useScreenView && styles.activeViewModeButton]}
-                  labelStyle={styles.viewModeButtonText}
-                  compact
-                >
-                  Modal
-                </Button>
-                <Button
-                  mode={useScreenView ? "contained" : "outlined"}
-                  onPress={() => setUseScreenView(true)}
-                  style={[styles.viewModeButton, useScreenView && styles.activeViewModeButton]}
-                  labelStyle={styles.viewModeButtonText}
-                  compact
-                >
-                  Screen
-                </Button>
-              </View>
-            </View>
+
           </View>
         )}
       </GradientCard>
@@ -603,12 +567,7 @@ export default function PrimesScreen() {
         )}
       </View>
 
-      {/* Prime Details Modal */}
-      <PrimeDetailsModal
-        visible={isModalVisible}
-        onDismiss={handleModalDismiss}
-        prime={selectedPrime}
-      />
+      
     </View>
   )
 }
@@ -839,26 +798,5 @@ const styles = StyleSheet.create({
   resetButtonText: {
     ...typography.button,
     color: colors.surface,
-  },
-  viewModeContainer: {
-    marginTop: spacing.sm,
-    paddingTop: spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: colors.surface + '40',
-  },
-  viewModeButtons: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  viewModeButton: {
-    borderRadius: 8,
-    minWidth: 60,
-  },
-  activeViewModeButton: {
-    backgroundColor: colors.primary,
-  },
-  viewModeButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
   },
 }) 
