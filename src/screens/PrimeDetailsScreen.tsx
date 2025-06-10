@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { View, StyleSheet, ScrollView, Dimensions } from 'react-native'
+import { View, StyleSheet, ScrollView, Dimensions, TouchableOpacity } from 'react-native'
 import { Text, IconButton, Surface } from 'react-native-paper'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -76,92 +76,93 @@ export default function PrimeDetailsScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Custom Header */}
-      <Surface style={[styles.header, { backgroundColor: primaryColor + '10' }]} elevation={2}>
-        <View style={styles.headerContent}>
-          <IconButton
-            icon="arrow-left"
-            size={24}
-            iconColor={colors.text}
-            onPress={() => navigation.goBack()}
-            style={styles.backButton}
-          />
-          <View style={styles.headerInfo}>
-            <Text variant="titleLarge" style={[styles.headerTitle, { color: primaryColor }]}>
+      {/* Compact Header with Image and Info */}
+      <LinearGradient
+        colors={[primaryColor + '20', primaryColor + '10', 'transparent']}
+        style={styles.header}
+      >
+        {/* Back Button */}
+        <IconButton
+          icon="arrow-left"
+          size={24}
+          iconColor={colors.text}
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+        />
+
+        {/* Compact Header Layout */}
+        <View style={styles.compactHeader}>
+          {/* Left: Prime Image */}
+          <View style={styles.primeImageContainer}>
+            <View style={[
+              styles.primeImageBackground,
+              { backgroundColor: primaryColor + '15', borderColor: primaryColor + '40' }
+            ]}>
+              <PrimeImage 
+                primeName={prime.imageName || 'Rathalos'} 
+                width={80}
+                height={80}
+                style={styles.primeImage}
+              />
+            </View>
+          </View>
+
+          {/* Right: Prime Info */}
+          <View style={styles.primeInfo}>
+            <Text variant="headlineSmall" style={[styles.primeName, { color: primaryColor }]}>
               {prime.name}
             </Text>
-            <Text variant="bodyMedium" style={styles.headerSubtitle}>
+            
+            <Text variant="titleMedium" style={styles.levelText}>
               Level {prime.level} • {prime.rarity} • {prime.power} Power
             </Text>
-          </View>
-        </View>
-      </Surface>
 
-      {/* Prime Image Header */}
-      <LinearGradient
-        colors={[primaryColor + '20', primaryColor + '05']}
-        style={styles.imageSection}
-      >
-        <View style={styles.imageContainer}>
-          <View style={[styles.imageFrame, { borderColor: primaryColor + '40' }]}>
-            <PrimeImage 
-              primeName={prime.imageName || 'Rathalos'} 
-              style={styles.primeImage}
-            />
-          </View>
-          
-          <View style={styles.badgeContainer}>
-            <View style={[styles.elementBadge, { backgroundColor: primaryColor }]}>
-              <ElementIcon element={prime.element} size="small" />
-              <Text variant="bodySmall" style={styles.badgeText}>
-                {prime.element}
-              </Text>
-            </View>
-            
-            <View style={[styles.rarityBadge, { backgroundColor: rarityColor }]}>
-              <Text variant="bodySmall" style={styles.badgeText}>
-                {prime.rarity}
-              </Text>
+            <View style={styles.badgeContainer}>
+              <View style={[styles.elementBadge, { backgroundColor: primaryColor }]}>
+                <ElementIcon element={prime.element} size="small" />
+                <Text variant="bodySmall" style={styles.badgeText}>
+                  {prime.element}
+                </Text>
+              </View>
+              
+              <View style={[styles.rarityBadge, { backgroundColor: rarityColor }]}>
+                <Text variant="bodySmall" style={styles.badgeText}>
+                  {prime.rarity}
+                </Text>
+              </View>
             </View>
           </View>
         </View>
       </LinearGradient>
 
       {/* Tab Navigation */}
-      <Surface style={styles.tabContainer} elevation={1}>
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.tabScrollContent}
-        >
-          {tabs.map((tab) => (
-            <View
-              key={tab.key}
+      <View style={styles.tabContainer}>
+        {tabs.map((tab) => (
+          <TouchableOpacity
+            key={tab.key}
+            style={[
+              styles.tab,
+              activeTab === tab.key && { backgroundColor: primaryColor + '20' }
+            ]}
+            onPress={() => setActiveTab(tab.key)}
+          >
+            <Text 
+              variant="bodyMedium" 
               style={[
-                styles.tab,
-                activeTab === tab.key && { backgroundColor: primaryColor + '20' }
+                styles.tabText,
+                activeTab === tab.key && { color: primaryColor, fontWeight: '600' }
               ]}
-            >
-              <Text 
-                variant="bodyMedium" 
-                style={[
-                  styles.tabText,
-                  { color: activeTab === tab.key ? primaryColor : colors.text }
-                ]}
-                onPress={() => setActiveTab(tab.key)}
-              >
-                {tab.label}
+                          >
+                {tab.key === 'matchups' ? 'Elements' : tab.key.charAt(0).toUpperCase() + tab.key.slice(1)}
               </Text>
-            </View>
-          ))}
-        </ScrollView>
-      </Surface>
+          </TouchableOpacity>
+        ))}
+      </View>
 
       {/* Content Area */}
       <ScrollView 
         style={styles.contentContainer}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
       >
         {activeTab === 'stats' && (
           <StatsSection prime={prime} primaryColor={primaryColor} />
@@ -194,46 +195,54 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   header: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-  headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.md,
+    paddingHorizontal: spacing.lg,
+    position: 'relative',
+    flexShrink: 0,
   },
   backButton: {
-    marginRight: spacing.sm,
+    position: 'absolute',
+    top: spacing.sm,
+    left: spacing.sm,
+    zIndex: 10,
+    backgroundColor: colors.surface + 'AA',
+    margin: 0,
   },
-  headerInfo: {
-    flex: 1,
+  compactHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.lg,
+    paddingTop: spacing.sm,
   },
-  headerTitle: {
-    fontWeight: '600',
-  },
-  headerSubtitle: {
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  imageSection: {
-    paddingVertical: spacing.xl,
+  primeImageContainer: {
     alignItems: 'center',
   },
-  imageContainer: {
-    alignItems: 'center',
-  },
-  imageFrame: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+  primeImageBackground: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     borderWidth: 3,
     padding: spacing.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: colors.surface,
-    ...shadows.medium,
+  },
+  primeInfo: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  primeName: {
+    fontWeight: '600',
+    marginBottom: spacing.xs,
+  },
+  levelText: {
+    color: colors.textSecondary,
+    fontWeight: '500',
+    marginBottom: spacing.xs,
   },
   primeImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 52,
+    borderRadius: 20,
   },
   badgeContainer: {
     flexDirection: 'row',
@@ -251,6 +260,8 @@ const styles = StyleSheet.create({
   rarityBadge: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
+    flexDirection: 'row',
+    alignItems: 'center',
     borderRadius: 20,
   },
   badgeText: {
@@ -258,25 +269,26 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   tabContainer: {
-    backgroundColor: colors.surface,
-  },
-  tabScrollContent: {
-    paddingHorizontal: spacing.md,
+    flexDirection: 'row',
+    backgroundColor: colors.surfaceVariant,
+    margin: spacing.md,
+    borderRadius: 12,
+    padding: spacing.xs,
+    flexShrink: 0,
   },
   tab: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderRadius: 20,
-    marginRight: spacing.sm,
+    flex: 1,
+    paddingVertical: spacing.sm,
+    alignItems: 'center',
+    borderRadius: 8,
   },
   tabText: {
+    color: colors.textSecondary,
     fontWeight: '500',
   },
   contentContainer: {
     flex: 1,
-  },
-  scrollContent: {
-    padding: spacing.lg,
+    paddingHorizontal: spacing.lg,
   },
   section: {
     paddingBottom: spacing.lg,
