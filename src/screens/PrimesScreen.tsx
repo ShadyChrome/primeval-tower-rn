@@ -337,6 +337,18 @@ export default function PrimesScreen() {
         variant="compact"
         noPadding
       >
+        {/* Element Icon - Top Left Corner */}
+        <View style={styles.elementCorner}>
+          <View style={[
+            styles.elementBadge
+          ]}>
+            <ElementIcon 
+              element={prime.element} 
+              size="medium"
+            />
+          </View>
+        </View>
+
         {/* Rarity Badge - Top Right Corner */}
         <View style={styles.rarityCorner}>
           <View style={[
@@ -372,11 +384,6 @@ export default function PrimesScreen() {
         {/* Prime Info - Vertically Centered */}
         <View style={styles.primeInfo}>
           <View style={styles.nameElementRow}>
-            <ElementIcon 
-              element={prime.element} 
-              size="small" 
-              style={styles.elementIconSmall}
-            />
             <Text variant="bodySmall" style={styles.primeName} numberOfLines={1}>
               {prime.name}
             </Text>
@@ -676,6 +683,20 @@ const styles = StyleSheet.create({
     height: '100%',
     position: 'relative',
   },
+  elementCorner: {
+    position: 'absolute',
+    top: spacing.xs,
+    left: spacing.xs,
+    zIndex: 1,
+  },
+  elementBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...shadows.light,
+  },
   rarityCorner: {
     position: 'absolute',
     top: spacing.xs,
@@ -717,9 +738,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: spacing.xs,
   },
-  elementIconSmall: {
-    marginRight: spacing.xs,
-  },
+
   primeName: {
     ...typography.caption,
     fontWeight: '600',
