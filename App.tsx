@@ -9,7 +9,7 @@ import { PlayerManager, PlayerData } from './lib/playerManager'
 import { StatusBar } from 'expo-status-bar'
 import LoginScreen from './src/screens/LoginScreen'
 import PlayerNameScreen from './src/screens/PlayerNameScreen'
-import MainNavigation from './components/MainNavigation'
+import AppNavigation from './components/AppNavigation'
 import { ImageAssets } from './src/assets/ImageAssets'
 import { theme, colors } from './src/theme/designSystem'
 
@@ -184,7 +184,7 @@ export default function App() {
         }
         
         return (
-          <MainNavigation 
+          <AppNavigation 
             onLogout={handleSignOut} 
             playerData={playerData}
             onRefreshPlayerData={refreshPlayerData}

@@ -1,6 +1,5 @@
 import React from 'react'
 import { View, StyleSheet } from 'react-native'
-import { NavigationContainer } from '@react-navigation/native'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 
@@ -28,8 +27,7 @@ export default function MainNavigation({
   const { player } = playerData
 
   return (
-    <NavigationContainer>
-      <View style={styles.container}>
+    <View style={styles.container}>
         <Header 
           playerName={player.player_name}
           playerLevel={player.level || 1}
@@ -115,7 +113,6 @@ export default function MainNavigation({
           />
         </Tab.Navigator>
       </View>
-    </NavigationContainer>
   )
 }
 

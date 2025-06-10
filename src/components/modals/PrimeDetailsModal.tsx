@@ -81,72 +81,75 @@ export default function PrimeDetailsModal({ visible, onDismiss, prime }: PrimeDe
             />
           </TouchableOpacity>
 
-          {/* Prime Image */}
-          <View style={styles.primeImageContainer}>
-            <View style={[
-              styles.primeImageBackground,
-              { backgroundColor: primaryColor + '15' }
-            ]}>
-              {prime.imageName ? (
-                <PrimeImage 
-                  primeName={prime.imageName}
-                  width={screenWidth * 0.6}
-                  height={screenWidth * 0.6}
-                  style={styles.primeImage}
-                />
-              ) : (
-                <ElementIcon 
-                  element={prime.element} 
-                  size="large" 
-                />
-              )}
+          {/* Compact Header Layout */}
+          <View style={styles.compactHeader}>
+            {/* Left: Prime Image */}
+            <View style={styles.primeImageContainer}>
+              <View style={[
+                styles.primeImageBackground,
+                { backgroundColor: primaryColor + '15', borderColor: primaryColor + '40' }
+              ]}>
+                {prime.imageName ? (
+                  <PrimeImage 
+                    primeName={prime.imageName}
+                    width={80}
+                    height={80}
+                    style={styles.primeImage}
+                  />
+                ) : (
+                  <ElementIcon 
+                    element={prime.element} 
+                    size="large" 
+                  />
+                )}
+              </View>
             </View>
-          </View>
 
-          {/* Prime Info */}
-          <View style={styles.primeInfo}>
-            <View style={styles.nameRow}>
-              <Text variant="headlineMedium" style={styles.primeName}>
+            {/* Right: Prime Info */}
+            <View style={styles.primeInfo}>
+              <Text variant="headlineSmall" style={[styles.primeName, { color: primaryColor }]}>
                 {prime.name}
               </Text>
-              <View style={[styles.rarityBadge, { backgroundColor: rarityColor }]}>
-                <Text variant="bodySmall" style={styles.rarityText}>
-                  {prime.rarity}
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.levelRow}>
+              
               <Text variant="titleMedium" style={styles.levelText}>
-                Level {prime.level}
+                Level {prime.level} • {prime.rarity} • {prime.power} Power
               </Text>
-              <View style={styles.elementContainer}>
-                <ElementIcon element={prime.element} size="small" />
-                <Text variant="bodyMedium" style={styles.elementText}>
-                  {prime.element}
-                </Text>
-              </View>
-            </View>
 
-            {/* XP Bar (if experience data available) */}
-            {prime.experience !== undefined && prime.maxExperience && (
-              <View style={styles.xpContainer}>
-                <View style={styles.xpBarBackground}>
-                  <View 
-                    style={[
-                      styles.xpBarFill,
-                      { 
-                        width: `${(prime.experience / prime.maxExperience) * 100}%`,
-                        backgroundColor: primaryColor
-                      }
-                    ]} 
-                  />
+              <View style={styles.badgeContainer}>
+                <View style={[styles.elementBadge, { backgroundColor: primaryColor }]}>
+                  <ElementIcon element={prime.element} size="small" />
+                  <Text variant="bodySmall" style={styles.badgeText}>
+                    {prime.element}
+                  </Text>
                 </View>
-                <Text variant="bodySmall" style={styles.xpText}>
-                  {prime.experience} / {prime.maxExperience} XP
-                </Text>
+                
+                <View style={[styles.rarityBadge, { backgroundColor: rarityColor }]}>
+                  <Text variant="bodySmall" style={styles.badgeText}>
+                    {prime.rarity}
+                  </Text>
+                </View>
               </View>
-            )}
+
+              {/* XP Bar (if experience data available) */}
+              {prime.experience !== undefined && prime.maxExperience && (
+                <View style={styles.xpContainer}>
+                  <View style={styles.xpBarBackground}>
+                    <View 
+                      style={[
+                        styles.xpBarFill,
+                        { 
+                          width: `${(prime.experience / prime.maxExperience) * 100}%`,
+                          backgroundColor: primaryColor
+                        }
+                      ]} 
+                    />
+                  </View>
+                  <Text variant="bodySmall" style={styles.xpText}>
+                    {prime.experience} / {prime.maxExperience} XP
+                  </Text>
+                </View>
+              )}
+            </View>
           </View>
         </LinearGradient>
 
@@ -209,16 +212,21 @@ const styles = StyleSheet.create({
   modalContent: {
     backgroundColor: colors.surface,
     borderRadius: 20,
-    height: screenHeight * 0.95,
+    height: screenHeight * 0.92,
     overflow: 'hidden',
-    
+    flexDirection: 'column',
   },
   header: {
-    paddingTop: spacing.xl,
-    paddingBottom: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.md,
     paddingHorizontal: spacing.lg,
     position: 'relative',
     flexShrink: 0,
+  },
+  compactHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.lg,
   },
   closeButton: {
     position: 'absolute',
@@ -232,59 +240,37 @@ const styles = StyleSheet.create({
   },
   primeImageContainer: {
     alignItems: 'center',
-    marginBottom: spacing.md,
   },
   primeImageBackground: {
-    borderRadius: 100,
-    padding: spacing.md,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 3,
+    padding: spacing.sm,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: colors.surface,
   },
   primeImage: {
     borderRadius: 20,
   },
   primeInfo: {
-    alignItems: 'center',
-  },
-  nameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-    gap: spacing.sm,
+    flex: 1,
+    justifyContent: 'center',
   },
   primeName: {
-    color: colors.text,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  rarityBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: 12,
-  },
-  rarityText: {
-    color: colors.surface,
     fontWeight: '600',
-    fontSize: 10,
-  },
-  levelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
   },
   levelText: {
     color: colors.textSecondary,
-    fontWeight: '600',
-  },
-  elementContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  elementText: {
-    color: colors.textSecondary,
     fontWeight: '500',
+    marginBottom: spacing.xs,
+  },
+  rarityBadge: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: 20,
   },
   xpContainer: {
     width: '100%',
@@ -339,5 +325,22 @@ const styles = StyleSheet.create({
   placeholder: {
     color: colors.textSecondary,
     marginBottom: spacing.xs,
+  },
+  badgeContainer: {
+    flexDirection: 'row',
+    marginTop: spacing.sm,
+    gap: spacing.sm,
+  },
+  elementBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: 20,
+    gap: spacing.xs,
+  },
+  badgeText: {
+    color: colors.surface,
+    fontWeight: '600',
   },
 }) 
