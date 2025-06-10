@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
-import { View, StyleSheet, ScrollView, Dimensions, TouchableOpacity } from 'react-native'
-import { Text, IconButton, Surface } from 'react-native-paper'
+import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native'
+import { Text, IconButton } from 'react-native-paper'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native'
@@ -11,7 +11,7 @@ import { ElementType, PrimeImageType } from '../assets/ImageAssets'
 import StatsSection from '../components/modals/sections/StatsSection'
 import AbilitiesSection from '../components/modals/sections/AbilitiesSection'
 import ElementAdvantages from '../components/modals/sections/ElementAdvantages'
-import { colors, spacing, typography, shadows } from '../theme/designSystem'
+import { colors, spacing, typography } from '../theme/designSystem'
 
 interface Prime {
   id: string
@@ -32,23 +32,21 @@ type RootStackParamList = {
 type PrimeDetailsScreenRouteProp = RouteProp<RootStackParamList, 'PrimeDetails'>
 type PrimeDetailsScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'PrimeDetails'>
 
-const { height: screenHeight } = Dimensions.get('window')
-
 const elementColors = {
   Ignis: '#FF6B6B',
-  Azur: '#4ECDC4', 
-  Vitae: '#95E1A0',
-  Geo: '#DDA15E',
-  Tempest: '#8D86C9',
-  Aeris: '#B8BBD1'
+  Vitae: '#51CF66',
+  Azur: '#339AF0',
+  Geo: '#9775FA',
+  Tempest: '#FFD43B',
+  Aeris: '#74C0FC'
 }
 
 const rarityColors = {
-  Common: '#B0BEC5',
-  Rare: '#42A5F5', 
-  Epic: '#AB47BC',
-  Legendary: '#FF9800',
-  Mythical: '#F44336'
+  Common: '#ADB5BD',
+  Rare: '#74C0FC',
+  Epic: '#B197FC',
+  Legendary: '#FFCC8A',
+  Mythical: '#FFA8A8'
 }
 
 export default function PrimeDetailsScreen() {
@@ -64,8 +62,8 @@ export default function PrimeDetailsScreen() {
     return null
   }
 
-  const primaryColor = elementColors[prime.element] || elementColors.Ignis
-  const rarityColor = rarityColors[prime.rarity] || rarityColors.Common
+  const primaryColor = elementColors[prime.element]
+  const rarityColor = rarityColors[prime.rarity]
 
   const tabs = [
     { key: 'stats', label: 'Stats' },
@@ -118,9 +116,9 @@ export default function PrimeDetailsScreen() {
             </Text>
 
             <View style={styles.badgeContainer}>
-              <View style={[styles.elementBadge, { backgroundColor: primaryColor }]}>
+              <View style={[styles.elementBadge, { backgroundColor: primaryColor + '10' }]}>
                 <ElementIcon element={prime.element} size="small" />
-                <Text variant="bodySmall" style={styles.badgeText}>
+                <Text variant="bodySmall" style={[styles.badgeText, { color: primaryColor }]}>
                   {prime.element}
                 </Text>
               </View>
