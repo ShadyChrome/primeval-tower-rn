@@ -270,6 +270,8 @@ const styles = StyleSheet.create({
   rarityBadge: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
+    flexDirection: 'row',
+    alignItems: 'center',
     borderRadius: 20,
   },
   xpContainer: {
