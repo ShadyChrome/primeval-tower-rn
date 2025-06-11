@@ -49,6 +49,29 @@ export default function RuneEquipment({
   const [showRuneModal, setShowRuneModal] = useState(false)
 
   // Calculate active synergies
+  const calculateTotalStats = (): string[] => {
+    const totalStats: Record<string, number> = {}
+    
+    equippedRunes.forEach(rune => {
+      if (rune?.stat_bonuses && typeof rune.stat_bonuses === 'object') {
+        const bonuses = rune.stat_bonuses as Record<string, any>
+        Object.entries(bonuses).forEach(([stat, value]) => {
+          if (typeof value === 'number' && stat !== 'synergy') {
+            totalStats[stat] = (totalStats[stat] || 0) + value
+          }
+        })
+      }
+    })
+    
+    return Object.entries(totalStats)
+      .filter(([_, value]) => value > 0)
+      .map(([stat, value]) => {
+        const suffix = stat.includes('Rate') || stat.includes('Damage') || stat.includes('Chance') ? '%' : ''
+        return `+${value}${suffix} ${stat.charAt(0).toUpperCase() + stat.slice(1)}`
+      })
+      .slice(0, 4) // Limit to 4 main stats for space
+  }
+
   const calculateSynergies = (): RuneSynergy[] => {
     const synergyGroups: Record<string, PlayerRune[]> = {}
     
@@ -145,66 +168,87 @@ export default function RuneEquipment({
         Rune Equipment
       </Text>
       
-      {/* Rune Slots Grid - Hexagonal Layout */}
+      {/* Rune Slots Grid - Flower Layout */}
       <View style={styles.runeGrid}>
-        {/* Top Row */}
-        <View style={styles.topRow}>
-          <RuneSlot
-            slotIndex={0}
-            rune={equippedRunes[0]}
-            size={SLOT_SIZE}
-            onPress={() => handleSlotPress(0)}
-            onRemove={() => handleRuneRemove(0)}
-            primaryColor={primaryColor}
-          />
-          <RuneSlot
-            slotIndex={1}
-            rune={equippedRunes[1]}
-            size={SLOT_SIZE}
-            onPress={() => handleSlotPress(1)}
-            onRemove={() => handleRuneRemove(1)}
-            primaryColor={primaryColor}
-          />
-        </View>
+        <View style={styles.flowerContainer}>
+          {/* Top Row */}
+          <View style={styles.flowerTop}>
+            <RuneSlot
+              slotIndex={0}
+              rune={equippedRunes[0]}
+              size={SLOT_SIZE}
+              onPress={() => handleSlotPress(0)}
+              onRemove={() => handleRuneRemove(0)}
+              primaryColor={primaryColor}
+            />
+            <RuneSlot
+              slotIndex={1}
+              rune={equippedRunes[1]}
+              size={SLOT_SIZE}
+              onPress={() => handleSlotPress(1)}
+              onRemove={() => handleRuneRemove(1)}
+              primaryColor={primaryColor}
+            />
+          </View>
 
-        {/* Middle Row */}
-        <View style={styles.middleRow}>
-          <RuneSlot
-            slotIndex={2}
-            rune={equippedRunes[2]}
-            size={SLOT_SIZE}
-            onPress={() => handleSlotPress(2)}
-            onRemove={() => handleRuneRemove(2)}
-            primaryColor={primaryColor}
-          />
-          <RuneSlot
-            slotIndex={3}
-            rune={equippedRunes[3]}
-            size={SLOT_SIZE}
-            onPress={() => handleSlotPress(3)}
-            onRemove={() => handleRuneRemove(3)}
-            primaryColor={primaryColor}
-          />
-        </View>
+          {/* Middle Row with Center Stats */}
+          <View style={styles.flowerMiddle}>
+            <RuneSlot
+              slotIndex={2}
+              rune={equippedRunes[2]}
+              size={SLOT_SIZE}
+              onPress={() => handleSlotPress(2)}
+              onRemove={() => handleRuneRemove(2)}
+              primaryColor={primaryColor}
+            />
+            
+            {/* Center Stats Display */}
+            <View style={styles.centerStats}>
+              <Text variant="titleSmall" style={[styles.centerStatsTitle, { color: primaryColor }]}>
+                Total Bonuses
+              </Text>
+              {calculateTotalStats().length > 0 ? (
+                calculateTotalStats().map((stat, index) => (
+                  <Text key={index} variant="bodySmall" style={styles.centerStatValue}>
+                    {stat}
+                  </Text>
+                ))
+              ) : (
+                <Text variant="bodySmall" style={styles.centerStatValue}>
+                  No bonuses yet
+                </Text>
+              )}
+            </View>
 
-        {/* Bottom Row */}
-        <View style={styles.bottomRow}>
-          <RuneSlot
-            slotIndex={4}
-            rune={equippedRunes[4]}
-            size={SLOT_SIZE}
-            onPress={() => handleSlotPress(4)}
-            onRemove={() => handleRuneRemove(4)}
-            primaryColor={primaryColor}
-          />
-          <RuneSlot
-            slotIndex={5}
-            rune={equippedRunes[5]}
-            size={SLOT_SIZE}
-            onPress={() => handleSlotPress(5)}
-            onRemove={() => handleRuneRemove(5)}
-            primaryColor={primaryColor}
-          />
+            <RuneSlot
+              slotIndex={3}
+              rune={equippedRunes[3]}
+              size={SLOT_SIZE}
+              onPress={() => handleSlotPress(3)}
+              onRemove={() => handleRuneRemove(3)}
+              primaryColor={primaryColor}
+            />
+          </View>
+
+          {/* Bottom Row */}
+          <View style={styles.flowerBottom}>
+            <RuneSlot
+              slotIndex={4}
+              rune={equippedRunes[4]}
+              size={SLOT_SIZE}
+              onPress={() => handleSlotPress(4)}
+              onRemove={() => handleRuneRemove(4)}
+              primaryColor={primaryColor}
+            />
+            <RuneSlot
+              slotIndex={5}
+              rune={equippedRunes[5]}
+              size={SLOT_SIZE}
+              onPress={() => handleSlotPress(5)}
+              onRemove={() => handleRuneRemove(5)}
+              primaryColor={primaryColor}
+            />
+          </View>
         </View>
       </View>
 
@@ -275,22 +319,52 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     marginBottom: spacing.lg,
   },
-  topRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: spacing.lg,
-    marginBottom: spacing.sm,
+  flowerContainer: {
+    alignItems: 'center',
+    width: '100%',
   },
-  middleRow: {
+  flowerTop: {
     flexDirection: 'row',
     justifyContent: 'center',
     gap: spacing.xl * 2,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.lg,
   },
-  bottomRow: {
+  flowerMiddle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: spacing.lg,
+  },
+  flowerBottom: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: spacing.lg,
+    gap: spacing.xl * 2,
+  },
+  centerStats: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surfaceVariant + '40',
+    borderRadius: 20,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    minWidth: 140,
+    maxWidth: 160,
+    borderWidth: 1,
+    borderColor: colors.surfaceVariant,
+  },
+  centerStatsTitle: {
+    fontWeight: '600',
+    marginBottom: spacing.sm,
+    fontSize: 13,
+    textAlign: 'center',
+  },
+  centerStatValue: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    lineHeight: 14,
+    textAlign: 'center',
+    marginBottom: 1,
   },
   synergiesContainer: {
     marginTop: spacing.md,

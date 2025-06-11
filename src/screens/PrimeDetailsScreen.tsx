@@ -15,18 +15,17 @@ import ElementAdvantages from '../components/modals/sections/ElementAdvantages'
 import RuneEquipment from '../components/modals/sections/RuneEquipment'
 import { colors, spacing, typography } from '../theme/designSystem'
 import { PlayerRune } from '../../types/supabase'
-import { mockRunes, getAvailableRunes } from '../data/mockRunes'
+import { RuneService } from '../services/runeService'
+import { 
+  savePrimeRuneEquipment, 
+  loadPrimeRuneEquipment, 
+  getAllEquippedRuneIds,
+  initializePrimeRuneStorage
+} from '../utils/primeRuneStorage'
+import { UIPrime } from '../services/primeService'
 
-interface Prime {
-  id: string
-  name: string
-  element: ElementType
-  rarity: 'Common' | 'Rare' | 'Epic' | 'Legendary' | 'Mythical'
-  level: number
-  power: number
-  abilities: string[]
-  imageName?: PrimeImageType
-}
+// Use UIPrime interface from the service
+type Prime = UIPrime
 
 type RootStackParamList = {
   MainTabs: undefined
@@ -62,8 +61,8 @@ export default function PrimeDetailsScreen() {
   const [currentPrime, setCurrentPrime] = useState<Prime | null>(null)
   const [currentIndex, setCurrentIndex] = useState(0)
   const [equippedRunes, setEquippedRunes] = useState<(PlayerRune | null)[]>(Array(6).fill(null))
-  // Use mock rune data with reactive updates
-  const [allRunes, setAllRunes] = useState<PlayerRune[]>([...mockRunes])
+  const [allRunes, setAllRunes] = useState<PlayerRune[]>([])
+  const [availableRunes, setAvailableRunes] = useState<PlayerRune[]>([])
   
   const navigation = useNavigation<PrimeDetailsScreenNavigationProp>()
   const route = useRoute<PrimeDetailsScreenRouteProp>()
@@ -71,15 +70,43 @@ export default function PrimeDetailsScreen() {
   
   const { prime, primesList, currentIndex: initialIndex } = route.params
   
-  const availableRunes = useMemo(() => getAvailableRunes(allRunes), [allRunes])
-  
-  // Initialize state from route params
+  // Initialize storage and load Prime-specific runes
   React.useEffect(() => {
-    if (prime) {
-      setCurrentPrime(prime)
-      setCurrentIndex(initialIndex)
+    const initializeData = async () => {
+      // Initialize storage first
+      await initializePrimeRuneStorage()
+      
+      if (prime) {
+        setCurrentPrime(prime)
+        setCurrentIndex(initialIndex)
+        
+        // Load equipped runes for this specific Prime
+        const primeEquippedRunes = await loadPrimeRuneEquipment(prime.id)
+        setEquippedRunes(primeEquippedRunes)
+        
+        // Load all runes from database
+        const playerRunes = await RuneService.getPlayerRunes()
+        setAllRunes(playerRunes)
+        
+        // Load available runes (unequipped ones)
+        const availableRunesList = await RuneService.getAvailableRunes()
+        setAvailableRunes(availableRunesList)
+      }
     }
+    
+    initializeData()
   }, [prime, initialIndex])
+
+  // Save runes when Prime changes
+  React.useEffect(() => {
+    const saveData = async () => {
+      if (currentPrime && equippedRunes.some(rune => rune !== null)) {
+        await savePrimeRuneEquipment(currentPrime.id, equippedRunes)
+      }
+    }
+    
+    saveData()
+  }, [currentPrime, equippedRunes])
   
   // Handle invalid route params
   React.useEffect(() => {
@@ -96,76 +123,68 @@ export default function PrimeDetailsScreen() {
   const rarityColor = rarityColors[currentPrime.rarity]
 
   // Rune equipment handlers
-  const handleRuneEquip = (slotIndex: number, rune: PlayerRune | null) => {
+  const handleRuneEquip = async (slotIndex: number, rune: PlayerRune | null) => {
     const newEquippedRunes = [...equippedRunes]
-    const newAllRunes = [...allRunes]
-    
-    // If there was a rune in this slot, mark it as unequipped
-    if (newEquippedRunes[slotIndex]) {
-      const oldRuneIndex = newAllRunes.findIndex(r => r.id === newEquippedRunes[slotIndex]?.id)
-      if (oldRuneIndex !== -1) {
-        newAllRunes[oldRuneIndex] = {
-          ...newAllRunes[oldRuneIndex],
-          is_equipped: false,
-          equipped_slot: null
-        }
-      }
-    }
-    
-    // If equipping a new rune, mark it as equipped
-    if (rune) {
-      const targetRuneIndex = newAllRunes.findIndex(r => r.id === rune.id)
-      if (targetRuneIndex !== -1) {
-        newAllRunes[targetRuneIndex] = {
-          ...newAllRunes[targetRuneIndex],
-          is_equipped: true,
-          equipped_slot: slotIndex
-        }
-      }
-    }
-    
     newEquippedRunes[slotIndex] = rune
     setEquippedRunes(newEquippedRunes)
-    setAllRunes(newAllRunes)
+    
+    // Save immediately
+    if (currentPrime) {
+      await savePrimeRuneEquipment(currentPrime.id, newEquippedRunes)
+      
+      // Refresh available runes list
+      const availableRunesList = await RuneService.getAvailableRunes()
+      setAvailableRunes(availableRunesList)
+    }
   }
 
-  const handleRuneUnequip = (slotIndex: number) => {
+  const handleRuneUnequip = async (slotIndex: number) => {
     const newEquippedRunes = [...equippedRunes]
-    const newAllRunes = [...allRunes]
-    const removedRune = newEquippedRunes[slotIndex]
-    
-    if (removedRune) {
-      const targetRuneIndex = newAllRunes.findIndex(r => r.id === removedRune.id)
-      if (targetRuneIndex !== -1) {
-        newAllRunes[targetRuneIndex] = {
-          ...newAllRunes[targetRuneIndex],
-          is_equipped: false,
-          equipped_slot: null
-        }
-      }
-    }
-    
     newEquippedRunes[slotIndex] = null
     setEquippedRunes(newEquippedRunes)
-    setAllRunes(newAllRunes)
+    
+    // Save immediately
+    if (currentPrime) {
+      await savePrimeRuneEquipment(currentPrime.id, newEquippedRunes)
+      
+      // Refresh available runes list
+      const availableRunesList = await RuneService.getAvailableRunes()
+      setAvailableRunes(availableRunesList)
+    }
   }
 
   // Navigation functions
-  const navigateToPrevious = () => {
-    if (currentIndex > 0) {
+  const navigateToPrevious = async () => {
+    if (currentIndex > 0 && currentPrime) {
+      // Save current Prime's runes
+      await savePrimeRuneEquipment(currentPrime.id, equippedRunes)
+      
       const newIndex = currentIndex - 1
       const newPrime = primesList[newIndex]
+      
+      // Load new Prime's runes
+      const newPrimeEquippedRunes = await loadPrimeRuneEquipment(newPrime.id)
+      
       setCurrentPrime(newPrime)
       setCurrentIndex(newIndex)
+      setEquippedRunes(newPrimeEquippedRunes)
     }
   }
 
-  const navigateToNext = () => {
-    if (currentIndex < primesList.length - 1) {
+  const navigateToNext = async () => {
+    if (currentIndex < primesList.length - 1 && currentPrime) {
+      // Save current Prime's runes
+      await savePrimeRuneEquipment(currentPrime.id, equippedRunes)
+      
       const newIndex = currentIndex + 1
       const newPrime = primesList[newIndex]
+      
+      // Load new Prime's runes
+      const newPrimeEquippedRunes = await loadPrimeRuneEquipment(newPrime.id)
+      
       setCurrentPrime(newPrime)
       setCurrentIndex(newIndex)
+      setEquippedRunes(newPrimeEquippedRunes)
     }
   }
 
