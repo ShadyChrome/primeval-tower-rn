@@ -4,6 +4,7 @@ import { Text, Modal, Portal, IconButton, Chip } from 'react-native-paper'
 import { PlayerRune } from '../../../../types/supabase'
 import { colors, spacing } from '../../../theme/designSystem'
 import RuneFilter from '../../common/RuneFilter'
+import RuneCard from '../../common/RuneCard'
 import { filterRunes, sortRunes } from '../../../utils/runeFilters'
 
 interface RuneSelectionModalProps {
@@ -92,55 +93,13 @@ export default function RuneSelectionModal({
   }
 
   const renderRuneCard = ({ item: rune }: { item: PlayerRune }) => (
-    <TouchableOpacity
-      style={[
-        styles.runeCard,
-        { borderColor: getRarityColor(rune.rune_tier) }
-      ]}
+    <RuneCard 
+      rune={rune}
       onPress={() => onRuneSelect(rune)}
-    >
-      {/* Rune Header */}
-      <View style={styles.runeHeader}>
-        <View style={styles.runeInfo}>
-          <Text style={[styles.runeIcon, { fontSize: 24 }]}>
-            {getRuneTypeIcon(rune.rune_type)}
-          </Text>
-          <View style={styles.runeDetails}>
-            <Text variant="titleSmall" style={styles.runeName}>
-              {rune.rune_type.charAt(0).toUpperCase() + rune.rune_type.slice(1)} Rune
-            </Text>
-            <Text variant="bodySmall" style={styles.runeMainStat}>
-              {getRuneMainStat(rune)}
-            </Text>
-          </View>
-        </View>
-        
-        <View style={styles.runeBadges}>
-          <View style={[styles.levelBadge, { backgroundColor: getRarityColor(rune.rune_tier) }]}>
-            <Text variant="bodySmall" style={styles.levelText}>
-              +{rune.rune_level}
-            </Text>
-          </View>
-          <Chip 
-            style={[styles.tierChip, { backgroundColor: getRarityColor(rune.rune_tier) }]}
-            textStyle={styles.tierText}
-          >
-{rune.rune_tier ? rune.rune_tier.charAt(0).toUpperCase() + rune.rune_tier.slice(1) : 'Unknown'}
-          </Chip>
-        </View>
-      </View>
-
-      {/* Synergy Info */}
-      {rune.stat_bonuses && typeof rune.stat_bonuses === 'object' && (rune.stat_bonuses as any).synergy && (
-        <View style={styles.synergyContainer}>
-          <Text variant="bodySmall" style={styles.synergyLabel}>
-            Synergy: <Text style={[styles.synergyValue, { color: primaryColor }]}>
-              {(rune.stat_bonuses as any).synergy}
-            </Text>
-          </Text>
-        </View>
-      )}
-    </TouchableOpacity>
+      primaryColor={primaryColor}
+      showEquipStatus={false}
+      compact={true}
+    />
   )
 
 

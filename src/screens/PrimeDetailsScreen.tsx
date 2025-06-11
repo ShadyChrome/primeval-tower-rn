@@ -13,6 +13,7 @@ import StatsSection from '../components/modals/sections/StatsSection'
 import AbilitiesSection from '../components/modals/sections/AbilitiesSection'
 import ElementAdvantages from '../components/modals/sections/ElementAdvantages'
 import RuneEquipment from '../components/modals/sections/RuneEquipment'
+import UpgradeSection from '../components/modals/sections/UpgradeSection'
 import { colors, spacing, typography } from '../theme/designSystem'
 import { PlayerRune } from '../../types/supabase'
 import { RuneService } from '../services/runeService'
@@ -24,6 +25,131 @@ import { UIPrime } from '../services/primeService'
 
 // Use UIPrime interface from the service
 type Prime = UIPrime
+
+interface PrimeAbility {
+  id: string
+  name: string
+  description: string
+  level: number
+  maxLevel: number
+  power: number
+  staminaCost: number
+  cooldown: number
+  statusEffects: string[]
+  elementalDamage: boolean
+}
+
+// Generate detailed ability data from basic ability names
+const generateAbilityData = (prime: Prime): PrimeAbility[] => {
+  const abilityTemplates: { [key: string]: Partial<PrimeAbility> } = {
+    // Ignis abilities
+    'Fire Blast': {
+      description: 'Unleashes a concentrated blast of fire energy dealing high damage.',
+      power: 120,
+      staminaCost: 25,
+      cooldown: 3,
+      statusEffects: ['Burn'],
+      elementalDamage: true,
+    },
+    'Aerial Claw': {
+      description: 'Swift aerial attack with razor-sharp claws.',
+      power: 90,
+      staminaCost: 20,
+      cooldown: 2,
+      statusEffects: [],
+      elementalDamage: false,
+    },
+    'Fireball': {
+      description: 'Launches a blazing fireball that explodes on impact.',
+      power: 100,
+      staminaCost: 22,
+      cooldown: 4,
+      statusEffects: ['Burn', 'Fear'],
+      elementalDamage: true,
+    },
+    'King of the Skies': {
+      description: 'Ultimate aerial dominance ability that strikes from above.',
+      power: 180,
+      staminaCost: 40,
+      cooldown: 8,
+      statusEffects: ['Intimidate', 'Knockdown'],
+      elementalDamage: true,
+    },
+    'Poison Tail': {
+      description: 'Venomous tail strike that inflicts lasting poison damage.',
+      power: 95,
+      staminaCost: 18,
+      cooldown: 3,
+      statusEffects: ['Poison'],
+      elementalDamage: false,
+    },
+    'Fire Breath': {
+      description: 'Breathes intense flames in a wide arc.',
+      power: 110,
+      staminaCost: 30,
+      cooldown: 5,
+      statusEffects: ['Burn'],
+      elementalDamage: true,
+    },
+    'Spike Barrage': {
+      description: 'Launches multiple poisonous spikes at enemies.',
+      power: 85,
+      staminaCost: 25,
+      cooldown: 4,
+      statusEffects: ['Poison', 'Slow'],
+      elementalDamage: false,
+    },
+    'Supernova': {
+      description: 'Explosive ultimate ability that devastates the battlefield.',
+      power: 220,
+      staminaCost: 50,
+      cooldown: 12,
+      statusEffects: ['Burn', 'Blind', 'Knockdown'],
+      elementalDamage: true,
+    },
+    // Add other elements' abilities as needed...
+  }
+
+  return prime.abilities.map((abilityName, index) => {
+    const template = abilityTemplates[abilityName] || {
+      description: 'A powerful ability unique to this Prime.',
+      power: 80,
+      staminaCost: 20,
+      cooldown: 3,
+      statusEffects: [],
+      elementalDamage: true,
+    }
+
+    // Calculate ability level based on prime level and rarity
+    const baseLevel = Math.max(1, Math.floor(prime.level / 8) + index)
+    const rarityBonus = {
+      Common: 0,
+      Rare: 1,
+      Epic: 2,
+      Legendary: 3,
+      Mythical: 5,
+    }[prime.rarity]
+
+    const abilityLevel = Math.min(baseLevel + rarityBonus, 10)
+    const maxLevel = index === 0 ? 15 : index === 1 ? 12 : 10 // First ability can be leveled higher
+
+    // Scale power with ability level and prime power
+    const scaledPower = Math.floor((template.power || 80) * (1 + abilityLevel * 0.1) * (prime.power / 1000))
+
+    return {
+      id: `${prime.id}_ability_${index}`,
+      name: abilityName,
+      description: template.description || 'A powerful ability unique to this Prime.',
+      level: abilityLevel,
+      maxLevel,
+      power: scaledPower,
+      staminaCost: template.staminaCost || 20,
+      cooldown: template.cooldown || 3,
+      statusEffects: template.statusEffects || [],
+      elementalDamage: template.elementalDamage !== undefined ? template.elementalDamage : true,
+    }
+  })
+}
 
 type RootStackParamList = {
   MainTabs: undefined
@@ -55,7 +181,7 @@ const rarityColors = {
 }
 
 export default function PrimeDetailsScreen() {
-  const [activeTab, setActiveTab] = useState<'stats' | 'abilities' | 'matchups' | 'runes'>('stats')
+  const [activeTab, setActiveTab] = useState<'stats' | 'abilities' | 'matchups' | 'runes' | 'upgrade'>('stats')
   const [currentPrime, setCurrentPrime] = useState<Prime | null>(null)
   const [currentIndex, setCurrentIndex] = useState(0)
   const [equippedRunes, setEquippedRunes] = useState<(PlayerRune | null)[]>(Array(6).fill(null))
@@ -206,7 +332,8 @@ export default function PrimeDetailsScreen() {
     { key: 'stats', label: 'Stats' },
     { key: 'abilities', label: 'Abilities' }, 
     { key: 'matchups', label: 'Elements' },
-    { key: 'runes', label: 'Runes' }
+    { key: 'runes', label: 'Runes' },
+    { key: 'upgrade', label: 'Upgrade' }
   ] as const
 
   return (
@@ -346,6 +473,17 @@ export default function PrimeDetailsScreen() {
                 availableRunes={availableRunes}
                 onRuneEquip={handleRuneEquip}
                 onRuneUnequip={handleRuneUnequip}
+              />
+            )}
+
+            {activeTab === 'upgrade' && (
+              <UpgradeSection
+                prime={currentPrime}
+                abilities={generateAbilityData(currentPrime)}
+                primaryColor={primaryColor}
+                onPrimeUpdated={(updates) => {
+                  setCurrentPrime(prev => prev ? { ...prev, ...updates } : null)
+                }}
               />
             )}
           </ScrollView>

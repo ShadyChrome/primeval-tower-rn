@@ -10,6 +10,7 @@ export interface UIPrime {
   element: ElementType
   rarity: 'Common' | 'Rare' | 'Epic' | 'Legendary' | 'Mythical'
   level: number
+  experience: number
   power: number
   abilities: string[]
   imageName?: PrimeImageType
@@ -104,6 +105,7 @@ export class PrimeService {
       element: dbPrime.element as ElementType,
       rarity: dbPrime.rarity as 'Common' | 'Rare' | 'Epic' | 'Legendary' | 'Mythical',
       level: dbPrime.level || 1,
+      experience: dbPrime.experience || 0,
       power: dbPrime.power || 0,
       abilities: Array.isArray(dbPrime.abilities) ? dbPrime.abilities as string[] : [],
       imageName: PrimeService.getImageNameForPrime(dbPrime.prime_name)

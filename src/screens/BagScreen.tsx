@@ -3,9 +3,13 @@ import { View, StyleSheet, FlatList } from 'react-native'
 import { Text, Card, SegmentedButtons, Surface, Chip } from 'react-native-paper'
 import { PlayerRune } from '../../types/supabase'
 import { RuneService } from '../services/runeService'
+import { InventoryService, UIInventoryItem } from '../services/inventoryService'
 import RuneFilter from '../components/common/RuneFilter'
+import RuneCard from '../components/common/RuneCard'
+import ItemCard from '../components/common/ItemCard'
 import { filterRunes, sortRunes } from '../utils/runeFilters'
 import { useFocusEffect } from '@react-navigation/native'
+import { colors, spacing } from '../theme/designSystem'
 
 interface Rune {
   id: string
@@ -18,19 +22,12 @@ interface Rune {
   equipped: boolean
 }
 
-interface Item {
-  id: string
-  name: string
-  type: string
-  quantity: number
-  description: string
-}
-
 export default function BagScreen() {
   const [activeTab, setActiveTab] = useState('runes')
   const [runeStatFilter, setRuneStatFilter] = useState('all')
   const [runeTierFilter, setRuneTierFilter] = useState('all')
   const [allRunes, setAllRunes] = useState<PlayerRune[]>([])
+  const [allItems, setAllItems] = useState<UIInventoryItem[]>([])
 
   // Load runes from database
   const loadRunes = async () => {
@@ -42,10 +39,21 @@ export default function BagScreen() {
     }
   }
 
+  // Load items from database
+  const loadItems = async () => {
+    try {
+      const items = await InventoryService.getPlayerInventory()
+      setAllItems(items)
+    } catch (error) {
+      console.error('Error loading items:', error)
+    }
+  }
+
   // Refresh data when screen comes into focus
   useFocusEffect(
     React.useCallback(() => {
       loadRunes()
+      loadItems()
     }, [])
   )
 
@@ -73,133 +81,19 @@ export default function BagScreen() {
   
   const runeCounts = getRuneCountByTier(allRunes)
 
-  // Mock data for items
-  const items: Item[] = [
-    {
-      id: '1',
-      name: 'Element Enhancer (Ignis)',
-      type: 'Enhancer',
-      quantity: 3,
-      description: 'Increases chance of hatching Ignis Primes'
-    },
-    {
-      id: '2',
-      name: 'Rarity Amplifier',
-      type: 'Enhancer',
-      quantity: 5,
-      description: 'Increases chance of higher rarity hatch'
-    },
-    {
-      id: '3',
-      name: 'XP Potion',
-      type: 'Consumable',
-      quantity: 12,
-      description: 'Grants experience to Primes'
-    },
-    {
-      id: '4',
-      name: 'Ability Scroll',
-      type: 'Consumable',
-      quantity: 7,
-      description: 'Upgrades Prime abilities'
-    },
-  ]
-
-  const rarityColors = {
-    'Common': '#ADB5BD',
-    'Rare': '#74C0FC',
-    'Epic': '#B197FC',
-    'Legendary': '#FFCC8A',
-    'Mythical': '#FFA8A8'
-  }
-
-  const getRuneDisplayName = (rune: any) => {
-    return `${rune.rune_type.charAt(0).toUpperCase() + rune.rune_type.slice(1)} Rune`
-  }
-
-  const getRuneMainStat = (rune: any) => {
-    if (!rune.stat_bonuses || typeof rune.stat_bonuses !== 'object') return 'Unknown'
-    
-    const bonuses = rune.stat_bonuses as Record<string, any>
-    const mainStats = ['attack', 'defense', 'speed', 'health', 'criticalRate', 'criticalDamage']
-    
-    for (const stat of mainStats) {
-      if (bonuses[stat]) {
-        const value = bonuses[stat]
-        const suffix = stat.includes('Rate') || stat.includes('Damage') ? '%' : ''
-        return `${stat.toUpperCase()}: +${value}${suffix}`
-      }
-    }
-    
-    return 'Utility Rune'
-  }
-
-  const renderRuneCard = ({ item: rune }: { item: any }) => (
-    <Card style={[styles.itemCard, rune.is_equipped && styles.equippedCard]}>
-      <Card.Content style={styles.itemCardContent}>
-        <View style={styles.itemHeader}>
-          <View style={styles.itemInfo}>
-            <Text variant="titleMedium" style={styles.itemName}>
-              {getRuneDisplayName(rune)}
-            </Text>
-            <Text variant="bodySmall" style={styles.itemType}>
-              Level +{rune.rune_level} • {rune.rune_tier?.charAt(0).toUpperCase() + rune.rune_tier?.slice(1)}
-            </Text>
-          </View>
-          {rune.is_equipped && (
-            <Chip style={styles.equippedChip} textStyle={styles.equippedText}>
-              Equipped
-            </Chip>
-          )}
-        </View>
-        
-        <View style={styles.runeStats}>
-          <View style={styles.statRow}>
-            <Text variant="bodyMedium" style={styles.statLabel}>Primary:</Text>
-            <Text variant="bodyMedium" style={styles.statValue}>{getRuneMainStat(rune)}</Text>
-          </View>
-          <View style={styles.statRow}>
-            <Text variant="bodyMedium" style={styles.statLabel}>Synergy:</Text>
-            <Text variant="bodyMedium" style={styles.statValue}>
-              {rune.stat_bonuses?.synergy || 'None'}
-            </Text>
-          </View>
-        </View>
-        
-        <Chip 
-          style={[styles.rarityChip, { backgroundColor: rarityColors[rune.rune_tier as keyof typeof rarityColors] }]}
-          textStyle={styles.rarityText}
-        >
-          {rune.rune_tier?.charAt(0).toUpperCase() + rune.rune_tier?.slice(1)}
-        </Chip>
-      </Card.Content>
-    </Card>
+  const renderRuneCard = ({ item: rune }: { item: PlayerRune }) => (
+    <RuneCard 
+      rune={rune}
+      primaryColor={colors.primary}
+      showEquipStatus={true}
+    />
   )
 
-  const renderItemCard = ({ item }: { item: Item }) => (
-    <Card style={styles.itemCard}>
-      <Card.Content style={styles.itemCardContent}>
-        <View style={styles.itemHeader}>
-          <View style={styles.itemInfo}>
-            <Text variant="titleMedium" style={styles.itemName}>
-              {item.name}
-            </Text>
-            <Text variant="bodySmall" style={styles.itemType}>
-              {item.type}
-            </Text>
-          </View>
-          <View style={styles.quantityContainer}>
-            <Text variant="headlineSmall" style={styles.quantity}>
-              {item.quantity}
-            </Text>
-          </View>
-        </View>
-        
-        <Text variant="bodyMedium" style={styles.itemDescription}>
-          {item.description}
-        </Text>
-      </Card.Content>
-    </Card>
+  const renderItemCard = ({ item }: { item: UIInventoryItem }) => (
+    <ItemCard 
+      item={item}
+      primaryColor={colors.primary}
+    />
   )
 
   return (
@@ -231,7 +125,7 @@ export default function BagScreen() {
           />
         ) : (
           <Text variant="titleMedium" style={styles.tabStats}>
-            Items: {items.reduce((total, item) => total + item.quantity, 0)} total
+            Items: {allItems.reduce((total, item) => total + item.quantity, 0)} total
           </Text>
         )}
       </View>
@@ -246,7 +140,7 @@ export default function BagScreen() {
         />
       ) : (
         <FlatList
-          data={items}
+          data={allItems}
           renderItem={renderItemCard}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContainer}
@@ -260,113 +154,72 @@ export default function BagScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7EFE5',
+    backgroundColor: colors.background,
   },
   headerSection: {
-    padding: 16,
-    backgroundColor: 'white',
+    padding: spacing.md,
+    backgroundColor: colors.surface,
   },
   screenTitle: {
     fontWeight: '700',
-    color: '#333333',
-    marginBottom: 16,
+    color: colors.text,
+    marginBottom: spacing.md,
   },
   tabSelector: {
-    backgroundColor: '#F5F5F5',
+    backgroundColor: colors.surfaceVariant,
   },
   statsBar: {
-    padding: 16,
-    backgroundColor: 'white',
+    padding: spacing.md,
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
   },
   tabStats: {
-    color: '#333333',
+    color: colors.text,
     fontWeight: '600',
   },
   listContainer: {
-    padding: 16,
+    padding: spacing.md,
   },
   itemCard: {
-    marginBottom: 12,
-    backgroundColor: 'white',
-  },
-  equippedCard: {
-    borderWidth: 2,
-    borderColor: '#A0C49D',
-    backgroundColor: '#F0F7ED',
+    marginBottom: spacing.sm,
+    backgroundColor: colors.surface,
   },
   itemCardContent: {
-    padding: 16,
+    padding: spacing.md,
   },
   itemHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 12,
+    marginBottom: spacing.sm,
   },
   itemInfo: {
     flex: 1,
   },
   itemName: {
     fontWeight: '600',
-    color: '#333333',
+    color: colors.text,
     marginBottom: 4,
   },
   itemType: {
-    color: '#666666',
-  },
-  equippedChip: {
-    backgroundColor: '#A0C49D',
-  },
-  equippedText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  runeStats: {
-    marginBottom: 12,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
-  },
-  statRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 4,
-  },
-  statLabel: {
-    color: '#666666',
-  },
-  statValue: {
-    color: '#333333',
-    fontWeight: '600',
-  },
-  rarityChip: {
-    alignSelf: 'flex-start',
-    borderRadius: 16,
-  },
-  rarityText: {
-    color: 'white',
-    fontWeight: '600',
-    fontSize: 12,
+    color: colors.textSecondary,
   },
   quantityContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#A0C49D',
+    backgroundColor: colors.accent,
     borderRadius: 20,
     width: 40,
     height: 40,
   },
   quantity: {
-    color: 'white',
+    color: colors.surface,
     fontWeight: '700',
   },
   itemDescription: {
-    color: '#666666',
-    marginTop: 8,
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
     fontStyle: 'italic',
   },
-
 }) 

@@ -127,19 +127,72 @@ export class PlayerManager {
     try {
       // Add starter items to inventory
       const starterItems: PlayerInventoryInsert[] = [
+        // Eggs
         {
           player_id: playerId,
           item_type: 'egg',
           item_id: 'basic_egg',
           quantity: 3,
-          metadata: { rarity: 'common' }
+          metadata: { rarity: 'Common' }
         },
         {
           player_id: playerId,
-          item_type: 'prime',
-          item_id: 'small_prime',
-          quantity: 5,
-          metadata: { value: 10 }
+          item_type: 'egg',
+          item_id: 'rare_egg',
+          quantity: 1,
+          metadata: { rarity: 'Rare' }
+        },
+        // XP Potions for testing upgrade system
+        {
+          player_id: playerId,
+          item_type: 'xp_potion',
+          item_id: 'small_xp_potion',
+          quantity: 15,
+          metadata: { rarity: 'Common', xpValue: 50 }
+        },
+        {
+          player_id: playerId,
+          item_type: 'xp_potion',
+          item_id: 'medium_xp_potion',
+          quantity: 8,
+          metadata: { rarity: 'Rare', xpValue: 150 }
+        },
+        {
+          player_id: playerId,
+          item_type: 'xp_potion',
+          item_id: 'large_xp_potion',
+          quantity: 3,
+          metadata: { rarity: 'Epic', xpValue: 400 }
+        },
+        {
+          player_id: playerId,
+          item_type: 'xp_potion',
+          item_id: 'huge_xp_potion',
+          quantity: 1,
+          metadata: { rarity: 'Legendary', xpValue: 1000 }
+        },
+        // Ability Scrolls for ability upgrades
+        {
+          player_id: playerId,
+          item_type: 'ability_scroll',
+          item_id: 'ability_scroll',
+          quantity: 12,
+          metadata: { description: 'Used to upgrade Prime abilities' }
+        },
+        // Enhancers
+        {
+          player_id: playerId,
+          item_type: 'enhancer',
+          item_id: 'element_enhancer_ignis',
+          quantity: 2,
+          metadata: { element: 'Ignis' }
+        },
+        {
+          player_id: playerId,
+          item_type: 'enhancer',
+          item_id: 'rarity_amplifier',
+          quantity: 3,
+          metadata: { description: 'Increases chance of higher rarity hatch' }
         }
       ]
 
