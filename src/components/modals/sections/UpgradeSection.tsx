@@ -57,11 +57,11 @@ export default function UpgradeSection({
   const progressPercentage = Math.min((currentProgress / currentLevelXP) * 100, 100)
 
   const handleXPUpgradeSuccess = (result: UpgradeResult) => {
-    if (result.success && result.newLevel && result.newPower) {
+    if (result.success && result.newLevel && result.newPower !== undefined) {
       onPrimeUpdated({
         level: result.newLevel,
         power: result.newPower,
-        // experience: result.newExperience
+        experience: result.newExperience || 0
       })
     }
   }

@@ -21,7 +21,7 @@ import {
   savePrimeRuneEquipment, 
   loadPrimeRuneEquipment
 } from '../utils/primeRuneStorage'
-import { UIPrime } from '../services/primeService'
+import { UIPrime, PrimeService } from '../services/primeService'
 
 // Use UIPrime interface from the service
 type Prime = UIPrime
@@ -217,6 +217,21 @@ export default function PrimeDetailsScreen() {
     
     loadData()
   }, [prime, initialIndex])
+
+  // Refresh prime data when screen comes into focus
+  React.useEffect(() => {
+    const refreshPrimeData = async () => {
+      if (currentPrime) {
+        // Refresh the prime data from database to get latest experience, level, etc.
+        const updatedPrime = await PrimeService.getPrimeById(currentPrime.id)
+        if (updatedPrime) {
+          setCurrentPrime(updatedPrime)
+        }
+      }
+    }
+
+    refreshPrimeData()
+  }, [currentPrime?.id])
 
   // Save runes when Prime changes
   React.useEffect(() => {
