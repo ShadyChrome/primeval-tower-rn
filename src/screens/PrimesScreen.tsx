@@ -31,7 +31,11 @@ interface RowData {
 
 type RootStackParamList = {
   MainTabs: undefined
-  PrimeDetails: { prime: Prime }
+  PrimeDetails: { 
+    prime: Prime
+    primesList: Prime[]
+    currentIndex: number
+  }
 }
 
 type PrimesScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'MainTabs'>
@@ -326,7 +330,12 @@ export default function PrimesScreen() {
   )
 
   const handlePrimePress = (prime: Prime) => {
-    navigation.navigate('PrimeDetails', { prime })
+    const currentIndex = filteredPrimes.findIndex(p => p.id === prime.id)
+    navigation.navigate('PrimeDetails', { 
+      prime, 
+      primesList: filteredPrimes,
+      currentIndex 
+    })
   }
 
   const toggleSearchExpanded = () => {

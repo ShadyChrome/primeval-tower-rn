@@ -388,36 +388,56 @@ Both approaches provide **identical information density** and **visual consisten
 
 # Prime Details Feature - Active Context
 
-## Implementation Status: COMPLETE ✅
+## Implementation Status: COMPLETE ✅ with SWIPE NAVIGATION
 
-The Prime Details feature has been successfully implemented using a **screen-based approach only**. The modal approach has been completely removed after user feedback indicated satisfaction with the unified screen experience.
+The Prime Details feature has been successfully implemented using a **screen-based approach** with **horizontal swipe navigation** between primes. Users can now seamlessly browse through their filtered prime collection.
 
 ### Final Implementation
 - **Single Approach**: Screen navigation using React Navigation Stack
+- **Swipe Navigation**: Left/right swipe gestures to navigate between adjacent primes
+- **Visual Navigation**: Position indicators and navigation buttons
 - **Unified Layout**: Compact horizontal header design with optimized space usage
 - **Complete Integration**: Seamlessly integrated with existing app navigation
 - **Clean Codebase**: All modal-related code has been removed
 
+### Swipe Navigation Features
+- **Gesture Support**: Natural left/right swipe gestures using react-native-gesture-handler
+- **Position Indicator**: Shows "X of Y" current position in filtered collection
+- **Navigation Buttons**: Chevron left/right buttons as alternative to swipes
+- **Smart Boundaries**: Prevents navigation beyond first/last prime
+- **Filter Awareness**: Navigation respects current search/filter context
+- **Smooth Transitions**: Instant prime switching with proper state management
+
 ### Technical Architecture
 - Uses `@react-navigation/native-stack` for Prime Details screen
 - Maintains existing `@react-navigation/bottom-tabs` for main app navigation
-- Complete TypeScript support with proper route parameters
+- Integrated `react-native-gesture-handler` for swipe functionality
+- Complete TypeScript support with proper route parameters including primes list
 - Reuses existing components (StatsSection, AbilitiesSection, ElementAdvantages)
+- Dynamic state management for current prime and navigation position
 
 ### User Experience
-- Native slide-from-right animation
-- Element-based color theming
-- Floating back button overlay
+- Native slide-from-right animation for initial screen entry
+- Instant swipe-based navigation between primes in collection
+- Element-based color theming that updates dynamically
+- Floating back button and navigation controls overlay
 - Horizontal tabs for content sections
 - Consistent badge styling and element theming
 - ~40% reduction in header space usage for maximum content area
 
-### Key Files
-- `src/screens/PrimeDetailsScreen.tsx` - Main screen implementation
-- `src/navigation/AppNavigation.tsx` - Navigation structure
-- `src/screens/PrimesScreen.tsx` - Updated to use screen navigation only
-
 ### Navigation Flow
-PrimesScreen → (tap prime card) → PrimeDetailsScreen
+PrimesScreen → (tap prime card) → PrimeDetailsScreen → (swipe left/right) → Adjacent Prime Details
 
-The implementation is ready for future enhancements like rune equipment features with optimized content area space. 
+### Key Files
+- `src/screens/PrimeDetailsScreen.tsx` - Main screen with swipe navigation
+- `src/navigation/AppNavigation.tsx` - Navigation structure
+- `src/screens/PrimesScreen.tsx` - Updated to pass filtered primes list and current index
+
+### Technical Implementation Details
+- **Swipe Thresholds**: 50px translation or 500px/s velocity for reliable gesture detection
+- **State Management**: Local state for current prime and index with useEffect sync
+- **Route Parameters**: Extended to include `primesList` and `currentIndex` for navigation context
+- **Gesture Handler**: PanGestureHandler with proper state detection (State.END)
+- **Navigation Logic**: Boundary checking to prevent out-of-range navigation
+
+The implementation provides an excellent foundation for browsing prime collections with intuitive gesture-based navigation, ready for future enhancements like rune equipment features. 

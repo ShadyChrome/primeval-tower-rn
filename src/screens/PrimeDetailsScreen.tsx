@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native'
 import { NativeStackNavigationProp } from '@react-navigation/native-stack'
+import { PanGestureHandler } from 'react-native-gesture-handler'
 
 import { ElementIcon, PrimeImage } from '../../components/OptimizedImage'
 import { ElementType, PrimeImageType } from '../assets/ImageAssets'
@@ -26,7 +27,11 @@ interface Prime {
 
 type RootStackParamList = {
   MainTabs: undefined
-  PrimeDetails: { prime: Prime }
+  PrimeDetails: { 
+    prime: Prime
+    primesList: Prime[]
+    currentIndex: number
+  }
 }
 
 type PrimeDetailsScreenRouteProp = RouteProp<RootStackParamList, 'PrimeDetails'>
@@ -51,19 +56,71 @@ const rarityColors = {
 
 export default function PrimeDetailsScreen() {
   const [activeTab, setActiveTab] = useState<'stats' | 'abilities' | 'matchups' | 'runes'>('stats')
+  const [currentPrime, setCurrentPrime] = useState<Prime | null>(null)
+  const [currentIndex, setCurrentIndex] = useState(0)
   const navigation = useNavigation<PrimeDetailsScreenNavigationProp>()
   const route = useRoute<PrimeDetailsScreenRouteProp>()
   const insets = useSafeAreaInsets()
   
-  const { prime } = route.params
+  const { prime, primesList, currentIndex: initialIndex } = route.params
   
-  if (!prime) {
-    navigation.goBack()
+  // Initialize state from route params
+  React.useEffect(() => {
+    setCurrentPrime(prime)
+    setCurrentIndex(initialIndex)
+  }, [prime, initialIndex])
+  
+  // Handle invalid route params
+  React.useEffect(() => {
+    if (!prime || !primesList) {
+      navigation.goBack()
+    }
+  }, [prime, primesList, navigation])
+  
+  if (!currentPrime || !primesList) {
     return null
   }
 
-  const primaryColor = elementColors[prime.element]
-  const rarityColor = rarityColors[prime.rarity]
+  const primaryColor = elementColors[currentPrime.element]
+  const rarityColor = rarityColors[currentPrime.rarity]
+
+  // Navigation functions
+  const navigateToPrevious = () => {
+    if (currentIndex > 0) {
+      const newIndex = currentIndex - 1
+      const newPrime = primesList[newIndex]
+      setCurrentPrime(newPrime)
+      setCurrentIndex(newIndex)
+    }
+  }
+
+  const navigateToNext = () => {
+    if (currentIndex < primesList.length - 1) {
+      const newIndex = currentIndex + 1
+      const newPrime = primesList[newIndex]
+      setCurrentPrime(newPrime)
+      setCurrentIndex(newIndex)
+    }
+  }
+
+  // Swipe gesture handler
+  const onSwipeGesture = (event: any) => {
+    if (event.nativeEvent.state === 5) { // 5 = END state
+      const { translationX, velocityX } = event.nativeEvent
+      
+      // Determine swipe direction and threshold
+      const swipeThreshold = 50
+      const velocityThreshold = 500
+      
+      if (translationX > swipeThreshold || velocityX > velocityThreshold) {
+        // Swipe right -> Previous prime
+        navigateToPrevious()
+      } else if (translationX < -swipeThreshold || velocityX < -velocityThreshold) {
+        // Swipe left -> Next prime
+        navigateToNext()
+      }
+    }
+  }
 
   const tabs = [
     { key: 'stats', label: 'Stats' },
@@ -74,64 +131,91 @@ export default function PrimeDetailsScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Compact Header with Image and Info */}
-      <LinearGradient
-        colors={[primaryColor + '20', primaryColor + '10', 'transparent']}
-        style={styles.header}
-      >
-        {/* Back Button */}
-        <IconButton
-          icon="arrow-left"
-          size={24}
-          iconColor={colors.text}
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-        />
+      <PanGestureHandler onHandlerStateChange={onSwipeGesture}>
+        <View style={styles.gestureContainer}>
+          {/* Compact Header with Image and Info */}
+          <LinearGradient
+            colors={[primaryColor + '20', primaryColor + '10', 'transparent']}
+            style={styles.header}
+          >
+            {/* Back Button */}
+            <IconButton
+              icon="arrow-left"
+              size={24}
+              iconColor={colors.text}
+              onPress={() => navigation.goBack()}
+              style={styles.backButton}
+            />
 
-        {/* Compact Header Layout */}
-        <View style={styles.compactHeader}>
-          {/* Left: Prime Image */}
-          <View style={styles.primeImageContainer}>
-            <View style={[
-              styles.primeImageBackground,
-              { backgroundColor: primaryColor + '15', borderColor: primaryColor + '40' }
-            ]}>
-              <PrimeImage 
-                primeName={prime.imageName || 'Rathalos'} 
-                width={80}
-                height={80}
-                style={styles.primeImage}
-              />
-            </View>
-          </View>
-
-          {/* Right: Prime Info */}
-          <View style={styles.primeInfo}>
-            <Text variant="headlineSmall" style={[styles.primeName, { color: primaryColor }]}>
-              {prime.name}
-            </Text>
-            
-            <Text variant="titleMedium" style={styles.levelText}>
-              Level {prime.level} • {prime.rarity} • {prime.power} Power
-            </Text>
-
-            <View style={styles.badgeContainer}>
-              <View style={[styles.elementBadge, { backgroundColor: primaryColor + '10' }]}>
-                <ElementIcon element={prime.element} size="small" />
-                <Text variant="bodySmall" style={[styles.badgeText, { color: primaryColor }]}>
-                  {prime.element}
-                </Text>
-              </View>
-              
-              <View style={[styles.rarityBadge, { backgroundColor: rarityColor }]}>
-                <Text variant="bodySmall" style={styles.badgeText}>
-                  {prime.rarity}
-                </Text>
+            {/* Navigation indicators */}
+            <View style={styles.navigationIndicators}>
+              <Text variant="bodySmall" style={styles.positionText}>
+                {currentIndex + 1} of {primesList.length}
+              </Text>
+              <View style={styles.navigationButtons}>
+                <IconButton
+                  icon="chevron-left"
+                  size={20}
+                  iconColor={currentIndex > 0 ? colors.text : colors.textTertiary}
+                  onPress={navigateToPrevious}
+                  disabled={currentIndex === 0}
+                  style={styles.navButton}
+                />
+                <IconButton
+                  icon="chevron-right"
+                  size={20}
+                  iconColor={currentIndex < primesList.length - 1 ? colors.text : colors.textTertiary}
+                  onPress={navigateToNext}
+                  disabled={currentIndex === primesList.length - 1}
+                  style={styles.navButton}
+                />
               </View>
             </View>
-          </View>
-        </View>
-      </LinearGradient>
+
+            {/* Compact Header Layout */}
+            <View style={styles.compactHeader}>
+              {/* Left: Prime Image */}
+              <View style={styles.primeImageContainer}>
+                <View style={[
+                  styles.primeImageBackground,
+                  { backgroundColor: primaryColor + '15', borderColor: primaryColor + '40' }
+                ]}>
+                  <PrimeImage 
+                    primeName={currentPrime.imageName || 'Rathalos'} 
+                    width={80}
+                    height={80}
+                    style={styles.primeImage}
+                  />
+                </View>
+              </View>
+
+              {/* Right: Prime Info */}
+              <View style={styles.primeInfo}>
+                <Text variant="headlineSmall" style={[styles.primeName, { color: primaryColor }]}>
+                  {currentPrime.name}
+                </Text>
+                
+                <Text variant="titleMedium" style={styles.levelText}>
+                  Level {currentPrime.level} • {currentPrime.rarity} • {currentPrime.power} Power
+                </Text>
+
+                <View style={styles.badgeContainer}>
+                  <View style={[styles.elementBadge, { backgroundColor: primaryColor + '10' }]}>
+                    <ElementIcon element={currentPrime.element} size="small" />
+                    <Text variant="bodySmall" style={[styles.badgeText, { color: primaryColor }]}>
+                      {currentPrime.element}
+                    </Text>
+                  </View>
+                  
+                  <View style={[styles.rarityBadge, { backgroundColor: rarityColor }]}>
+                    <Text variant="bodySmall" style={styles.badgeText}>
+                      {currentPrime.rarity}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+          </LinearGradient>
 
       {/* Tab Navigation */}
       <View style={styles.tabContainer}>
@@ -157,32 +241,34 @@ export default function PrimeDetailsScreen() {
         ))}
       </View>
 
-      {/* Content Area */}
-      <ScrollView 
-        style={styles.contentContainer}
-        showsVerticalScrollIndicator={false}
-      >
-        {activeTab === 'stats' && (
-          <StatsSection prime={prime} primaryColor={primaryColor} />
-        )}
+          {/* Content Area */}
+          <ScrollView 
+            style={styles.contentContainer}
+            showsVerticalScrollIndicator={false}
+          >
+            {activeTab === 'stats' && (
+              <StatsSection prime={currentPrime} primaryColor={primaryColor} />
+            )}
 
-        {activeTab === 'abilities' && (
-          <AbilitiesSection prime={prime} primaryColor={primaryColor} />
-        )}
+            {activeTab === 'abilities' && (
+              <AbilitiesSection prime={currentPrime} primaryColor={primaryColor} />
+            )}
 
-        {activeTab === 'matchups' && (
-          <ElementAdvantages element={prime.element} primaryColor={primaryColor} />
-        )}
+            {activeTab === 'matchups' && (
+              <ElementAdvantages element={currentPrime.element} primaryColor={primaryColor} />
+            )}
 
-        {activeTab === 'runes' && (
-          <View style={styles.section}>
-            <Text variant="titleMedium" style={styles.sectionTitle}>Rune Equipment</Text>
-            <Text variant="bodyMedium" style={styles.placeholder}>
-              Rune equipment system coming soon...
-            </Text>
-          </View>
-        )}
-      </ScrollView>
+            {activeTab === 'runes' && (
+              <View style={styles.section}>
+                <Text variant="titleMedium" style={styles.sectionTitle}>Rune Equipment</Text>
+                <Text variant="bodyMedium" style={styles.placeholder}>
+                  Rune equipment system coming soon...
+                </Text>
+              </View>
+            )}
+          </ScrollView>
+        </View>
+      </PanGestureHandler>
     </View>
   )
 }
@@ -300,5 +386,35 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
     fontStyle: 'italic',
+  },
+  gestureContainer: {
+    flex: 1,
+  },
+  navigationIndicators: {
+    position: 'absolute',
+    top: spacing.sm,
+    right: spacing.sm,
+    alignItems: 'flex-end',
+    zIndex: 10,
+  },
+  positionText: {
+    color: colors.text,
+    fontWeight: '600',
+    marginBottom: spacing.xs,
+    backgroundColor: colors.surface + 'DD',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: 12,
+    textAlign: 'center',
+  },
+  navigationButtons: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+  },
+  navButton: {
+    backgroundColor: colors.surface + 'DD',
+    margin: 0,
+    width: 32,
+    height: 32,
   },
 }) 

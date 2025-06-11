@@ -5,6 +5,7 @@ import {
   Button,
   Text,
 } from 'react-native-paper'
+import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { PlayerManager, PlayerData } from './lib/playerManager'
 import { StatusBar } from 'expo-status-bar'
 import LoginScreen from './src/screens/LoginScreen'
@@ -201,12 +202,14 @@ export default function App() {
   }
 
   return (
-    <PaperProvider theme={theme}>
-      <View style={[styles.app, { backgroundColor: theme.colors.background }]}>
-        {renderContent()}
-        <StatusBar style="auto" />
-      </View>
-    </PaperProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <PaperProvider theme={theme}>
+        <View style={[styles.app, { backgroundColor: theme.colors.background }]}>
+          {renderContent()}
+          <StatusBar style="auto" />
+        </View>
+      </PaperProvider>
+    </GestureHandlerRootView>
   )
 }
 
