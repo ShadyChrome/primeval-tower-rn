@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useCallback } from 'react'
 import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native'
 import { Text, IconButton } from 'react-native-paper'
 import { LinearGradient } from 'expo-linear-gradient'
@@ -9,11 +9,18 @@ import { PanGestureHandler } from 'react-native-gesture-handler'
 
 import { ElementIcon, PrimeImage } from '../../components/OptimizedImage'
 import { ElementType, PrimeImageType } from '../assets/ImageAssets'
-import StatsSection from '../components/modals/sections/StatsSection'
-import AbilitiesSection from '../components/modals/sections/AbilitiesSection'
-import ElementAdvantages from '../components/modals/sections/ElementAdvantages'
-import RuneEquipment from '../components/modals/sections/RuneEquipment'
-import UpgradeSection from '../components/modals/sections/UpgradeSection'
+import {
+  MemoizedStatsSection,
+  MemoizedAbilitiesSection,
+  MemoizedElementAdvantages,
+  MemoizedRuneEquipment,
+  MemoizedUpgradeSection
+} from '../components/MemoizedSections'
+import LoadingSkeleton, { 
+  StatBarSkeleton, 
+  AbilityCardSkeleton, 
+  PrimeHeaderSkeleton 
+} from '../components/LoadingSkeleton'
 import { colors, spacing, typography } from '../theme/designSystem'
 import { PlayerRune } from '../../types/supabase'
 import { RuneService } from '../services/runeService'
@@ -187,6 +194,8 @@ export default function PrimeDetailsScreen() {
   const [equippedRunes, setEquippedRunes] = useState<(PlayerRune | null)[]>(Array(6).fill(null))
   const [allRunes, setAllRunes] = useState<PlayerRune[]>([])
   const [availableRunes, setAvailableRunes] = useState<PlayerRune[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isRunesLoading, setIsRunesLoading] = useState(false)
   
   const navigation = useNavigation<PrimeDetailsScreenNavigationProp>()
   const route = useRoute<PrimeDetailsScreenRouteProp>()
@@ -197,21 +206,33 @@ export default function PrimeDetailsScreen() {
   // Load Prime-specific runes and data
   React.useEffect(() => {
     const loadData = async () => {
+      setIsLoading(true)
+      
       if (prime) {
         setCurrentPrime(prime)
         setCurrentIndex(initialIndex)
         
-        // Load equipped runes for this specific Prime
-        const primeEquippedRunes = await loadPrimeRuneEquipment(prime.id)
-        setEquippedRunes(primeEquippedRunes)
-        
-        // Load all runes from database
-        const playerRunes = await RuneService.getPlayerRunes()
-        setAllRunes(playerRunes)
-        
-        // Load available runes (unequipped ones)
-        const availableRunesList = await RuneService.getAvailableRunes()
-        setAvailableRunes(availableRunesList)
+        try {
+          setIsRunesLoading(true)
+          
+          // Load data in parallel for better performance
+          const [primeEquippedRunes, playerRunes, availableRunesList] = await Promise.all([
+            loadPrimeRuneEquipment(prime.id),
+            RuneService.getPlayerRunes(),
+            RuneService.getAvailableRunes()
+          ])
+          
+          setEquippedRunes(primeEquippedRunes)
+          setAllRunes(playerRunes)
+          setAvailableRunes(availableRunesList)
+        } catch (error) {
+          console.error('Error loading prime data:', error)
+        } finally {
+          setIsRunesLoading(false)
+          setIsLoading(false)
+        }
+      } else {
+        setIsLoading(false)
       }
     }
     
@@ -251,8 +272,43 @@ export default function PrimeDetailsScreen() {
     }
   }, [prime, primesList, navigation])
   
-  if (!currentPrime || !primesList) {
-    return null
+  // Memoized handlers for better performance
+  const handleTabChange = useCallback((tab: 'stats' | 'abilities' | 'matchups' | 'runes' | 'upgrade') => {
+    setActiveTab(tab)
+  }, [])
+  
+  const handlePrimeUpdate = useCallback((updates: Partial<Prime>) => {
+    setCurrentPrime(prev => prev ? { ...prev, ...updates } : null)
+  }, [])
+  
+  // Loading state
+  if (!currentPrime || !primesList || isLoading) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top }]}>
+        <PrimeHeaderSkeleton />
+        <View style={styles.tabContainer}>
+          {Array.from({ length: 5 }).map((_, index) => (
+            <LoadingSkeleton key={index} width="20%" height={40} borderRadius={8} />
+          ))}
+        </View>
+        <ScrollView style={styles.contentContainer}>
+          {activeTab === 'stats' && (
+            <View>
+              {Array.from({ length: 6 }).map((_, index) => (
+                <StatBarSkeleton key={index} />
+              ))}
+            </View>
+          )}
+          {activeTab === 'abilities' && (
+            <View>
+              {Array.from({ length: 3 }).map((_, index) => (
+                <AbilityCardSkeleton key={index} />
+              ))}
+            </View>
+          )}
+        </ScrollView>
+      </View>
+    )
   }
 
   const primaryColor = elementColors[currentPrime.element]
@@ -448,7 +504,7 @@ export default function PrimeDetailsScreen() {
               styles.tab,
               activeTab === tab.key && { backgroundColor: primaryColor + '20' }
             ]}
-            onPress={() => setActiveTab(tab.key)}
+            onPress={() => handleTabChange(tab.key)}
           >
             <Text 
               variant="bodyMedium" 
@@ -469,19 +525,19 @@ export default function PrimeDetailsScreen() {
             showsVerticalScrollIndicator={false}
           >
             {activeTab === 'stats' && (
-              <StatsSection prime={currentPrime} primaryColor={primaryColor} equippedRunes={equippedRunes} />
+              <MemoizedStatsSection prime={currentPrime} primaryColor={primaryColor} equippedRunes={equippedRunes} />
             )}
 
             {activeTab === 'abilities' && (
-              <AbilitiesSection prime={currentPrime} primaryColor={primaryColor} />
+              <MemoizedAbilitiesSection prime={currentPrime} primaryColor={primaryColor} />
             )}
 
             {activeTab === 'matchups' && (
-              <ElementAdvantages element={currentPrime.element} primaryColor={primaryColor} />
+              <MemoizedElementAdvantages element={currentPrime.element} primaryColor={primaryColor} />
             )}
 
             {activeTab === 'runes' && (
-              <RuneEquipment
+              <MemoizedRuneEquipment
                 prime={currentPrime}
                 primaryColor={primaryColor}
                 equippedRunes={equippedRunes}
@@ -492,13 +548,11 @@ export default function PrimeDetailsScreen() {
             )}
 
             {activeTab === 'upgrade' && (
-              <UpgradeSection
+              <MemoizedUpgradeSection
                 prime={currentPrime}
                 abilities={generateAbilityData(currentPrime)}
                 primaryColor={primaryColor}
-                onPrimeUpdated={(updates) => {
-                  setCurrentPrime(prev => prev ? { ...prev, ...updates } : null)
-                }}
+                onPrimeUpdated={handlePrimeUpdate}
               />
             )}
           </ScrollView>
