@@ -301,6 +301,8 @@ export default function AbilitiesSection({ prime, primaryColor }: AbilitiesSecti
             primaryColor={primaryColor}
             onPress={() => handleAbilityPress(ability)}
             canUpgrade={ability.level < ability.maxLevel}
+            animationDelay={index * 100}
+            index={index}
           />
         ))}
         

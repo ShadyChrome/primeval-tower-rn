@@ -1,6 +1,14 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { View, StyleSheet, TouchableOpacity } from 'react-native'
 import { Text } from 'react-native-paper'
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withDelay,
+  withSpring,
+  interpolateColor,
+} from 'react-native-reanimated'
 import { ElementIcon } from '../../../../components/OptimizedImage'
 import { ElementType } from '../../../assets/ImageAssets'
 import { colors, spacing, shadows } from '../../../theme/designSystem'
@@ -24,6 +32,8 @@ interface AbilityCardProps {
   primaryColor: string
   onPress?: () => void
   canUpgrade?: boolean
+  animationDelay?: number
+  index?: number
 }
 
 export default function AbilityCard({ 
@@ -31,17 +41,72 @@ export default function AbilityCard({
   element, 
   primaryColor, 
   onPress, 
-  canUpgrade = false 
+  canUpgrade = false,
+  animationDelay = 0,
+  index = 0
 }: AbilityCardProps) {
   const isMaxLevel = ability.level >= ability.maxLevel
   
+  // Animation values
+  const scale = useSharedValue(0)
+  const opacity = useSharedValue(0)
+  const translateY = useSharedValue(30)
+  const pressScale = useSharedValue(1)
+  const borderColor = useSharedValue(0)
+
+  useEffect(() => {
+    // Entry animations with staggered delay
+    scale.value = withDelay(
+      animationDelay,
+      withSpring(1, { damping: 12, stiffness: 100 })
+    )
+    
+    opacity.value = withDelay(
+      animationDelay,
+      withTiming(1, { duration: 400 })
+    )
+    
+    translateY.value = withDelay(
+      animationDelay,
+      withSpring(0, { damping: 12, stiffness: 100 })
+    )
+  }, [animationDelay])
+
+  // Animated styles
+  const animatedContainerStyle = useAnimatedStyle(() => {
+    return {
+      transform: [
+        { scale: scale.value * pressScale.value },
+        { translateY: translateY.value }
+      ],
+      opacity: opacity.value,
+      borderColor: interpolateColor(
+        borderColor.value,
+        [0, 1],
+        [primaryColor + '30', primaryColor + '80']
+      ),
+    }
+  })
+
+  const handlePressIn = () => {
+    pressScale.value = withSpring(0.96, { damping: 15, stiffness: 400 })
+    borderColor.value = withTiming(1, { duration: 150 })
+  }
+
+  const handlePressOut = () => {
+    pressScale.value = withSpring(1, { damping: 15, stiffness: 400 })
+    borderColor.value = withTiming(0, { duration: 200 })
+  }
+  
   return (
     <TouchableOpacity 
-      style={[styles.container, { borderColor: primaryColor + '30' }]}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
       onPress={onPress}
-      activeOpacity={0.8}
+      activeOpacity={1}
       disabled={!onPress}
     >
+      <Animated.View style={[styles.container, animatedContainerStyle]}>
       {/* Header with ability name and level */}
       <View style={styles.header}>
         <View style={styles.nameContainer}>
@@ -133,6 +198,7 @@ export default function AbilityCard({
           </View>
         </View>
       )}
+      </Animated.View>
     </TouchableOpacity>
   )
 }
