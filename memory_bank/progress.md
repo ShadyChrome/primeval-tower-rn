@@ -27,9 +27,9 @@
 - `RuneFilter.tsx` - Reusable filtering component for stats and tiers
 
 **Data Management:**
-- `mockRunes.ts` - 20 diverse runes across all types and tiers
+- Database rune inventory - 17+ diverse runes from Supabase
 - `runeFilters.ts` - Stat-based filtering logic (Attack, Defense, Speed, etc.)
-- `primeRuneStorage.ts` - AsyncStorage persistence with automatic sync
+- `primeRuneStorage.ts` - Supabase backend with in-memory caching
 - `primeRuneService.ts` - **DEPLOYED**: Complete Supabase service layer
 
 **Database Schema - DEPLOYED:**

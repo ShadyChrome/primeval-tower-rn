@@ -223,7 +223,7 @@ interface UIPrime {
 - ✅ Automatic starter Prime initialization
 
 #### **Runes**
-- ❌ Mock data in mockRunes.ts
+- ✅ Database `player_runes` table with 17+ runes
 - ✅ Database `player_runes` table
 - ✅ RuneService with full CRUD operations
 - ✅ Real-time equipment synchronization

@@ -18,9 +18,7 @@ import { PlayerRune } from '../../types/supabase'
 import { RuneService } from '../services/runeService'
 import { 
   savePrimeRuneEquipment, 
-  loadPrimeRuneEquipment, 
-  getAllEquippedRuneIds,
-  initializePrimeRuneStorage
+  loadPrimeRuneEquipment
 } from '../utils/primeRuneStorage'
 import { UIPrime } from '../services/primeService'
 
@@ -70,12 +68,9 @@ export default function PrimeDetailsScreen() {
   
   const { prime, primesList, currentIndex: initialIndex } = route.params
   
-  // Initialize storage and load Prime-specific runes
+  // Load Prime-specific runes and data
   React.useEffect(() => {
-    const initializeData = async () => {
-      // Initialize storage first
-      await initializePrimeRuneStorage()
-      
+    const loadData = async () => {
       if (prime) {
         setCurrentPrime(prime)
         setCurrentIndex(initialIndex)
@@ -94,7 +89,7 @@ export default function PrimeDetailsScreen() {
       }
     }
     
-    initializeData()
+    loadData()
   }, [prime, initialIndex])
 
   // Save runes when Prime changes

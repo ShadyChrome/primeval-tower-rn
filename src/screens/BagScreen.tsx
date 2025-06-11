@@ -1,9 +1,11 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { View, StyleSheet, FlatList } from 'react-native'
 import { Text, Card, SegmentedButtons, Surface, Chip } from 'react-native-paper'
-import { mockRunes, getRuneCountByTier } from '../data/mockRunes'
+import { PlayerRune } from '../../types/supabase'
+import { RuneService } from '../services/runeService'
 import RuneFilter from '../components/common/RuneFilter'
 import { filterRunes, sortRunes } from '../utils/runeFilters'
+import { useFocusEffect } from '@react-navigation/native'
 
 interface Rune {
   id: string
@@ -28,10 +30,47 @@ export default function BagScreen() {
   const [activeTab, setActiveTab] = useState('runes')
   const [runeStatFilter, setRuneStatFilter] = useState('all')
   const [runeTierFilter, setRuneTierFilter] = useState('all')
+  const [allRunes, setAllRunes] = useState<PlayerRune[]>([])
 
-  // Use mock rune data with stat-based filtering
-  const allRunes = mockRunes
+  // Load runes from database
+  const loadRunes = async () => {
+    try {
+      const runes = await RuneService.getPlayerRunes()
+      setAllRunes(runes)
+    } catch (error) {
+      console.error('Error loading runes:', error)
+    }
+  }
+
+  // Refresh data when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      loadRunes()
+    }, [])
+  )
+
   const filteredRunes = sortRunes(filterRunes(allRunes, runeStatFilter, runeTierFilter, true))
+  
+  // Calculate rune counts by tier
+  const getRuneCountByTier = (runes: PlayerRune[]) => {
+    const counts = {
+      common: 0,
+      rare: 0,
+      epic: 0,
+      legendary: 0,
+      mythical: 0
+    }
+    
+    runes.forEach(rune => {
+      const tier = rune.rune_tier?.toLowerCase() as keyof typeof counts
+      if (tier && counts.hasOwnProperty(tier)) {
+        counts[tier]++
+      }
+    })
+    
+    return counts
+  }
+  
   const runeCounts = getRuneCountByTier(allRunes)
 
   // Mock data for items
