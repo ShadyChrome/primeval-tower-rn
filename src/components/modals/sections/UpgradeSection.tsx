@@ -374,7 +374,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
   },
   upgradeableChip: {
-    height: 28,
+    height: 32,
   },
   upgradeableText: {
     fontSize: 12,
