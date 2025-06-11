@@ -2,6 +2,7 @@ import React from 'react'
 import { View, StyleSheet } from 'react-native'
 import { Text } from 'react-native-paper'
 import StatBar from '../components/StatBar'
+import AnimatedStatBar from '../components/AnimatedStatBar'
 import { ElementType } from '../../../assets/ImageAssets'
 import { colors, spacing } from '../../../theme/designSystem'
 
@@ -113,52 +114,64 @@ export default function StatsSection({ prime, primaryColor, equippedRunes = [] }
           Primary Attributes
         </Text>
         
-        <StatBar
+        <AnimatedStatBar
           label="Attack"
           value={stats.attack}
           maxValue={maxStat}
           color={colors.accent}
           bonus={runeBonus.attack}
+          icon="sword"
+          animationDelay={0}
         />
         
-        <StatBar
+        <AnimatedStatBar
           label="Defense"
           value={stats.defense}
           maxValue={maxStat}
           color={colors.secondary}
           bonus={runeBonus.defense}
+          icon="shield"
+          animationDelay={100}
         />
         
-        <StatBar
+        <AnimatedStatBar
           label="Speed"
           value={stats.speed}
           maxValue={maxStat}
           color={primaryColor}
           bonus={runeBonus.speed}
+          icon="run-fast"
+          animationDelay={200}
         />
         
-        <StatBar
+        <AnimatedStatBar
           label="Stamina"
           value={stats.stamina}
           maxValue={maxStat}
           color={colors.pastelMint}
           bonus={runeBonus.stamina}
+          icon="heart-pulse"
+          animationDelay={300}
         />
         
-        <StatBar
+        <AnimatedStatBar
           label="Courage"
           value={stats.courage}
           maxValue={maxStat}
           color={colors.pastelPeach}
           bonus={runeBonus.courage}
+          icon="fire"
+          animationDelay={400}
         />
         
-        <StatBar
+        <AnimatedStatBar
           label="Precision"
           value={stats.precision}
           maxValue={maxStat}
           color={colors.pastelLavender}
           bonus={runeBonus.precision}
+          icon="target"
+          animationDelay={500}
         />
       </View>
 
