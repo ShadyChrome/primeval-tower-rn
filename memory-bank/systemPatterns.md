@@ -58,72 +58,146 @@ graph TD
 
 ## Architecture Overview
 
-Primeval Tower follows a modern React Native architecture with TypeScript, combining functional components, custom hooks, and a clean separation of concerns.
+Primeval Tower follows a **component-driven architecture** with clear separation between UI, business logic, and data management. The system is built around reusable components, service layers, and real-time database integration.
 
-## Core Navigation Architecture ⭐ UPDATED
+## Core Design Patterns
 
-### Dual Navigation System
-```
-AppNavigation (Stack Navigator)
-├── MainTabs (Tab Navigator)  
-│   ├── Hatching
-│   ├── Primes  
-│   ├── Home
-│   ├── Bag
-│   └── Shop
-└── PrimeDetails (Screen)
-```
+### Component Unification Pattern
+**Principle**: Single source of truth for common UI elements across the application.
 
-**Key Pattern:** Stack Navigator wraps Tab Navigator, enabling seamless navigation to detail screens while preserving tab state.
-
-### Navigation Flow
-1. **Tab Navigation**: Primary app navigation between major sections
-2. **Stack Navigation**: Detail screens (PrimeDetails) push onto stack  
-3. **Route Parameters**: Type-safe parameter passing between screens
-4. **Back Navigation**: Native back button support with proper state restoration
-
-### TypeScript Navigation Types
+#### Unified Display Components
 ```typescript
-type RootStackParamList = {
-  MainTabs: undefined
-  PrimeDetails: { prime: Prime }
+// RuneCard - Universal rune display component
+interface RuneCardProps {
+  rune: PlayerRune
+  onPress?: () => void
+  primaryColor: string
+  showEquipStatus?: boolean
+  compact?: boolean
+}
+
+// ItemCard - Universal inventory item display
+interface ItemCardProps {
+  item: InventoryItem
+  onPress?: () => void
+  primaryColor?: string
+  compact?: boolean
+  showQuantity?: boolean
 }
 ```
 
-## Component Architecture
-
-### Dual Viewing Approach Pattern ⭐ NEW
-
-**Problem Solved**: Users need different viewing contexts - quick modal vs immersive screen
-
-**Implementation**: 
-- Single source components (`StatsSection`, `AbilitiesSection`, `ElementAdvantages`)
-- Modal wrapper (`PrimeDetailsModal`) for overlay context
-- Screen wrapper (`PrimeDetailsScreen`) for full-screen context  
-- User toggle to select preferred approach
-
 **Benefits**:
-- Code reuse eliminates duplication
-- Consistent user experience across modes
-- Easy maintenance of business logic
-- User choice improves satisfaction
+- Eliminated 70+ lines of duplicate code
+- Consistent styling across all screens
+- Single point of maintenance for UI logic
+- Themeable and contextually adaptable
 
-### Component Hierarchy
+#### Usage Across Screens
+```typescript
+// BagScreen - Uses both components for inventory display
+<RuneCard rune={rune} primaryColor={elementColor} compact={false} />
+<ItemCard item={item} primaryColor={elementColor} />
+
+// Prime Details Modal - Uses RuneCard in equipment section
+<RuneCard rune={equippedRune} showEquipStatus={true} compact={true} />
+
+// Upgrade Modal - Uses ItemCard for XP potions
+<ItemCard item={xpPotion} compact={true} showQuantity={true} />
 ```
-PrimeDetailsModal OR PrimeDetailsScreen
-├── Header (different implementations)
-├── Image Section (shared styling patterns)
-├── Tab Navigation (different layouts)
-└── Content Sections (fully shared)
-    ├── StatsSection
-    ├── AbilitiesSection  
-    └── ElementAdvantages
+
+### Service Layer Pattern
+**Principle**: Centralized business logic with clear data access patterns.
+
+#### InventoryService - Complete CRUD Operations
+```typescript
+export class InventoryService {
+  // Real-time inventory fetching
+  static async getPlayerInventory(): Promise<UIInventoryItem[]>
+  
+  // Type-specific filtering
+  static async getInventoryByType(itemType: string): Promise<UIInventoryItem[]>
+  
+  // Consumption with real-time updates
+  static async consumeItem(playerId: string, inventoryId: string, quantity: number): Promise<boolean>
+  
+  // Item addition for shop/rewards
+  static async addItem(playerId: string, itemType: string, itemId: string, quantity: number): Promise<boolean>
+}
 ```
 
-## Theme System
+#### Service Integration Pattern
+```typescript
+// UI Components call services directly
+const loadItems = async () => {
+  const items = await InventoryService.getPlayerInventory()
+  setInventoryItems(items)
+}
 
-### Element-Based Design Pattern
-Every UI element derives colors from prime elements:
+// Services handle database operations
+const consumeXPPotion = async (itemId: string, quantity: number) => {
+  await InventoryService.consumeItem(playerId, itemId, quantity)
+  // UI automatically refreshes
+}
+```
+
+### Real-time Data Flow Pattern
+**Principle**: Immediate UI feedback with database synchronization.
+
+#### Data Flow Architecture
+```
+User Action → Service Layer → Database Update → UI State Update
+    ↓              ↓              ↓               ↓
+Select XP   → usePrimeXPItems → Consume Items → Progress Bar Updates
+Potion        Hook              from Inventory   Show New Level
+```
+
+#### Implementation Example
+```typescript
+// XP Upgrade Flow
+const usePrimeXPItems = async (prime: UIPrime, xpItems: XPItem[]) => {
+  // 1. Validate inventory items
+  // 2. Calculate level progression
+  // 3. Consume items from database
+  // 4. Update prime experience/level
+  // 5. Return updated state for UI
+  
+  return {
+    success: true,
+    newLevel: calculatedLevel,
+    newExperience: remainingXP,
+    newPower: calculatedPower
+  }
+}
+```
+
+### State Management Pattern
+**Principle**: Centralized state with prop drilling for simple data flow.
+
+#### Component State Flow
+```typescript
+// Parent Component (PrimeDetailsScreen)
+const [currentPrime, setCurrentPrime] = useState<UIPrime | null>(null)
+
+const handlePrimeUpdate = (updates: Partial<UIPrime>) => {
+  setCurrentPrime(prev => prev ? { ...prev, ...updates } : null)
+}
+
+// Child Component (UpgradeSection)
+<UpgradeSection
+  prime={currentPrime}
+  onPrimeUpdated={handlePrimeUpdate}
+/>
+
+// Grandchild Component (XPUpgradeModal)
+const result = await usePrimeXPItems(prime, selectedItems)
+if (result.success) {
+  onUpgradeSuccess(result) // Propagates up to parent
+}
+```
+
+## User Interface Patterns
+
+### Element-Based Theming
 ```typescript
 const elementColors = {
   Ignis: '#FF6B6B',    // Fire - Red
@@ -145,7 +219,7 @@ const elementColors = {
 
 ### Prime Data Architecture
 ```typescript
-interface Prime {
+interface UIPrime {
   // Core Identity
   id: string
   name: string
@@ -154,11 +228,46 @@ interface Prime {
   
   // Progression
   level: number
+  experience: number  // Added for proper XP tracking
   power: number
   abilities: string[]
   
   // Assets
   imageName?: PrimeImageType
+}
+```
+
+### Database Integration Patterns
+
+#### Service-Database Interface
+```typescript
+// Clean database abstraction
+export class PrimeService {
+  static async getPrimeById(primeId: string): Promise<UIPrime | null>
+  static async updatePrime(primeId: string, updates: Partial<PlayerPrime>): Promise<UIPrime | null>
+  
+  // UI conversion handled internally
+  private static convertToUIPrime(dbPrime: PlayerPrime): UIPrime
+}
+```
+
+#### Real-time Update Pattern
+```typescript
+// Immediate UI update followed by database sync
+const handleUpgrade = async () => {
+  // 1. Optimistic UI update
+  setCurrentPrime(prev => ({ ...prev, ...newData }))
+  
+  // 2. Database sync
+  const result = await upgradeService(prime, items)
+  
+  // 3. Confirmation or rollback
+  if (result.success) {
+    // UI already updated
+  } else {
+    // Rollback UI state
+    setCurrentPrime(originalPrime)
+  }
 }
 ```
 
@@ -188,83 +297,91 @@ All content uses consistent card components:
 
 ## Performance Patterns
 
-### Image Optimization
-```typescript
-// Optimized WebP images for runtime
-const imagePath = `/assets/primes/${primeName}.webp`
-
-// High-res PNG for development  
-const devImagePath = `/assets/primes-png/${primeName}.png`
-```
-
 ### Component Optimization
-- **Memoization**: React.memo for expensive renders
-- **Lazy Loading**: Conditional component rendering
-- **Asset Preloading**: Critical images loaded early
-
-## Code Organization
-
-### File Structure Pattern
-```
-src/
-├── screens/           # Full screen components
-├── components/        # Reusable UI components
-│   ├── ui/           # Basic UI building blocks
-│   └── modals/       # Modal-specific components
-│       ├── sections/ # Business logic sections
-│       └── components/ # Modal UI components  
-├── theme/            # Design system
-├── assets/           # Static assets and definitions
-└── services/         # API and data services
-```
-
-### Import Patterns
-- **Relative imports**: For co-located files
-- **Absolute imports**: For cross-domain utilities
-- **Barrel exports**: For clean component APIs
-
-## Error Handling
-
-### Navigation Error Prevention
 ```typescript
-// Type-safe navigation calls
-navigation.navigate('PrimeDetails', { prime })
+// Memoization for expensive operations
+const upgradePreview = useMemo(() => {
+  return calculateUpgradePreview(prime, selectedItems)
+}, [prime, selectedItems])
 
-// Safe parameter access
-const { prime } = route.params
-if (!prime) {
-  navigation.goBack()
-  return null
-}
+// Conditional rendering for performance
+{activeTab === 'upgrade' && (
+  <UpgradeSection prime={prime} onPrimeUpdated={handleUpdate} />
+)}
 ```
 
-### Component Error Boundaries
-- Graceful fallbacks for missing data
-- Type guards for runtime safety
-- User-friendly error states
+### Database Optimization
+```typescript
+// Efficient queries with proper indexes
+const { data, error } = await supabase
+  .from('player_inventory')
+  .select('*')
+  .eq('player_id', playerId)
+  .eq('item_type', 'xp_potion')
+  .order('acquired_at', { ascending: false })
+```
+
+### Memory Management
+```typescript
+// Proper cleanup in useEffect
+useEffect(() => {
+  const subscription = setupRealtimeSubscription()
+  
+  return () => {
+    subscription.unsubscribe()
+  }
+}, [])
+```
 
 ## Testing Patterns
 
-### Component Testing Approach
-- **Unit Tests**: Individual component logic
-- **Integration Tests**: Navigation flows
-- **E2E Tests**: Complete user workflows
+### Component Testing Strategy
+```typescript
+// Test unified components in isolation
+describe('RuneCard', () => {
+  it('displays rune information correctly', () => {
+    render(<RuneCard rune={mockRune} primaryColor="#FF6B6B" />)
+    // Assertions for rune display
+  })
+  
+  it('handles compact mode properly', () => {
+    render(<RuneCard rune={mockRune} compact={true} />)
+    // Assertions for compact layout
+  })
+})
+```
 
-### Testable Architecture
-- Pure functions for business logic
-- Separated UI and logic concerns
-- Mockable service interfaces
+### Service Testing Strategy
+```typescript
+// Test service layer with mock database
+describe('InventoryService', () => {
+  it('fetches player inventory correctly', async () => {
+    const items = await InventoryService.getPlayerInventory()
+    expect(items).toHaveLength(expectedCount)
+  })
+  
+  it('consumes items properly', async () => {
+    const result = await InventoryService.consumeItem(playerId, itemId, 1)
+    expect(result).toBe(true)
+  })
+})
+```
 
-## Future Architecture Plans
+### Integration Testing Infrastructure
+- **Test Data Scripts**: Automated population of comprehensive test scenarios
+- **Database Verification**: Real-time state monitoring during testing
+- **Edge Case Coverage**: Multiple level-ups, item depletion, error scenarios
 
-### Database Integration Patterns
-- **Supabase**: Real-time data sync
-- **Type-safe queries**: Generated TypeScript types  
-- **Offline support**: Local data caching
+## Security Patterns
 
-### Advanced Navigation
-- **Deep linking**: Direct navigation to primes
-- **Back stack management**: Complex navigation flows
-- **Screen analytics**: Usage tracking patterns
+### Database Security
+- **Row Level Security**: Player data isolation in Supabase
+- **Type Validation**: Server-side validation for all mutations
+- **Error Handling**: Graceful degradation without data exposure
 
-This architecture successfully balances flexibility, maintainability, and user experience through thoughtful component design and navigation patterns. 
+### Client Security
+- **Input Validation**: Client-side validation before service calls
+- **Error Boundaries**: Prevent crashes from propagating
+- **State Consistency**: Validation of UI state against database state
+
+This pattern architecture provides a solid foundation for scaling the application while maintaining code quality, performance, and user experience excellence. 
