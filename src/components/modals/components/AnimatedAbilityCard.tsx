@@ -36,7 +36,7 @@ interface AbilityCardProps {
   index?: number
 }
 
-export default function AbilityCard({ 
+export default function AnimatedAbilityCard({ 
   ability, 
   element, 
   primaryColor, 

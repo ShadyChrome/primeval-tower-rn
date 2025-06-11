@@ -1,7 +1,7 @@
 import React from 'react'
 import { View, StyleSheet } from 'react-native'
 import { Text } from 'react-native-paper'
-import AbilityCard from '../components/AbilityCard'
+import AnimatedAbilityCard from '../components/AnimatedAbilityCard'
 import { ElementType } from '../../../assets/ImageAssets'
 import { colors, spacing } from '../../../theme/designSystem'
 
@@ -294,7 +294,7 @@ export default function AbilitiesSection({ prime, primaryColor }: AbilitiesSecti
 
       <View style={styles.abilitiesContainer}>
         {abilities.map((ability, index) => (
-          <AbilityCard
+          <AnimatedAbilityCard
             key={ability.id}
             ability={ability}
             element={prime.element}
