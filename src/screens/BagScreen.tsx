@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { View, StyleSheet, FlatList } from 'react-native'
 import { Text, Card, SegmentedButtons, Surface, Chip } from 'react-native-paper'
+import { mockRunes, getRunesByFilter, getRuneCountByTier } from '../data/mockRunes'
 
 interface Rune {
   id: string
@@ -23,50 +24,45 @@ interface Item {
 
 export default function BagScreen() {
   const [activeTab, setActiveTab] = useState('runes')
+  const [runeStatFilter, setRuneStatFilter] = useState('all')
+  const [runeTierFilter, setRuneTierFilter] = useState('all')
 
-  // Mock data for runes
-  const runes: Rune[] = [
-    {
-      id: '1',
-      name: 'Flaming Essence',
-      type: 'Offensive',
-      rarity: 'Epic',
-      primaryStat: 'ATK +15%',
-      synergy: 'Ignition',
-      level: 8,
-      equipped: true
-    },
-    {
-      id: '2',
-      name: 'Stone Wall',
-      type: 'Defensive',
-      rarity: 'Rare',
-      primaryStat: 'DEF +12%',
-      synergy: 'Fortress',
-      level: 5,
-      equipped: false
-    },
-    {
-      id: '3',
-      name: 'Swift Current',
-      type: 'Speed',
-      rarity: 'Common',
-      primaryStat: 'SPD +8%',
-      synergy: 'Flow',
-      level: 3,
-      equipped: true
-    },
-    {
-      id: '4',
-      name: 'Thunder Core',
-      type: 'Offensive',
-      rarity: 'Legendary',
-      primaryStat: 'ATK +20%',
-      synergy: 'Storm',
-      level: 12,
-      equipped: false
-    },
-  ]
+  // Helper function to check if rune affects a specific stat
+  const runeAffectsStat = (rune: any, stat: string): boolean => {
+    if (!rune.stat_bonuses || typeof rune.stat_bonuses !== 'object') return false
+    
+    const bonuses = rune.stat_bonuses as Record<string, any>
+    
+    switch (stat) {
+      case 'attack':
+        return bonuses.attack > 0 || bonuses.criticalRate > 0 || bonuses.criticalDamage > 0
+      case 'defense':
+        return bonuses.defense > 0 || bonuses.health > 0 || bonuses.resistance > 0
+      case 'speed':
+        return bonuses.speed > 0
+      case 'courage':
+        return bonuses.courage > 0 || bonuses.extraTurn > 0 || bonuses.criticalDamage > 0
+      case 'precision':
+        return bonuses.precision > 0 || bonuses.accuracy > 0 || bonuses.criticalRate > 0
+      case 'stamina':
+        return bonuses.stamina > 0 || bonuses.health > 0 || bonuses.endurance > 0
+      default:
+        return true
+    }
+  }
+
+  // Use mock rune data with stat-based filtering
+  const allRunes = mockRunes
+  const filteredRunes = allRunes.filter(rune => {
+    // Filter by tier
+    if (runeTierFilter !== 'all' && rune.rune_tier !== runeTierFilter) return false
+    
+    // Filter by stat
+    if (runeStatFilter !== 'all' && !runeAffectsStat(rune, runeStatFilter)) return false
+    
+    return true
+  })
+  const runeCounts = getRuneCountByTier(allRunes)
 
   // Mock data for items
   const items: Item[] = [
@@ -108,19 +104,40 @@ export default function BagScreen() {
     'Mythical': '#FFA8A8'
   }
 
-  const renderRuneCard = ({ item: rune }: { item: Rune }) => (
-    <Card style={[styles.itemCard, rune.equipped && styles.equippedCard]}>
+  const getRuneDisplayName = (rune: any) => {
+    return `${rune.rune_type.charAt(0).toUpperCase() + rune.rune_type.slice(1)} Rune`
+  }
+
+  const getRuneMainStat = (rune: any) => {
+    if (!rune.stat_bonuses || typeof rune.stat_bonuses !== 'object') return 'Unknown'
+    
+    const bonuses = rune.stat_bonuses as Record<string, any>
+    const mainStats = ['attack', 'defense', 'speed', 'health', 'criticalRate', 'criticalDamage']
+    
+    for (const stat of mainStats) {
+      if (bonuses[stat]) {
+        const value = bonuses[stat]
+        const suffix = stat.includes('Rate') || stat.includes('Damage') ? '%' : ''
+        return `${stat.toUpperCase()}: +${value}${suffix}`
+      }
+    }
+    
+    return 'Utility Rune'
+  }
+
+  const renderRuneCard = ({ item: rune }: { item: any }) => (
+    <Card style={[styles.itemCard, rune.is_equipped && styles.equippedCard]}>
       <Card.Content style={styles.itemCardContent}>
         <View style={styles.itemHeader}>
           <View style={styles.itemInfo}>
             <Text variant="titleMedium" style={styles.itemName}>
-              {rune.name}
+              {getRuneDisplayName(rune)}
             </Text>
             <Text variant="bodySmall" style={styles.itemType}>
-              {rune.type} Rune • Level {rune.level}
+              Level +{rune.rune_level} • {rune.rune_tier?.charAt(0).toUpperCase() + rune.rune_tier?.slice(1)}
             </Text>
           </View>
-          {rune.equipped && (
+          {rune.is_equipped && (
             <Chip style={styles.equippedChip} textStyle={styles.equippedText}>
               Equipped
             </Chip>
@@ -130,19 +147,21 @@ export default function BagScreen() {
         <View style={styles.runeStats}>
           <View style={styles.statRow}>
             <Text variant="bodyMedium" style={styles.statLabel}>Primary:</Text>
-            <Text variant="bodyMedium" style={styles.statValue}>{rune.primaryStat}</Text>
+            <Text variant="bodyMedium" style={styles.statValue}>{getRuneMainStat(rune)}</Text>
           </View>
           <View style={styles.statRow}>
             <Text variant="bodyMedium" style={styles.statLabel}>Synergy:</Text>
-            <Text variant="bodyMedium" style={styles.statValue}>{rune.synergy}</Text>
+            <Text variant="bodyMedium" style={styles.statValue}>
+              {rune.stat_bonuses?.synergy || 'None'}
+            </Text>
           </View>
         </View>
         
         <Chip 
-          style={[styles.rarityChip, { backgroundColor: rarityColors[rune.rarity as keyof typeof rarityColors] }]}
+          style={[styles.rarityChip, { backgroundColor: rarityColors[rune.rune_tier as keyof typeof rarityColors] }]}
           textStyle={styles.rarityText}
         >
-          {rune.rarity}
+          {rune.rune_tier?.charAt(0).toUpperCase() + rune.rune_tier?.slice(1)}
         </Chip>
       </Card.Content>
     </Card>
@@ -194,15 +213,53 @@ export default function BagScreen() {
       <View style={styles.statsBar}>
         <Text variant="titleMedium" style={styles.tabStats}>
           {activeTab === 'runes' 
-            ? `Runes: ${runes.length} (${runes.filter(r => r.equipped).length} equipped)`
+            ? `Runes: ${filteredRunes.length} (${allRunes.filter(r => r.is_equipped).length} equipped)`
             : `Items: ${items.reduce((total, item) => total + item.quantity, 0)} total`
           }
         </Text>
+        
+        {activeTab === 'runes' && (
+          <View style={styles.filterSection}>
+            <View style={styles.filterRow}>
+              <Text variant="bodyMedium" style={styles.filterLabel}>Stat:</Text>
+              <View style={styles.filterChips}>
+                {['all', 'attack', 'defense', 'speed', 'courage', 'precision', 'stamina'].map(stat => (
+                  <Chip
+                    key={stat}
+                    selected={runeStatFilter === stat}
+                    onPress={() => setRuneStatFilter(stat)}
+                    style={styles.filterChip}
+                    textStyle={styles.filterChipText}
+                  >
+                    {stat.charAt(0).toUpperCase() + stat.slice(1)}
+                  </Chip>
+                ))}
+              </View>
+            </View>
+            
+            <View style={styles.filterRow}>
+              <Text variant="bodyMedium" style={styles.filterLabel}>Tier:</Text>
+              <View style={styles.filterChips}>
+                {['all', 'common', 'rare', 'epic', 'legendary', 'mythical'].map(tier => (
+                  <Chip
+                    key={tier}
+                    selected={runeTierFilter === tier}
+                    onPress={() => setRuneTierFilter(tier)}
+                    style={styles.filterChip}
+                    textStyle={styles.filterChipText}
+                  >
+                    {tier.charAt(0).toUpperCase() + tier.slice(1)}
+                  </Chip>
+                ))}
+              </View>
+            </View>
+          </View>
+        )}
       </View>
 
       {activeTab === 'runes' ? (
         <FlatList
-          data={runes}
+          data={filteredRunes}
           renderItem={renderRuneCard}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContainer}
@@ -331,5 +388,28 @@ const styles = StyleSheet.create({
     color: '#666666',
     marginTop: 8,
     fontStyle: 'italic',
+  },
+  filterSection: {
+    paddingTop: 16,
+  },
+  filterRow: {
+    marginBottom: 12,
+  },
+  filterLabel: {
+    color: '#333333',
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  filterChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  filterChip: {
+    backgroundColor: '#F5F5F5',
+  },
+  filterChipText: {
+    fontSize: 12,
+    color: '#666666',
   },
 }) 

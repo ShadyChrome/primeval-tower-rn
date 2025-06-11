@@ -18,6 +18,7 @@ interface Prime {
 interface StatsSectionProps {
   prime: Prime
   primaryColor: string
+  equippedRunes?: any[] // Will be properly typed later
 }
 
 // Calculate base stats from power and level (simplified stat system)
@@ -69,19 +70,36 @@ const getMaxStatForRarity = (rarity: string) => {
   return maxValues[rarity as keyof typeof maxValues] || 300
 }
 
-export default function StatsSection({ prime, primaryColor }: StatsSectionProps) {
+export default function StatsSection({ prime, primaryColor, equippedRunes = [] }: StatsSectionProps) {
   const stats = calculateStats(prime)
   const maxStat = getMaxStatForRarity(prime.rarity)
   
-  // For now, no rune bonuses - will be added in Phase 3
-  const runeBonus = {
-    attack: 0,
-    defense: 0,
-    speed: 0,
-    stamina: 0,
-    courage: 0,
-    precision: 0,
+  // Calculate rune bonuses
+  const calculateRuneBonuses = () => {
+    const bonuses = {
+      attack: 0,
+      defense: 0,
+      speed: 0,
+      stamina: 0,
+      courage: 0,
+      precision: 0,
+    }
+    
+    equippedRunes.forEach(rune => {
+      if (rune && rune.stat_bonuses && typeof rune.stat_bonuses === 'object') {
+        const statBonuses = rune.stat_bonuses as Record<string, number>
+        Object.keys(bonuses).forEach(stat => {
+          if (statBonuses[stat]) {
+            bonuses[stat as keyof typeof bonuses] += statBonuses[stat]
+          }
+        })
+      }
+    })
+    
+    return bonuses
   }
+  
+  const runeBonus = calculateRuneBonuses()
 
   return (
     <View style={styles.container}>

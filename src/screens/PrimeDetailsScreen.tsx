@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native'
 import { Text, IconButton } from 'react-native-paper'
 import { LinearGradient } from 'expo-linear-gradient'
@@ -12,7 +12,10 @@ import { ElementType, PrimeImageType } from '../assets/ImageAssets'
 import StatsSection from '../components/modals/sections/StatsSection'
 import AbilitiesSection from '../components/modals/sections/AbilitiesSection'
 import ElementAdvantages from '../components/modals/sections/ElementAdvantages'
+import RuneEquipment from '../components/modals/sections/RuneEquipment'
 import { colors, spacing, typography } from '../theme/designSystem'
+import { PlayerRune } from '../../types/supabase'
+import { mockRunes, getAvailableRunes } from '../data/mockRunes'
 
 interface Prime {
   id: string
@@ -58,9 +61,15 @@ export default function PrimeDetailsScreen() {
   const [activeTab, setActiveTab] = useState<'stats' | 'abilities' | 'matchups' | 'runes'>('stats')
   const [currentPrime, setCurrentPrime] = useState<Prime | null>(null)
   const [currentIndex, setCurrentIndex] = useState(0)
+  const [equippedRunes, setEquippedRunes] = useState<(PlayerRune | null)[]>(Array(6).fill(null))
+  // Use mock rune data with reactive updates
+  const [allRunes, setAllRunes] = useState<PlayerRune[]>([...mockRunes])
+  
   const navigation = useNavigation<PrimeDetailsScreenNavigationProp>()
   const route = useRoute<PrimeDetailsScreenRouteProp>()
   const insets = useSafeAreaInsets()
+  
+  const availableRunes = useMemo(() => getAvailableRunes(allRunes), [allRunes])
   
   const { prime, primesList, currentIndex: initialIndex } = route.params
   
@@ -83,6 +92,61 @@ export default function PrimeDetailsScreen() {
 
   const primaryColor = elementColors[currentPrime.element]
   const rarityColor = rarityColors[currentPrime.rarity]
+
+  // Rune equipment handlers
+  const handleRuneEquip = (slotIndex: number, rune: PlayerRune | null) => {
+    const newEquippedRunes = [...equippedRunes]
+    const newAllRunes = [...allRunes]
+    
+    // If there was a rune in this slot, mark it as unequipped
+    if (newEquippedRunes[slotIndex]) {
+      const oldRuneIndex = newAllRunes.findIndex(r => r.id === newEquippedRunes[slotIndex]?.id)
+      if (oldRuneIndex !== -1) {
+        newAllRunes[oldRuneIndex] = {
+          ...newAllRunes[oldRuneIndex],
+          is_equipped: false,
+          equipped_slot: null
+        }
+      }
+    }
+    
+    // If equipping a new rune, mark it as equipped
+    if (rune) {
+      const targetRuneIndex = newAllRunes.findIndex(r => r.id === rune.id)
+      if (targetRuneIndex !== -1) {
+        newAllRunes[targetRuneIndex] = {
+          ...newAllRunes[targetRuneIndex],
+          is_equipped: true,
+          equipped_slot: slotIndex
+        }
+      }
+    }
+    
+    newEquippedRunes[slotIndex] = rune
+    setEquippedRunes(newEquippedRunes)
+    setAllRunes(newAllRunes)
+  }
+
+  const handleRuneUnequip = (slotIndex: number) => {
+    const newEquippedRunes = [...equippedRunes]
+    const newAllRunes = [...allRunes]
+    const removedRune = newEquippedRunes[slotIndex]
+    
+    if (removedRune) {
+      const targetRuneIndex = newAllRunes.findIndex(r => r.id === removedRune.id)
+      if (targetRuneIndex !== -1) {
+        newAllRunes[targetRuneIndex] = {
+          ...newAllRunes[targetRuneIndex],
+          is_equipped: false,
+          equipped_slot: null
+        }
+      }
+    }
+    
+    newEquippedRunes[slotIndex] = null
+    setEquippedRunes(newEquippedRunes)
+    setAllRunes(newAllRunes)
+  }
 
   // Navigation functions
   const navigateToPrevious = () => {
@@ -247,7 +311,7 @@ export default function PrimeDetailsScreen() {
             showsVerticalScrollIndicator={false}
           >
             {activeTab === 'stats' && (
-              <StatsSection prime={currentPrime} primaryColor={primaryColor} />
+              <StatsSection prime={currentPrime} primaryColor={primaryColor} equippedRunes={equippedRunes} />
             )}
 
             {activeTab === 'abilities' && (
@@ -259,12 +323,14 @@ export default function PrimeDetailsScreen() {
             )}
 
             {activeTab === 'runes' && (
-              <View style={styles.section}>
-                <Text variant="titleMedium" style={styles.sectionTitle}>Rune Equipment</Text>
-                <Text variant="bodyMedium" style={styles.placeholder}>
-                  Rune equipment system coming soon...
-                </Text>
-              </View>
+              <RuneEquipment
+                prime={currentPrime}
+                primaryColor={primaryColor}
+                equippedRunes={equippedRunes}
+                availableRunes={availableRunes}
+                onRuneEquip={handleRuneEquip}
+                onRuneUnequip={handleRuneUnequip}
+              />
             )}
           </ScrollView>
         </View>
