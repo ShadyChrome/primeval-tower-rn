@@ -69,14 +69,16 @@ export default function PrimeDetailsScreen() {
   const route = useRoute<PrimeDetailsScreenRouteProp>()
   const insets = useSafeAreaInsets()
   
-  const availableRunes = useMemo(() => getAvailableRunes(allRunes), [allRunes])
-  
   const { prime, primesList, currentIndex: initialIndex } = route.params
+  
+  const availableRunes = useMemo(() => getAvailableRunes(allRunes), [allRunes])
   
   // Initialize state from route params
   React.useEffect(() => {
-    setCurrentPrime(prime)
-    setCurrentIndex(initialIndex)
+    if (prime) {
+      setCurrentPrime(prime)
+      setCurrentIndex(initialIndex)
+    }
   }, [prime, initialIndex])
   
   // Handle invalid route params

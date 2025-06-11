@@ -1,8 +1,10 @@
 import React, { useState, useMemo } from 'react'
 import { View, StyleSheet, FlatList, TouchableOpacity, Dimensions } from 'react-native'
-import { Text, Modal, Portal, IconButton, SegmentedButtons, Chip } from 'react-native-paper'
+import { Text, Modal, Portal, IconButton, Chip } from 'react-native-paper'
 import { PlayerRune } from '../../../../types/supabase'
 import { colors, spacing } from '../../../theme/designSystem'
+import RuneFilter from '../../common/RuneFilter'
+import { filterRunes, sortRunes } from '../../../utils/runeFilters'
 
 interface RuneSelectionModalProps {
   visible: boolean
@@ -61,57 +63,15 @@ export default function RuneSelectionModal({
     return iconMap[runeType] || '💎'
   }
 
-  // Helper function to check if rune affects a specific stat
-  const runeAffectsStat = (rune: PlayerRune, stat: string): boolean => {
-    if (!rune.stat_bonuses || typeof rune.stat_bonuses !== 'object') return false
-    
-    const bonuses = rune.stat_bonuses as Record<string, any>
-    
-    switch (stat) {
-      case 'attack':
-        return bonuses.attack > 0 || bonuses.criticalRate > 0 || bonuses.criticalDamage > 0
-      case 'defense':
-        return bonuses.defense > 0 || bonuses.health > 0 || bonuses.resistance > 0
-      case 'speed':
-        return bonuses.speed > 0
-      case 'courage':
-        return bonuses.courage > 0 || bonuses.extraTurn > 0 || bonuses.criticalDamage > 0
-      case 'precision':
-        return bonuses.precision > 0 || bonuses.accuracy > 0 || bonuses.criticalRate > 0
-      case 'stamina':
-        return bonuses.stamina > 0 || bonuses.health > 0 || bonuses.endurance > 0
-      default:
-        return true
-    }
-  }
-
   // Filter available runes (exclude equipped ones)
   const unequippedRunes = useMemo(() => {
     return availableRunes.filter(rune => !rune.is_equipped)
   }, [availableRunes])
 
-  // Apply filters
+  // Apply filters and sort
   const filteredRunes = useMemo(() => {
-    let filtered = unequippedRunes
-
-    if (filterStat !== 'all') {
-      filtered = filtered.filter(rune => runeAffectsStat(rune, filterStat))
-    }
-
-    if (filterTier !== 'all') {
-      filtered = filtered.filter(rune => rune.rune_tier === filterTier)
-    }
-
-    return filtered.sort((a, b) => {
-      // Sort by tier first (higher tier first)
-      const tierOrder = { 'mythical': 5, 'legendary': 4, 'epic': 3, 'rare': 2, 'common': 1 }
-      const aTier = tierOrder[a.rune_tier as keyof typeof tierOrder] || 0
-      const bTier = tierOrder[b.rune_tier as keyof typeof tierOrder] || 0
-      if (aTier !== bTier) return bTier - aTier
-      
-      // Then by level (higher level first)
-      return (b.rune_level || 0) - (a.rune_level || 0)
-    })
+    const filtered = filterRunes(unequippedRunes, filterStat, filterTier, false)
+    return sortRunes(filtered)
   }, [unequippedRunes, filterStat, filterTier])
 
   const getRuneMainStat = (rune: PlayerRune): string => {
@@ -183,14 +143,7 @@ export default function RuneSelectionModal({
     </TouchableOpacity>
   )
 
-  const statFilters = ['all', 'attack', 'defense', 'speed', 'courage', 'precision', 'stamina']
-  const runeTiers = ['all', 'common', 'rare', 'epic', 'legendary', 'mythical']
 
-  // Debug logging
-  console.log('RuneSelectionModal - Available runes:', availableRunes.length)
-  console.log('RuneSelectionModal - Unequipped runes:', unequippedRunes.length)
-  console.log('RuneSelectionModal - Filtered runes:', filteredRunes.length)
-  console.log('RuneSelectionModal - Filter stat:', filterStat, 'Filter tier:', filterTier)
 
   return (
     <Portal>
@@ -242,59 +195,19 @@ export default function RuneSelectionModal({
 
           {/* Filters */}
           <View style={styles.filtersSection}>
-            <Text variant="titleSmall" style={styles.sectionTitle}>
-              Filter by Stat:
-            </Text>
-            <View style={styles.filterChips}>
-              {statFilters.map(stat => (
-                <Chip
-                  key={stat}
-                  selected={filterStat === stat}
-                  onPress={() => setFilterStat(stat)}
-                  style={[
-                    styles.filterChip,
-                    filterStat === stat && { backgroundColor: primaryColor + '20' }
-                  ]}
-                  textStyle={[
-                    styles.filterChipText,
-                    filterStat === stat && { color: primaryColor }
-                  ]}
-                >
-                  {stat.charAt(0).toUpperCase() + stat.slice(1)}
-                </Chip>
-              ))}
-            </View>
-
-            <Text variant="titleSmall" style={[styles.sectionTitle, { marginTop: spacing.md }]}>
-              Filter by Tier:
-            </Text>
-            <View style={styles.filterChips}>
-              {runeTiers.map(tier => (
-                <Chip
-                  key={tier}
-                  selected={filterTier === tier}
-                  onPress={() => setFilterTier(tier)}
-                  style={[
-                    styles.filterChip,
-                    filterTier === tier && { backgroundColor: primaryColor + '20' }
-                  ]}
-                  textStyle={[
-                    styles.filterChipText,
-                    filterTier === tier && { color: primaryColor }
-                  ]}
-                >
-                  {tier.charAt(0).toUpperCase() + tier.slice(1)}
-                </Chip>
-              ))}
-            </View>
+            <RuneFilter
+              statFilter={filterStat}
+              tierFilter={filterTier}
+              onStatFilterChange={setFilterStat}
+              onTierFilterChange={setFilterTier}
+              filteredCount={filteredRunes.length}
+              totalCount={unequippedRunes.length}
+              primaryColor={primaryColor}
+            />
           </View>
 
           {/* Runes List */}
           <View style={styles.runesSection}>
-            <Text variant="titleSmall" style={styles.sectionTitle}>
-              Available Runes ({filteredRunes.length}):
-            </Text>
-            
             {filteredRunes.length === 0 ? (
               <View style={styles.emptyState}>
                 <Text variant="bodyMedium" style={styles.emptyText}>
@@ -302,13 +215,17 @@ export default function RuneSelectionModal({
                 </Text>
               </View>
             ) : (
-              <FlatList
-                data={filteredRunes}
-                renderItem={renderRuneCard}
-                keyExtractor={(item) => item.id}
-                style={styles.runesList}
-                showsVerticalScrollIndicator={false}
-              />
+              <>
+
+                <FlatList
+                  data={filteredRunes}
+                  renderItem={renderRuneCard}
+                  keyExtractor={(item) => item.id}
+                  style={styles.runesList}
+                  showsVerticalScrollIndicator={false}
+                  contentContainerStyle={{ paddingBottom: spacing.lg }}
+                />
+              </>
             )}
           </View>
         </View>
@@ -326,7 +243,7 @@ const styles = StyleSheet.create({
   modal: {
     backgroundColor: colors.surface,
     borderRadius: 20,
-    maxHeight: height * 0.85,
+    height: height * 0.85,
     overflow: 'hidden',
   },
   header: {
@@ -402,7 +319,7 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
   },
   runesList: {
-    flex: 1,
+    flexGrow: 1,
   },
   runeCard: {
     backgroundColor: colors.surface,
