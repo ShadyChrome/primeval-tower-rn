@@ -77,7 +77,7 @@ All rarity colors are consistently applied across:
 - Egg selection interface (`HatchingScreen.tsx`) 
 - Inventory rune displays (`BagScreen.tsx`)
 - Shop item categories (`ShopScreen.tsx`)
-- Treasure box fill levels (`TreasureBox.tsx`)
+- Treasure box fill levels (`TreasureBox.tsx`) - **Updated**: Now uses flat design without glow effects
 - Modal and detail views (planned)
 
 The color system ensures that whether players are collecting, battling, or managing their inventory, they experience the same calming, beautiful aesthetic that makes Primeval Tower feel like a peaceful escape. 

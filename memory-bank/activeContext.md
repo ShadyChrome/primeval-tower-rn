@@ -88,7 +88,8 @@
   - Removed 200+ lines of complex UI code (cards, progress bars, buttons)
   - Increased icon size to 80px for better touch target
   - Added gem count badge when loot is available
-  - Preserved all animations (glow, shake, scale) for visual feedback
+  - **UPDATED**: Removed glow effect for cleaner aesthetics - now uses shake and scale animations only
+  - **UPDATED**: Removed all shadow effects for flat, modern appearance that better fits game aesthetics
 - **🎨 PREVIOUSLY IMPLEMENTED BEAUTIFUL DESIGN SYSTEM:** Created comprehensive design system with:
   - Soft pastel color palette (coral, lavender, mint, peach)
   - Linear gradient backgrounds throughout the app

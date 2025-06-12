@@ -22,13 +22,11 @@ export default function TreasureBox({ playerId, onGemsUpdated }: TreasureBoxProp
   const [accumulationTime, setAccumulationTime] = useState('00:00:00')
   const [clientAccumulatedGems, setClientAccumulatedGems] = useState(0)
   
-  // Animation for treasure box glow and chest shaking
-  const glowAnimation = useRef(new Animated.Value(0)).current
+  // Animation for treasure chest shaking
   const iconShakeAnimation = useRef(new Animated.Value(0)).current
   const scaleAnimation = useRef(new Animated.Value(1)).current
   
-  // Animation loop references for proper cleanup
-  const glowLoopRef = useRef<Animated.CompositeAnimation | null>(null)
+  // Animation loop reference for proper cleanup
   const shakeLoopRef = useRef<Animated.CompositeAnimation | null>(null)
   
   // Timer reference for cleanup
@@ -163,61 +161,37 @@ export default function TreasureBox({ playerId, onGemsUpdated }: TreasureBoxProp
     
     // Only animate if there are gems to claim
     if (fillPercentage > 0) {
-      // Glow animation
-      glowLoopRef.current = Animated.loop(
+      // Shake animation for treasure chest icon only
+      shakeLoopRef.current = Animated.loop(
         Animated.sequence([
-          Animated.timing(glowAnimation, {
+          Animated.timing(iconShakeAnimation, {
             toValue: 1,
-            duration: 1500,
-            useNativeDriver: false,
+            duration: 100,
+            useNativeDriver: true,
           }),
-          Animated.timing(glowAnimation, {
+          Animated.timing(iconShakeAnimation, {
+            toValue: -1,
+            duration: 100,
+            useNativeDriver: true,
+          }),
+          Animated.timing(iconShakeAnimation, {
             toValue: 0,
-            duration: 1500,
-            useNativeDriver: false,
+            duration: 100,
+            useNativeDriver: true,
           }),
+          Animated.delay(2000),
         ])
       )
-      glowLoopRef.current.start()
-
-      // Shake animation for treasure chest icon only
-      if (fillPercentage > 0) {
-        shakeLoopRef.current = Animated.loop(
-          Animated.sequence([
-            Animated.timing(iconShakeAnimation, {
-              toValue: 1,
-              duration: 100,
-              useNativeDriver: true,
-            }),
-            Animated.timing(iconShakeAnimation, {
-              toValue: -1,
-              duration: 100,
-              useNativeDriver: true,
-            }),
-            Animated.timing(iconShakeAnimation, {
-              toValue: 0,
-              duration: 100,
-              useNativeDriver: true,
-            }),
-            Animated.delay(2000),
-          ])
-        )
-        shakeLoopRef.current.start()
-      }
+      shakeLoopRef.current.start()
     }
   }
 
   const stopAnimations = () => {
-    if (glowLoopRef.current) {
-      glowLoopRef.current.stop()
-      glowLoopRef.current = null
-    }
     if (shakeLoopRef.current) {
       shakeLoopRef.current.stop()
       shakeLoopRef.current = null
     }
     // Reset animation values
-    glowAnimation.setValue(0)
     iconShakeAnimation.setValue(0)
   }
 
@@ -321,30 +295,7 @@ export default function TreasureBox({ playerId, onGemsUpdated }: TreasureBoxProp
     }
   }
 
-  const getBoxGlowStyle = () => {
-    if (!status || clientAccumulatedGems <= 0) return {}
-    
-    // Use client-side calculated gems
-    const fillPercentage = TreasureBoxManager.calculateFillPercentage(
-      clientAccumulatedGems, 
-      status.max_storage
-    )
-    
-    if (fillPercentage > 0) {
-      return {
-        shadowColor: getTreasureChestColor(),
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: glowAnimation.interpolate({
-          inputRange: [0, 1],
-          outputRange: [0.3, 0.8],
-        }),
-        shadowRadius: 15,
-        elevation: 12,
-      }
-    }
-    
-    return {}
-  }
+
 
   const getIconShakeTransform = () => {
     return {
@@ -409,26 +360,22 @@ export default function TreasureBox({ playerId, onGemsUpdated }: TreasureBoxProp
           disabled={!canClaim || claiming}
           activeOpacity={0.7}
         >
-          {/* Separate glow animation view */}
-          <Animated.View style={getBoxGlowStyle()}>
-            {/* Transform animation view */}
-            <Animated.View style={[styles.treasureBox, getOpeningTransform()]}>
-              <Animated.View style={getIconShakeTransform()}>
-                <MaterialCommunityIcons 
-                  name="treasure-chest"
-                  size={80}
-                  color={getTreasureChestColor()}
-                  style={styles.treasureChestIcon}
-                />
-              </Animated.View>
-              {clientAccumulatedGems > 0 && (
-                <View style={styles.gemsBadge}>
-                  <Text variant="bodySmall" style={styles.gemsBadgeText}>
-                    {clientAccumulatedGems}
-                  </Text>
-                </View>
-              )}
+          {/* Transform animation view */}
+          <Animated.View style={[styles.treasureBox, getOpeningTransform()]}>
+            <Animated.View style={getIconShakeTransform()}>
+              <MaterialCommunityIcons 
+                name="treasure-chest"
+                size={80}
+                color={getTreasureChestColor()}
+              />
             </Animated.View>
+            {clientAccumulatedGems > 0 && (
+              <View style={styles.gemsBadge}>
+                <Text variant="bodySmall" style={styles.gemsBadgeText}>
+                  {clientAccumulatedGems}
+                </Text>
+              </View>
+            )}
           </Animated.View>
         </TouchableOpacity>
         
@@ -460,13 +407,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     position: 'relative',
   },
-  treasureChestIcon: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
-  },
+
   gemsBadge: {
     position: 'absolute',
     top: -8,
