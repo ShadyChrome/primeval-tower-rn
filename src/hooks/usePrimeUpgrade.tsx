@@ -4,6 +4,7 @@ import { PlayerManager } from '../../lib/playerManager'
 import { PrimeRuneService } from '../services/primeRuneService'
 import { UIPrime } from '../services/primeService'
 import { PlayerInventoryItem } from '../../types/supabase'
+import { InventoryService } from '../services/inventoryService'
 
 export interface UpgradeResult {
   success: boolean
@@ -28,7 +29,7 @@ export interface XPItem {
   name: string
   xpValue: number
   quantity: number
-  rarity: 'Common' | 'Rare' | 'Epic' | 'Legendary'
+  rarity: string
 }
 
 export interface AbilityUpgradeCost {
@@ -71,12 +72,15 @@ export const usePrimeUpgrade = () => {
 
       if (error) throw error
 
+      // Get XP values from secure server config
+      const xpValues = await InventoryService.getXPPotionValues()
+
       return (data || []).map((item: PlayerInventoryItem) => {
         const metadata = item.metadata as any || {}
         return {
           id: item.id,
           name: getXPItemName(item.item_id),
-          xpValue: getXPItemValue(item.item_id),
+          xpValue: xpValues[item.item_id] || 50, // Use server config values
           quantity: item.quantity || 0,
           rarity: metadata.rarity || 'Common'
         }
@@ -99,19 +103,13 @@ export const usePrimeUpgrade = () => {
     return nameMap[itemId] || 'XP Potion'
   }
 
-  // Helper function to get XP value for item
-  const getXPItemValue = (itemId: string): number => {
-    const valueMap: Record<string, number> = {
-      'small_xp_potion': 50,
-      'medium_xp_potion': 150,
-      'large_xp_potion': 400,
-      'epic_xp_potion': 1000,
-      'legendary_xp_potion': 2500
-    }
-    return valueMap[itemId] || 50
+  // Helper function to get XP value for item (now uses server config)
+  const getXPItemValue = async (itemId: string): Promise<number> => {
+    const xpValues = await InventoryService.getXPPotionValues()
+    return xpValues[itemId] || 50
   }
 
-  // Use XP items to level up prime
+  // Use XP items to level up prime with secure item consumption
   const usePrimeXPItems = useCallback(async (
     prime: UIPrime,
     xpItems: { itemId: string; quantity: number }[]
@@ -125,9 +123,13 @@ export const usePrimeUpgrade = () => {
         throw new Error('Player not found')
       }
 
-      // Calculate total XP to be gained and validate items
+      // Get device ID for secure operations
+      const deviceId = await PlayerManager.getDeviceID()
+
+      // Calculate total XP to be gained and validate items using server config
       let totalXPGain = 0
-      const itemsToConsume: { inventoryId: string; quantity: number; currentQuantity: number }[] = []
+      const itemsToConsume: { inventoryId: string; quantity: number; currentQuantity: number; xpValue: number }[] = []
+      const xpValues = await InventoryService.getXPPotionValues()
 
       for (const item of xpItems) {
         // Get the inventory item data
@@ -148,13 +150,14 @@ export const usePrimeUpgrade = () => {
           throw new Error(`Not enough ${getXPItemName(inventoryItem.item_id)}`)
         }
 
-        const xpValue = getXPItemValue(inventoryItem.item_id)
+        const xpValue = xpValues[inventoryItem.item_id] || 50 // Use server config
         totalXPGain += xpValue * item.quantity
 
         itemsToConsume.push({
           inventoryId: inventoryItem.id,
           quantity: item.quantity,
-          currentQuantity: currentQuantity
+          currentQuantity: currentQuantity,
+          xpValue: xpValue
         })
       }
 
@@ -184,34 +187,31 @@ export const usePrimeUpgrade = () => {
       const newLevelXP = remainingXP // Remaining XP in the current level
       const newPower = calculatePowerForLevel(newLevel, prime.rarity)
 
-      // Consume XP items from inventory
+      // Consume XP items using secure server function
       for (const item of itemsToConsume) {
-        const newQuantity = item.currentQuantity - item.quantity
-
-        if (newQuantity <= 0) {
-          // Delete the inventory item if quantity reaches 0
-          const { error: deleteError } = await supabase
-            .from('player_inventory')
-            .delete()
-            .eq('id', item.inventoryId)
-
-          if (deleteError) {
-            console.error('Error deleting XP item:', deleteError)
-            throw new Error('Failed to consume XP items')
-          }
-        } else {
-          // Update the quantity
-          const { error: updateError } = await supabase
-            .from('player_inventory')
-            .update({ quantity: newQuantity })
-            .eq('id', item.inventoryId)
-
-          if (updateError) {
-            console.error('Error updating XP item quantity:', updateError)
-            throw new Error('Failed to consume XP items')
-          }
+        const success = await InventoryService.consumeItem(item.inventoryId, item.quantity)
+        if (!success) {
+          throw new Error('Failed to consume XP items securely')
         }
       }
+
+      // Log upgrade activity
+      await supabase.rpc('log_player_activity', {
+        p_device_id: deviceId,
+        p_activity_type: 'prime_upgrade',
+        p_activity_data: {
+          prime_id: prime.id,
+          prime_name: prime.name,
+          old_level: prime.level,
+          new_level: newLevel,
+          xp_gained: totalXPGain,
+          items_consumed: itemsToConsume.map(item => ({
+            id: item.inventoryId,
+            quantity: item.quantity,
+            xp_value: item.xpValue
+          }))
+        }
+      })
 
       // Update prime in database
       const updatedPrime = await PrimeRuneService.updatePrime(prime.id, {
@@ -263,40 +263,66 @@ export const usePrimeUpgrade = () => {
     return Math.floor(basePower + (level - 1) * scalingFactor)
   }, [])
 
-  // Calculate ability upgrade cost
-  const calculateAbilityUpgradeCost = useCallback((
+  // Calculate ability upgrade cost using secure server function
+  // SECURITY: Cost calculation now happens server-side and cannot be manipulated
+  const calculateAbilityUpgradeCost = useCallback(async (
     abilityLevel: number,
     abilityIndex: number,
     primeRarity: string
-  ): AbilityUpgradeCost => {
-    // Base cost increases with ability level and prime rarity
-    const rarityMultiplier = {
-      'Common': 1,
-      'Rare': 1.5,
-      'Epic': 2,
-      'Legendary': 3,
-      'Mythical': 4
-    }[primeRarity] || 1
+  ): Promise<AbilityUpgradeCost> => {
+    try {
+      // Get device ID for secure server validation
+      const deviceId = await PlayerManager.getDeviceID()
+      
+      const { data, error } = await supabase
+        .rpc('calculate_upgrade_cost', {
+          p_device_id: deviceId,
+          p_ability_level: abilityLevel,
+          p_ability_index: abilityIndex,
+          p_prime_rarity: primeRarity
+        })
 
-    const baseCost = Math.floor((50 + abilityLevel * 25) * rarityMultiplier)
-    
-    // Higher ability indices (slots) cost more
-    const slotMultiplier = 1 + (abilityIndex * 0.3)
-    const finalCost = Math.floor(baseCost * slotMultiplier)
+      if (error) {
+        console.error('Server-side cost calculation failed:', error)
+        throw error
+      }
 
-    return {
-      gems: finalCost,
-      items: [
-        {
-          itemId: 'ability_scroll',
-          itemName: 'Ability Scroll',
-          quantity: Math.max(1, Math.floor(abilityLevel / 3))
+      const result = data && data.length > 0 ? data[0] : null
+      if (!result || !result.valid) {
+        console.warn('Cost calculation failed:', result?.message)
+        // Fallback to basic cost if server fails
+        return {
+          gems: 100,
+          items: [{ itemId: 'ability_scroll', itemName: 'Ability Scroll', quantity: 1 }]
         }
-      ]
+      }
+
+      console.log('✅ Secure cost calculation:', {
+        gems: result.gems_cost,
+        scrolls: result.scroll_cost
+      })
+
+      return {
+        gems: result.gems_cost,
+        items: [
+          {
+            itemId: 'ability_scroll',
+            itemName: 'Ability Scroll',
+            quantity: result.scroll_cost
+          }
+        ]
+      }
+    } catch (error) {
+      console.error('Error calculating upgrade cost:', error)
+      // Fallback to basic cost
+      return {
+        gems: 100,
+        items: [{ itemId: 'ability_scroll', itemName: 'Ability Scroll', quantity: 1 }]
+      }
     }
   }, [])
 
-  // Upgrade ability
+  // Upgrade ability with secure cost validation
   const upgradeAbility = useCallback(async (
     prime: UIPrime,
     abilityIndex: number,
@@ -311,7 +337,11 @@ export const usePrimeUpgrade = () => {
         throw new Error('Player not found')
       }
 
-      const cost = calculateAbilityUpgradeCost(abilityLevel, abilityIndex, prime.rarity)
+      // Get device ID for secure operations
+      const deviceId = await PlayerManager.getDeviceID()
+
+      // Get secure cost calculation from server
+      const cost = await calculateAbilityUpgradeCost(abilityLevel, abilityIndex, prime.rarity)
 
       // Check if player has enough resources
       const playerData = await PlayerManager.loadPlayerData(playerId)
@@ -323,7 +353,7 @@ export const usePrimeUpgrade = () => {
         return { success: false, message: 'Not enough gems' }
       }
 
-      // Check ability scrolls
+      // Check ability scrolls using secure inventory
       if (cost.items) {
         for (const requiredItem of cost.items) {
           const inventoryItem = playerData.inventory.find(
@@ -339,7 +369,7 @@ export const usePrimeUpgrade = () => {
         }
       }
 
-      // Consume resources
+      // Consume resources securely
       if (cost.gems) {
         await PlayerManager.updatePlayer(playerId, {
           gems: (playerData.player.gems || 0) - cost.gems
@@ -348,27 +378,33 @@ export const usePrimeUpgrade = () => {
 
       if (cost.items) {
         for (const item of cost.items) {
-          // Get current quantity first
-          const { data: currentItem } = await supabase
-            .from('player_inventory')
-            .select('quantity')
-            .eq('player_id', playerId)
-            .eq('item_type', 'ability_scroll')
-            .eq('item_id', item.itemId)
-            .single()
-
-          if (currentItem && currentItem.quantity && currentItem.quantity >= item.quantity) {
-            // Update inventory quantity
-            const newQuantity = currentItem.quantity - item.quantity
-            await supabase
-              .from('player_inventory')
-              .update({ quantity: newQuantity })
-              .eq('player_id', playerId)
-              .eq('item_type', 'ability_scroll')
-              .eq('item_id', item.itemId)
+          // Find the inventory item ID
+          const inventoryItem = playerData.inventory.find(
+            inv => inv.item_type === 'ability_scroll' && inv.item_id === item.itemId
+          )
+          
+          if (inventoryItem) {
+            const success = await InventoryService.consumeItem(inventoryItem.id, item.quantity)
+            if (!success) {
+              throw new Error(`Failed to consume ${item.itemName}`)
+            }
           }
         }
       }
+
+      // Log upgrade activity
+      await supabase.rpc('log_player_activity', {
+        p_device_id: deviceId,
+        p_activity_type: 'ability_upgrade',
+        p_activity_data: {
+          prime_id: prime.id,
+          prime_name: prime.name,
+          ability_index: abilityIndex,
+          old_level: abilityLevel,
+          new_level: abilityLevel + 1,
+          cost_paid: JSON.parse(JSON.stringify(cost)) // Convert to proper JSON
+        }
+      })
 
       // Update ability level in prime abilities array
       const currentAbilities = Array.isArray(prime.abilities) ? [...prime.abilities] : []

@@ -148,12 +148,13 @@ export class InventoryService {
    * Get description for item
    */
   private static getItemDescription(itemType: string, itemId: string, metadata: any): string {
+    // Get XP values from server config instead of hardcoded values
     const descriptions: Record<string, Record<string, string>> = {
       xp_potion: {
-        small_xp_potion: `Grants ${metadata.xpValue || 50} XP to a Prime`,
-        medium_xp_potion: `Grants ${metadata.xpValue || 150} XP to a Prime`,
-        large_xp_potion: `Grants ${metadata.xpValue || 400} XP to a Prime`,
-        huge_xp_potion: `Grants ${metadata.xpValue || 1000} XP to a Prime`
+        small_xp_potion: `Grants XP to a Prime (value determined by server)`,
+        medium_xp_potion: `Grants XP to a Prime (value determined by server)`,
+        large_xp_potion: `Grants XP to a Prime (value determined by server)`,
+        huge_xp_potion: `Grants XP to a Prime (value determined by server)`
       },
       ability_scroll: {
         ability_scroll: 'Used to upgrade Prime abilities'
@@ -182,7 +183,8 @@ export class InventoryService {
   }
 
   /**
-   * Consume items from inventory
+   * Consume items from inventory using secure server-side validation
+   * SECURITY: This now uses server-side validation to prevent item duplication
    */
   static async consumeItem(itemId: string, quantity: number): Promise<boolean> {
     try {
@@ -191,28 +193,59 @@ export class InventoryService {
         throw new Error('Player not found')
       }
 
-      // Get current item
+      // Get device ID for server validation
+      const deviceId = await PlayerManager.getDeviceID()
+      
+      // Get item details first to pass to secure function
       const { data: currentItem, error: fetchError } = await supabase
         .from('player_inventory')
-        .select('*')
+        .select('item_type, item_id')
         .eq('id', itemId)
         .eq('player_id', playerId)
         .single()
 
       if (fetchError) throw fetchError
-
-      if (!currentItem || (currentItem.quantity || 0) < quantity) {
-        throw new Error('Insufficient items')
+      if (!currentItem) {
+        throw new Error('Item not found in inventory')
       }
 
-      // Update quantity
-      const newQuantity = (currentItem.quantity || 0) - quantity
-      const { error: updateError } = await supabase
-        .from('player_inventory')
-        .update({ quantity: newQuantity })
-        .eq('id', itemId)
+      // Use secure server function for consumption
+      const { data, error } = await supabase
+        .rpc('secure_consume_items', {
+          p_device_id: deviceId,
+          p_item_type: currentItem.item_type,
+          p_item_id: currentItem.item_id,
+          p_quantity: quantity
+        })
 
-      if (updateError) throw updateError
+      if (error) {
+        console.error('Server-side consumption failed:', error)
+        throw error
+      }
+
+      const result = data && data.length > 0 ? data[0] : null
+      if (!result || !result.success) {
+        console.warn('Item consumption failed:', result?.message)
+        return false
+      }
+
+      // Log activity for monitoring
+      await supabase.rpc('log_player_activity', {
+        p_device_id: deviceId,
+        p_activity_type: 'item_consumption',
+        p_activity_data: {
+          item_type: currentItem.item_type,
+          item_id: currentItem.item_id,
+          quantity: quantity,
+          remaining: result.remaining_quantity
+        }
+      })
+
+      console.log('✅ Secure item consumption successful:', {
+        item: currentItem.item_id,
+        consumed: quantity,
+        remaining: result.remaining_quantity
+      })
 
       return true
     } catch (error) {
@@ -275,6 +308,55 @@ export class InventoryService {
     } catch (error) {
       console.error('Error getting item count:', error)
       return 0
+    }
+  }
+
+  /**
+   * Get game configuration from server (replaces hardcoded values)
+   * SECURITY: Game constants now stored securely on server
+   */
+  static async getGameConfig(configKey: string): Promise<any> {
+    try {
+      const { data, error } = await supabase
+        .from('game_config')
+        .select('config_value')
+        .eq('config_key', configKey)
+        .single()
+      
+      if (error) {
+        console.error('Error fetching game config:', error)
+        return null
+      }
+      
+      return data?.config_value
+    } catch (error) {
+      console.error('Error fetching game config:', error)
+      return null
+    }
+  }
+
+  /**
+   * Get XP potion values from server config
+   * SECURITY: XP values now retrieved from secure server config
+   */
+  static async getXPPotionValues(): Promise<Record<string, number>> {
+    try {
+      const config = await this.getGameConfig('xp_potion_values')
+      return config || {
+        small_xp_potion: 50,
+        medium_xp_potion: 150,
+        large_xp_potion: 400,
+        huge_xp_potion: 1000
+      }
+    } catch (error) {
+      console.error('Error getting XP potion values:', error)
+      // Fallback values
+      return {
+        small_xp_potion: 50,
+        medium_xp_potion: 150,
+        large_xp_potion: 400,
+        huge_xp_potion: 1000
+      }
     }
   }
 } 
