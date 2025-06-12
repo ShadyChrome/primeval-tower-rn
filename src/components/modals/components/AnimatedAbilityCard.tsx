@@ -12,6 +12,7 @@ import Animated, {
 import { ElementIcon } from '../../../../components/OptimizedImage'
 import { ElementType } from '../../../assets/ImageAssets'
 import { colors, spacing, shadows } from '../../../theme/designSystem'
+import { HapticManager } from '../../../utils/haptics'
 
 interface PrimeAbility {
   id: string
@@ -97,12 +98,19 @@ export default function AnimatedAbilityCard({
     pressScale.value = withSpring(1, { damping: 15, stiffness: 400 })
     borderColor.value = withTiming(0, { duration: 200 })
   }
+
+  const handlePress = () => {
+    HapticManager.buttonPress()
+    if (onPress) {
+      onPress()
+    }
+  }
   
   return (
     <TouchableOpacity 
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
-      onPress={onPress}
+      onPress={handlePress}
       activeOpacity={1}
       disabled={!onPress}
     >

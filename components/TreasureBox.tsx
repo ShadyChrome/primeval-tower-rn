@@ -6,6 +6,7 @@ import { useFocusEffect } from '@react-navigation/native'
 import { TreasureBoxManager } from '../lib/treasureBoxManager'
 import { TreasureBoxStatus } from '../types/supabase'
 import LootModal from './LootModal'
+import { HapticManager } from '../src/utils/haptics'
 
 interface TreasureBoxProps {
   playerId: string
@@ -264,6 +265,7 @@ export default function TreasureBox({ playerId, onGemsUpdated }: TreasureBoxProp
     if (!status || clientAccumulatedGems <= 0 || claiming) return
     
     try {
+      HapticManager.medium() // Initial feedback for starting claim
       setClaiming(true)
       
       // Start opening animation
@@ -272,6 +274,7 @@ export default function TreasureBox({ playerId, onGemsUpdated }: TreasureBoxProp
       const result = await TreasureBoxManager.claimTreasureBoxGems(playerId)
       
       if (result && result.success) {
+        HapticManager.success() // Success feedback for successful claim
         setClaimedGems(result.gems_claimed)
         setShowLootModal(true)
         
@@ -288,8 +291,11 @@ export default function TreasureBox({ playerId, onGemsUpdated }: TreasureBoxProp
         setTimeout(async () => {
           await loadTreasureBoxStatus(true)
         }, 500)
+      } else {
+        HapticManager.error() // Error feedback for failed claim
       }
     } catch (error) {
+      HapticManager.error() // Error feedback for exceptions
       console.error('Error claiming gems:', error)
     } finally {
       setClaiming(false)
@@ -394,7 +400,12 @@ export default function TreasureBox({ playerId, onGemsUpdated }: TreasureBoxProp
       <View style={styles.container}>
         <TouchableOpacity 
           style={styles.treasureBoxContainer}
-          onPress={handleClaimGems}
+          onPress={() => {
+            if (canClaim && !claiming) {
+              HapticManager.light() // Light feedback for touch
+              handleClaimGems()
+            }
+          }}
           disabled={!canClaim || claiming}
           activeOpacity={0.7}
         >

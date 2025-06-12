@@ -8,6 +8,7 @@ import { usePrimeUpgrade, UpgradeResult, AbilityUpgradeResult } from '../../../h
 import { UIPrime } from '../../../services/primeService'
 import { ElementType } from '../../../assets/ImageAssets'
 import { colors, spacing } from '../../../theme/designSystem'
+import { HapticManager } from '../../../utils/haptics'
 
 interface Prime {
   id: string
@@ -58,23 +59,30 @@ export default function UpgradeSection({
 
   const handleXPUpgradeSuccess = (result: UpgradeResult) => {
     if (result.success && result.newLevel && result.newPower !== undefined) {
+      HapticManager.upgradeSuccess()
       onPrimeUpdated({
         level: result.newLevel,
         power: result.newPower,
         experience: result.newExperience || 0
       })
+    } else {
+      HapticManager.upgradeFailure()
     }
   }
 
   const handleAbilityUpgradeSuccess = (result: AbilityUpgradeResult) => {
     if (result.success) {
+      HapticManager.upgradeSuccess()
       // In a full implementation, you'd update the abilities in the database
       // For now, we'll just close the modal
       console.log('Ability upgraded successfully:', result)
+    } else {
+      HapticManager.upgradeFailure()
     }
   }
 
   const handleAbilityPress = (ability: PrimeAbility, index: number) => {
+    HapticManager.buttonPress()
     setSelectedAbility({ ability, index })
     setAbilityModalVisible(true)
   }
@@ -140,7 +148,10 @@ export default function UpgradeSection({
 
         <Button
           mode="contained"
-          onPress={() => setXpModalVisible(true)}
+          onPress={() => {
+            HapticManager.buttonPress()
+            setXpModalVisible(true)
+          }}
           style={[styles.upgradeButton, { backgroundColor: primaryColor }]}
           contentStyle={styles.buttonContent}
           disabled={!canLevelUp}

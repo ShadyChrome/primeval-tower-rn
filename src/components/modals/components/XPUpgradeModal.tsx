@@ -4,6 +4,7 @@ import { Text, Modal, Portal, IconButton, Button, ProgressBar } from 'react-nati
 import { usePrimeUpgrade, XPItem, UpgradeResult } from '../../../hooks/usePrimeUpgrade'
 import { UIPrime } from '../../../services/primeService'
 import { colors, spacing } from '../../../theme/designSystem'
+import { HapticManager } from '../../../utils/haptics'
 
 interface XPUpgradeModalProps {
   visible: boolean
@@ -101,6 +102,7 @@ export default function XPUpgradeModal({
   }, [selectedItems, prime, calculateXPForLevel, calculatePowerForLevel])
 
   const handleItemQuantityChange = (item: XPItem, change: number) => {
+    HapticManager.light()
     setSelectedItems(prev => {
       const existing = prev.find(selected => selected.id === item.id)
       
@@ -139,6 +141,7 @@ export default function XPUpgradeModal({
   const handleUpgrade = async () => {
     if (selectedItems.length === 0) return
 
+    HapticManager.medium()
     setIsUpgrading(true)
     try {
       const itemsToUse = selectedItems.map(item => ({
@@ -149,13 +152,16 @@ export default function XPUpgradeModal({
       const result = await usePrimeXPItems(prime, itemsToUse)
       
       if (result.success) {
+        HapticManager.upgradeSuccess()
         onUpgradeSuccess(result)
         onDismiss()
       } else {
+        HapticManager.upgradeFailure()
         // Handle error - could show toast/alert
         console.error('Upgrade failed:', result.message)
       }
     } catch (err) {
+      HapticManager.upgradeFailure()
       console.error('Upgrade error:', err)
     } finally {
       setIsUpgrading(false)

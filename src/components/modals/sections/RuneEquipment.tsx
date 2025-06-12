@@ -6,6 +6,7 @@ import RuneSelectionModal from '../../modals/components/RuneSelectionModal'
 import { ElementType } from '../../../assets/ImageAssets'
 import { colors, spacing } from '../../../theme/designSystem'
 import { PlayerRune } from '../../../../types/supabase'
+import { HapticManager } from '../../../utils/haptics'
 
 interface Prime {
   id: string
@@ -142,6 +143,7 @@ export default function RuneEquipment({
   const activeSynergies = calculateSynergies()
 
   const handleSlotPress = (slotIndex: number) => {
+    HapticManager.light()
     setSelectedSlotIndex(slotIndex)
     setShowRuneModal(true)
   }
@@ -149,8 +151,10 @@ export default function RuneEquipment({
   const handleRuneSelect = (rune: PlayerRune | null) => {
     if (selectedSlotIndex !== null) {
       if (rune) {
+        HapticManager.runeEquip()
         onRuneEquip(selectedSlotIndex, rune)
       } else {
+        HapticManager.runeUnequip()
         onRuneUnequip(selectedSlotIndex)
       }
     }
@@ -159,6 +163,7 @@ export default function RuneEquipment({
   }
 
   const handleRuneRemove = (slotIndex: number) => {
+    HapticManager.runeUnequip()
     onRuneUnequip(slotIndex)
   }
 

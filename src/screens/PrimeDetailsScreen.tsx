@@ -6,6 +6,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native'
 import { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import { PanGestureHandler } from 'react-native-gesture-handler'
+import Animated, {
+  FadeIn,
+  FadeOut,
+  SlideInRight,
+  SlideOutLeft,
+} from 'react-native-reanimated'
 
 import { ElementIcon, PrimeImage } from '../../components/OptimizedImage'
 import { ElementType, PrimeImageType } from '../assets/ImageAssets'
@@ -21,6 +27,7 @@ import LoadingSkeleton, {
   AbilityCardSkeleton, 
   PrimeHeaderSkeleton 
 } from '../components/LoadingSkeleton'
+import { HapticManager } from '../utils/haptics'
 import { colors, spacing, typography } from '../theme/designSystem'
 import { PlayerRune } from '../../types/supabase'
 import { RuneService } from '../services/runeService'
@@ -274,6 +281,7 @@ export default function PrimeDetailsScreen() {
   
   // Memoized handlers for better performance
   const handleTabChange = useCallback((tab: 'stats' | 'abilities' | 'matchups' | 'runes' | 'upgrade') => {
+    HapticManager.tabSwitch()
     setActiveTab(tab)
   }, [])
   
@@ -348,6 +356,8 @@ export default function PrimeDetailsScreen() {
   // Navigation functions
   const navigateToPrevious = async () => {
     if (currentIndex > 0 && currentPrime) {
+      HapticManager.primeNavigate()
+      
       // Save current Prime's runes
       await savePrimeRuneEquipment(currentPrime.id, equippedRunes)
       
@@ -365,6 +375,8 @@ export default function PrimeDetailsScreen() {
 
   const navigateToNext = async () => {
     if (currentIndex < primesList.length - 1 && currentPrime) {
+      HapticManager.primeNavigate()
+      
       // Save current Prime's runes
       await savePrimeRuneEquipment(currentPrime.id, equippedRunes)
       
@@ -421,7 +433,10 @@ export default function PrimeDetailsScreen() {
               icon="arrow-left"
               size={24}
               iconColor={colors.text}
-              onPress={() => navigation.goBack()}
+              onPress={() => {
+                HapticManager.modalClose()
+                navigation.goBack()
+              }}
               style={styles.backButton}
             />
 
@@ -525,35 +540,45 @@ export default function PrimeDetailsScreen() {
             showsVerticalScrollIndicator={false}
           >
             {activeTab === 'stats' && (
-              <MemoizedStatsSection prime={currentPrime} primaryColor={primaryColor} equippedRunes={equippedRunes} />
+              <Animated.View entering={FadeIn.duration(300)} exiting={FadeOut.duration(200)}>
+                <MemoizedStatsSection prime={currentPrime} primaryColor={primaryColor} equippedRunes={equippedRunes} />
+              </Animated.View>
             )}
 
             {activeTab === 'abilities' && (
-              <MemoizedAbilitiesSection prime={currentPrime} primaryColor={primaryColor} />
+              <Animated.View entering={FadeIn.duration(300)} exiting={FadeOut.duration(200)}>
+                <MemoizedAbilitiesSection prime={currentPrime} primaryColor={primaryColor} />
+              </Animated.View>
             )}
 
             {activeTab === 'matchups' && (
-              <MemoizedElementAdvantages element={currentPrime.element} primaryColor={primaryColor} />
+              <Animated.View entering={FadeIn.duration(300)} exiting={FadeOut.duration(200)}>
+                <MemoizedElementAdvantages element={currentPrime.element} primaryColor={primaryColor} />
+              </Animated.View>
             )}
 
             {activeTab === 'runes' && (
-              <MemoizedRuneEquipment
-                prime={currentPrime}
-                primaryColor={primaryColor}
-                equippedRunes={equippedRunes}
-                availableRunes={availableRunes}
-                onRuneEquip={handleRuneEquip}
-                onRuneUnequip={handleRuneUnequip}
-              />
+              <Animated.View entering={FadeIn.duration(300)} exiting={FadeOut.duration(200)}>
+                <MemoizedRuneEquipment
+                  prime={currentPrime}
+                  primaryColor={primaryColor}
+                  equippedRunes={equippedRunes}
+                  availableRunes={availableRunes}
+                  onRuneEquip={handleRuneEquip}
+                  onRuneUnequip={handleRuneUnequip}
+                />
+              </Animated.View>
             )}
 
             {activeTab === 'upgrade' && (
-              <MemoizedUpgradeSection
-                prime={currentPrime}
-                abilities={generateAbilityData(currentPrime)}
-                primaryColor={primaryColor}
-                onPrimeUpdated={handlePrimeUpdate}
-              />
+              <Animated.View entering={FadeIn.duration(300)} exiting={FadeOut.duration(200)}>
+                <MemoizedUpgradeSection
+                  prime={currentPrime}
+                  abilities={generateAbilityData(currentPrime)}
+                  primaryColor={primaryColor}
+                  onPrimeUpdated={handlePrimeUpdate}
+                />
+              </Animated.View>
             )}
           </ScrollView>
         </View>
