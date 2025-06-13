@@ -25,7 +25,8 @@ export interface AbilityUpgradeResult {
 }
 
 export interface XPItem {
-  id: string
+  id: string        // inventory UUID
+  itemId: string    // actual item type like 'small_xp_potion'
   name: string
   xpValue: number
   quantity: number
@@ -79,6 +80,7 @@ export const usePrimeUpgrade = () => {
         const metadata = item.metadata as any || {}
         return {
           id: item.id,
+          itemId: item.item_id,
           name: getXPItemName(item.item_id),
           xpValue: xpValues[item.item_id] || 50, // Use server config values
           quantity: item.quantity || 0,
@@ -109,7 +111,7 @@ export const usePrimeUpgrade = () => {
     return xpValues[itemId] || 50
   }
 
-  // Use XP items to level up prime with secure item consumption
+  // Use XP items to level up prime with secure item consumption - OPTIMIZED VERSION
   const usePrimeXPItems = useCallback(async (
     prime: UIPrime,
     xpItems: { itemId: string; quantity: number }[]
@@ -118,126 +120,64 @@ export const usePrimeUpgrade = () => {
       setLoading(true)
       setError(null)
 
-      const playerId = await PlayerManager.getCachedPlayerId()
-      if (!playerId) {
-        throw new Error('Player not found')
-      }
-
       // Get device ID for secure operations
       const deviceId = await PlayerManager.getDeviceID()
 
-      // Calculate total XP to be gained and validate items using server config
-      let totalXPGain = 0
-      const itemsToConsume: { inventoryId: string; quantity: number; currentQuantity: number; xpValue: number }[] = []
-      const xpValues = await InventoryService.getXPPotionValues()
+      console.log('🚀 Starting optimized prime XP upgrade:', {
+        prime: prime.name,
+        itemsToConsume: xpItems
+      })
 
-      for (const item of xpItems) {
-        // Get the inventory item data
-        const { data: inventoryItem } = await supabase
-          .from('player_inventory')
-          .select('id, item_id, quantity')
-          .eq('id', item.itemId)
-          .eq('player_id', playerId)
-          .eq('item_type', 'xp_potion')
-          .single()
+      // Prepare XP items array for the atomic function
+      const xpItemsForServer = xpItems.map(item => ({
+        item_id: item.itemId,
+        quantity: item.quantity
+      }))
 
-        if (!inventoryItem) {
-          throw new Error(`XP item not found in inventory`)
-        }
-
-        const currentQuantity = inventoryItem.quantity || 0
-        if (currentQuantity < item.quantity) {
-          throw new Error(`Not enough ${getXPItemName(inventoryItem.item_id)}`)
-        }
-
-        const xpValue = xpValues[inventoryItem.item_id] || 50 // Use server config
-        totalXPGain += xpValue * item.quantity
-
-        itemsToConsume.push({
-          inventoryId: inventoryItem.id,
-          quantity: item.quantity,
-          currentQuantity: currentQuantity,
-          xpValue: xpValue
+      // Use the new atomic XP upgrade function (single database call)
+      const { data, error } = await supabase
+        .rpc('secure_prime_xp_upgrade_atomic', {
+          p_device_id: deviceId,
+          p_prime_id: prime.id,
+          p_xp_items: xpItemsForServer
         })
+
+      if (error) {
+        console.error('Atomic prime XP upgrade failed:', error)
+        throw error
       }
 
-      if (totalXPGain <= 0) {
-        return { success: false, message: 'No XP selected' }
+      const result = data && data.length > 0 ? data[0] : null
+      if (!result) {
+        return { success: false, message: 'No response from server' }
       }
 
-      // Calculate new experience and level
-      let currentLevel = prime.level
-      let remainingXP = (prime.experience || 0) + totalXPGain // Start with current level XP + gained XP
-      
-      // Process level ups
-      while (remainingXP > 0 && currentLevel < 100) {
-        const xpNeededForNextLevel = calculateXPForLevel(currentLevel)
-        
-        if (remainingXP >= xpNeededForNextLevel) {
-          // Level up!
-          remainingXP -= xpNeededForNextLevel
-          currentLevel++
-        } else {
-          // Not enough XP for next level, stop here
-          break
-        }
+      if (!result.success) {
+        console.warn('Prime XP upgrade failed:', result.message)
+        return { success: false, message: result.message }
       }
 
-      const newLevel = currentLevel
-      const newLevelXP = remainingXP // Remaining XP in the current level
-      const newPower = calculatePowerForLevel(newLevel, prime.rarity)
-
-      // Consume XP items using secure server function
-      for (const item of itemsToConsume) {
-        const success = await InventoryService.consumeItem(item.inventoryId, item.quantity)
-        if (!success) {
-          throw new Error('Failed to consume XP items securely')
-        }
-      }
-
-      // Log upgrade activity
-      await supabase.rpc('log_player_activity', {
-        p_device_id: deviceId,
-        p_activity_type: 'prime_upgrade',
-        p_activity_data: {
-          prime_id: prime.id,
-          prime_name: prime.name,
-          old_level: prime.level,
-          new_level: newLevel,
-          xp_gained: totalXPGain,
-          items_consumed: itemsToConsume.map(item => ({
-            id: item.inventoryId,
-            quantity: item.quantity,
-            xp_value: item.xpValue
-          }))
-        }
+      console.log('✅ Optimized prime XP upgrade successful:', {
+        prime: prime.name,
+        old_level: prime.level,
+        new_level: result.new_level,
+        xp_gained: result.total_xp_gained,
+        levels_gained: result.levels_gained
       })
 
-      // Update prime in database
-      const updatedPrime = await PrimeRuneService.updatePrime(prime.id, {
-        level: newLevel,
-        experience: newLevelXP,
-        power: newPower,
-        updated_at: new Date().toISOString()
-      })
-
-      if (!updatedPrime) {
-        throw new Error('Failed to update prime')
-      }
-
-      const levelsGained = newLevel - prime.level
+      const levelsGained = result.levels_gained
       const successMessage = levelsGained > 1 
-        ? `${prime.name} leveled up ${levelsGained} times to Level ${newLevel}!`
+        ? `${prime.name} leveled up ${levelsGained} times to Level ${result.new_level}!`
         : levelsGained === 1
-        ? `${prime.name} leveled up to Level ${newLevel}!`
-        : `${prime.name} gained ${totalXPGain} XP!`
+        ? `${prime.name} leveled up to Level ${result.new_level}!`
+        : `${prime.name} gained ${result.total_xp_gained} XP!`
 
       return {
         success: true,
         message: successMessage,
-        newLevel,
-        newExperience: newLevelXP,
-        newPower
+        newLevel: result.new_level,
+        newExperience: result.new_experience,
+        newPower: result.new_power
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Upgrade failed'
@@ -246,7 +186,7 @@ export const usePrimeUpgrade = () => {
     } finally {
       setLoading(false)
     }
-  }, [calculateXPForLevel, calculateTotalXP])
+  }, [])
 
   // Calculate power based on level and rarity
   const calculatePowerForLevel = useCallback((level: number, rarity: string): number => {

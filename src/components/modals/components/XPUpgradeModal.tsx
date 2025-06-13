@@ -145,7 +145,7 @@ export default function XPUpgradeModal({
     setIsUpgrading(true)
     try {
       const itemsToUse = selectedItems.map(item => ({
-        itemId: item.id,
+        itemId: item.itemId,
         quantity: item.selectedQuantity
       }))
 

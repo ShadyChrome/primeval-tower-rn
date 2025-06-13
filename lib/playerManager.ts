@@ -7,7 +7,8 @@ import {
   PlayerInventoryItem,
   PlayerInventoryInsert,
   PlayerRune,
-  PlayerRuneInsert 
+  PlayerRuneInsert,
+  PlayerPrime
 } from '../types/supabase'
 import * as Device from 'expo-device'
 
@@ -17,6 +18,7 @@ export interface PlayerData {
   player: Player
   inventory: PlayerInventoryItem[]
   runes: PlayerRune[]
+  primes?: PlayerPrime[]
 }
 
 export class PlayerManager {
@@ -226,76 +228,78 @@ export class PlayerManager {
   }
 
   /**
-   * Load complete player data
+   * Load complete player data - OPTIMIZED VERSION
    */
   static async loadPlayerData(playerId?: string): Promise<PlayerData | null> {
     try {
-      let targetPlayerId = playerId
-      console.log('🔄 Loading player data, provided playerId:', playerId)
+      let deviceId: string
+      console.log('🔄 Loading player data with optimized atomic function')
       
-      if (!targetPlayerId) {
-        // Try to get from local storage first
-        targetPlayerId = await AsyncStorage.getItem(PLAYER_ID_KEY) || undefined
-        console.log('💾 Cached player ID from storage:', targetPlayerId)
-        
-        // If not found locally, try to find by device ID
-        if (!targetPlayerId) {
-          console.log('🔍 No cached player ID, checking for existing player by device ID...')
-          const existingPlayer = await this.getExistingPlayer()
-          if (existingPlayer) {
-            targetPlayerId = existingPlayer.id
-            await AsyncStorage.setItem(PLAYER_ID_KEY, targetPlayerId)
-            console.log('✅ Found existing player, cached ID:', targetPlayerId)
-          }
-        }
+      if (playerId) {
+        // If playerId provided, still need device ID for security
+        deviceId = await this.getDeviceID()
+      } else {
+        // Get device ID and try atomic load
+        deviceId = await this.getDeviceID()
       }
 
-      if (!targetPlayerId) {
-        console.log('❌ No player ID available, returning null')
+      console.log('📊 Loading atomic player data for device:', deviceId)
+
+      // Use the new atomic player data loading function
+      const { data, error } = await supabase
+        .rpc('load_player_data_atomic', {
+          p_device_id: deviceId
+        })
+
+      if (error) {
+        console.error('Atomic player data load failed:', error)
+        throw error
+      }
+
+      if (!data || data.length === 0) {
+        console.log('❌ No player data found for device ID')
         return null
       }
 
-      console.log('📊 Loading full player data for ID:', targetPlayerId)
+      const playerResult = data[0]
+      console.log('✅ Atomic player data loaded successfully:', {
+        playerId: playerResult.player_id,
+        playerName: playerResult.player_name,
+        inventoryItems: Array.isArray(playerResult.inventory_items) ? playerResult.inventory_items.length : 0,
+        runes: Array.isArray(playerResult.runes) ? playerResult.runes.length : 0,
+        primes: Array.isArray(playerResult.primes) ? playerResult.primes.length : 0
+      })
 
-      // Load player data
-      const { data: player, error: playerError } = await supabase
-        .from('players')
-        .select('*')
-        .eq('id', targetPlayerId)
-        .single()
+      // Cache the player ID
+      await AsyncStorage.setItem(PLAYER_ID_KEY, playerResult.player_id)
 
-      if (playerError) throw playerError
-
-      // Load inventory
-      const { data: inventory, error: inventoryError } = await supabase
-        .from('player_inventory')
-        .select('*')
-        .eq('player_id', targetPlayerId)
-        .order('acquired_at', { ascending: false })
-
-      if (inventoryError) throw inventoryError
-
-      // Load runes
-      const { data: runes, error: runesError } = await supabase
-        .from('player_runes')
-        .select('*')
-        .eq('player_id', targetPlayerId)
-        .order('acquired_at', { ascending: false })
-
-      if (runesError) throw runesError
-
-      // Update last login
-      await this.updateLastLogin(targetPlayerId)
-
-      console.log('✅ Player data loaded successfully for:', player.player_name)
-      return {
-        player,
-        inventory: inventory || [],
-        runes: runes || []
+      // Convert the aggregated data back to the expected format
+      const playerData: PlayerData = {
+        player: {
+          id: playerResult.player_id,
+          device_id: deviceId,
+          player_name: playerResult.player_name,
+          level: playerResult.level,
+          current_xp: playerResult.current_xp,
+          max_xp: playerResult.max_xp,
+          gems: playerResult.gems,
+          last_login: playerResult.last_login,
+          total_playtime: playerResult.total_playtime,
+          created_at: playerResult.created_at,
+          updated_at: playerResult.updated_at
+        },
+        inventory: Array.isArray(playerResult.inventory_items) ? playerResult.inventory_items as PlayerInventoryItem[] : [],
+        runes: Array.isArray(playerResult.runes) ? playerResult.runes as PlayerRune[] : [],
+        primes: Array.isArray(playerResult.primes) ? playerResult.primes as PlayerPrime[] : []
       }
+
+      return playerData
     } catch (error) {
-      console.error('Error loading player data:', error)
-      return null
+      console.error('Error in optimized loadPlayerData:', error)
+      
+             // For now, return null if atomic function fails
+       console.log('❌ Atomic function failed, returning null')
+       return null
     }
   }
 
