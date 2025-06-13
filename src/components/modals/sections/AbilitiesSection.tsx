@@ -13,6 +13,7 @@ interface Prime {
   level: number
   power: number
   abilities: string[]
+  abilityLevels: number[]
 }
 
 interface PrimeAbility {
@@ -243,18 +244,9 @@ const generateAbilityData = (prime: Prime): PrimeAbility[] => {
       elementalDamage: true,
     }
 
-    // Calculate ability level based on prime level and rarity
-    const baseLevel = Math.max(1, Math.floor(prime.level / 8) + index)
-    const rarityBonus = {
-      Common: 0,
-      Rare: 1,
-      Epic: 2,
-      Legendary: 3,
-      Mythical: 5,
-    }[prime.rarity]
-
-    const abilityLevel = Math.min(baseLevel + rarityBonus, 10)
+    // Use actual ability level from database
     const maxLevel = index === 0 ? 15 : index === 1 ? 12 : 10 // First ability can be leveled higher
+    const abilityLevel = prime.abilityLevels[index] ?? 1 // Default to level 1 if not found
 
     // Scale power with ability level and prime power
     const scaledPower = Math.floor((template.power || 80) * (1 + abilityLevel * 0.1) * (prime.power / 1000))
