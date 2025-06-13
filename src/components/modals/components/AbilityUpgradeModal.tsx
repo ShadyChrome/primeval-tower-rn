@@ -51,19 +51,27 @@ export default function AbilityUpgradeModal({
   const [upgradeCost, setUpgradeCost] = useState<AbilityUpgradeCost | null>(null)
   const [loadingCost, setLoadingCost] = useState(false)
   const [playerResources, setPlayerResources] = useState<{gems: number, scrolls: number} | null>(null)
+  const [currentAbilityLevel, setCurrentAbilityLevel] = useState(ability.level)
 
-  // Load upgrade cost and player resources when modal opens or ability changes
+  // Reset current ability level when modal opens
   useEffect(() => {
-    if (visible && ability.level < ability.maxLevel) {
+    if (visible) {
+      setCurrentAbilityLevel(ability.level)
+    }
+  }, [visible, ability.level])
+
+  // Load upgrade cost and player resources when modal opens or ability level changes
+  useEffect(() => {
+    if (visible && currentAbilityLevel < ability.maxLevel) {
       loadUpgradeCost()
       loadPlayerResources()
     }
-  }, [visible, ability.level, abilityIndex, prime.rarity])
+  }, [visible, currentAbilityLevel, abilityIndex, prime.rarity])
 
   const loadUpgradeCost = async () => {
     try {
       setLoadingCost(true)
-      const cost = await calculateAbilityUpgradeCost(ability.level, abilityIndex, prime.rarity)
+      const cost = await calculateAbilityUpgradeCost(currentAbilityLevel, abilityIndex, prime.rarity)
       setUpgradeCost(cost)
       console.log('💰 Loaded upgrade cost:', cost)
     } catch (error) {
@@ -99,9 +107,9 @@ export default function AbilityUpgradeModal({
 
   // Calculate next level stats preview
   const nextLevelPreview = useMemo(() => {
-    if (ability.level >= ability.maxLevel) return null
+    if (currentAbilityLevel >= ability.maxLevel) return null
     
-    const newLevel = ability.level + 1
+    const newLevel = currentAbilityLevel + 1
     const powerIncrease = Math.floor(ability.power * 0.15) // 15% power increase per level
     const newPower = ability.power + powerIncrease
     
@@ -110,20 +118,30 @@ export default function AbilityUpgradeModal({
       power: newPower,
       powerIncrease
     }
-  }, [ability])
+  }, [ability.power, ability.maxLevel, currentAbilityLevel])
 
-  const isMaxLevel = ability.level >= ability.maxLevel
+  const isMaxLevel = currentAbilityLevel >= ability.maxLevel
 
   const handleUpgrade = async () => {
     if (isMaxLevel || !upgradeCost) return
 
     setIsUpgrading(true)
     try {
-      const result = await upgradeAbility(prime, abilityIndex, ability.level)
+      const result = await upgradeAbility(prime, abilityIndex, currentAbilityLevel)
       
       if (result.success) {
         onUpgradeSuccess(result)
-        onDismiss()
+        
+        // Keep modal open and refresh data for potential next upgrade
+        if (result.newAbilityLevel && result.newAbilityLevel < ability.maxLevel) {
+          // Update current ability level for next upgrade
+          setCurrentAbilityLevel(result.newAbilityLevel)
+          
+          // The useEffect will automatically reload cost and resources when currentAbilityLevel changes
+        } else {
+          // If max level reached, close modal
+          onDismiss()
+        }
       } else {
         // Handle error - could show toast/alert
         console.error('Ability upgrade failed:', result.message)
@@ -182,7 +200,7 @@ export default function AbilityUpgradeModal({
           <View style={styles.abilitySection}>
             <View style={styles.levelIndicator}>
               <Text variant="titleLarge" style={[styles.currentLevel, { color: primaryColor }]}>
-                Level {ability.level}
+                Level {currentAbilityLevel}
               </Text>
               <Text variant="bodySmall" style={styles.maxLevel}>
                 / {ability.maxLevel}
@@ -256,7 +274,7 @@ export default function AbilityUpgradeModal({
                   <Text variant="bodySmall" style={styles.previewLabel}>Level:</Text>
                   <View style={styles.previewChange}>
                     <Text variant="bodyMedium" style={styles.currentValue}>
-                      {ability.level}
+                      {currentAbilityLevel}
                     </Text>
                     <Text variant="bodyMedium" style={styles.arrow}>→</Text>
                     <Text variant="bodyMedium" style={[styles.newValue, { color: primaryColor }]}>

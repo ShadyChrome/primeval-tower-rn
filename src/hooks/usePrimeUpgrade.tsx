@@ -322,7 +322,7 @@ export const usePrimeUpgrade = () => {
     }
   }, [])
 
-  // Upgrade ability with secure cost validation
+  // Upgrade ability with secure cost validation - OPTIMIZED VERSION
   const upgradeAbility = useCallback(async (
     prime: UIPrime,
     abilityIndex: number,
@@ -332,69 +332,18 @@ export const usePrimeUpgrade = () => {
       setLoading(true)
       setError(null)
 
-      const playerId = await PlayerManager.getCachedPlayerId()
-      if (!playerId) {
-        throw new Error('Player not found')
-      }
-
       // Get device ID for secure operations
       const deviceId = await PlayerManager.getDeviceID()
 
-      // Get secure cost calculation from server
-      const cost = await calculateAbilityUpgradeCost(abilityLevel, abilityIndex, prime.rarity)
+      console.log('🚀 Starting optimized ability upgrade:', {
+        prime: prime.name,
+        abilityIndex,
+        currentLevel: abilityLevel
+      })
 
-      // Check if player has enough resources
-      const playerData = await PlayerManager.loadPlayerData(playerId)
-      if (!playerData) {
-        throw new Error('Could not load player data')
-      }
-
-      if (cost.gems && (playerData.player.gems || 0) < cost.gems) {
-        return { success: false, message: 'Not enough gems' }
-      }
-
-      // Check ability scrolls using secure inventory
-      if (cost.items) {
-        for (const requiredItem of cost.items) {
-          const inventoryItem = playerData.inventory.find(
-            item => item.item_type === 'ability_scroll' && item.item_id === requiredItem.itemId
-          )
-          
-          if (!inventoryItem || (inventoryItem.quantity || 0) < requiredItem.quantity) {
-            return { 
-              success: false, 
-              message: `Not enough ${requiredItem.itemName}` 
-            }
-          }
-        }
-      }
-
-      // Consume resources securely
-      if (cost.gems) {
-        await PlayerManager.updatePlayer(playerId, {
-          gems: (playerData.player.gems || 0) - cost.gems
-        })
-      }
-
-      if (cost.items) {
-        for (const item of cost.items) {
-          // Find the inventory item ID
-          const inventoryItem = playerData.inventory.find(
-            inv => inv.item_type === 'ability_scroll' && inv.item_id === item.itemId
-          )
-          
-          if (inventoryItem) {
-            const success = await InventoryService.consumeItem(inventoryItem.id, item.quantity)
-            if (!success) {
-              throw new Error(`Failed to consume ${item.itemName}`)
-            }
-          }
-        }
-      }
-
-      // Use secure ability upgrade function to update the database
+      // Use the new atomic upgrade function (single database call)
       const { data, error } = await supabase
-        .rpc('secure_upgrade_ability', {
+        .rpc('secure_ability_upgrade_atomic', {
           p_device_id: deviceId,
           p_prime_id: prime.id,
           p_ability_index: abilityIndex,
@@ -402,42 +351,51 @@ export const usePrimeUpgrade = () => {
         })
 
       if (error) {
-        console.error('Secure ability upgrade failed:', error)
+        console.error('Atomic ability upgrade failed:', error)
         throw error
       }
 
       const result = data && data.length > 0 ? data[0] : null
-      if (!result || !result.success) {
-        console.warn('Ability upgrade failed:', result?.message)
-        return { success: false, message: result?.message || 'Upgrade failed' }
+      if (!result) {
+        return { success: false, message: 'No response from server' }
       }
 
-      // Log upgrade activity
-      await supabase.rpc('log_player_activity', {
-        p_device_id: deviceId,
-        p_activity_type: 'ability_upgrade',
-        p_activity_data: {
-          prime_id: prime.id,
-          prime_name: prime.name,
-          ability_index: abilityIndex,
-          old_level: abilityLevel,
-          new_level: result.new_level,
-          cost_paid: JSON.parse(JSON.stringify(cost)) // Convert to proper JSON
+      if (!result.success) {
+        console.warn('Ability upgrade failed:', result.message)
+        return { 
+          success: false, 
+          message: result.message,
+          // Include cost info for UI display even on failure
+          costPaid: {
+            gems: result.gems_cost,
+            items: [{
+              itemId: 'ability_scroll',
+              quantity: result.scroll_cost
+            }]
+          }
         }
-      })
+      }
 
-      console.log('✅ Secure ability upgrade successful:', {
+      console.log('✅ Optimized ability upgrade successful:', {
         prime: prime.name,
         ability_index: abilityIndex,
         old_level: abilityLevel,
-        new_level: result.new_level
+        new_level: result.new_level,
+        gems_spent: result.gems_cost,
+        scrolls_spent: result.scroll_cost
       })
 
       return {
         success: true,
         message: `Ability upgraded to level ${result.new_level}!`,
         newAbilityLevel: result.new_level,
-        costPaid: cost
+        costPaid: {
+          gems: result.gems_cost,
+          items: [{
+            itemId: 'ability_scroll',
+            quantity: result.scroll_cost
+          }]
+        }
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Ability upgrade failed'
@@ -446,7 +404,7 @@ export const usePrimeUpgrade = () => {
     } finally {
       setLoading(false)
     }
-  }, [calculateAbilityUpgradeCost])
+  }, [])
 
   return {
     loading,
