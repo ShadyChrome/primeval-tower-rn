@@ -1,10 +1,11 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { View, StyleSheet, Dimensions } from 'react-native'
 import { Text, Modal, Portal, IconButton, Button, Chip } from 'react-native-paper'
-import { usePrimeUpgrade, AbilityUpgradeResult } from '../../../hooks/usePrimeUpgrade'
+import { usePrimeUpgrade, AbilityUpgradeResult, AbilityUpgradeCost } from '../../../hooks/usePrimeUpgrade'
 import { UIPrime } from '../../../services/primeService'
 import { ElementIcon } from '../../../../components/OptimizedImage'
 import { colors, spacing } from '../../../theme/designSystem'
+import { PlayerManager } from '../../../../lib/playerManager'
 
 interface PrimeAbility {
   id: string
@@ -47,12 +48,54 @@ export default function AbilityUpgradeModal({
   } = usePrimeUpgrade()
 
   const [isUpgrading, setIsUpgrading] = useState(false)
+  const [upgradeCost, setUpgradeCost] = useState<AbilityUpgradeCost | null>(null)
+  const [loadingCost, setLoadingCost] = useState(false)
+  const [playerResources, setPlayerResources] = useState<{gems: number, scrolls: number} | null>(null)
 
-  // Calculate upgrade cost
-  const upgradeCost = useMemo(() => {
-    if (ability.level >= ability.maxLevel) return null
-    return calculateAbilityUpgradeCost(ability.level, abilityIndex, prime.rarity)
-  }, [ability, abilityIndex, prime.rarity, calculateAbilityUpgradeCost])
+  // Load upgrade cost and player resources when modal opens or ability changes
+  useEffect(() => {
+    if (visible && ability.level < ability.maxLevel) {
+      loadUpgradeCost()
+      loadPlayerResources()
+    }
+  }, [visible, ability.level, abilityIndex, prime.rarity])
+
+  const loadUpgradeCost = async () => {
+    try {
+      setLoadingCost(true)
+      const cost = await calculateAbilityUpgradeCost(ability.level, abilityIndex, prime.rarity)
+      setUpgradeCost(cost)
+      console.log('💰 Loaded upgrade cost:', cost)
+    } catch (error) {
+      console.error('Error loading upgrade cost:', error)
+      setUpgradeCost(null)
+    } finally {
+      setLoadingCost(false)
+    }
+  }
+
+  const loadPlayerResources = async () => {
+    try {
+      const playerId = await PlayerManager.getCachedPlayerId()
+      if (!playerId) return
+
+      const playerData = await PlayerManager.loadPlayerData(playerId)
+      if (!playerData) return
+
+      // Get ability scroll count
+      const scrollItem = playerData.inventory.find(
+        item => item.item_type === 'ability_scroll' && item.item_id === 'ability_scroll'
+      )
+
+      setPlayerResources({
+        gems: playerData.player.gems || 0,
+        scrolls: scrollItem?.quantity || 0
+      })
+    } catch (error) {
+      console.error('Error loading player resources:', error)
+      setPlayerResources(null)
+    }
+  }
 
   // Calculate next level stats preview
   const nextLevelPreview = useMemo(() => {
@@ -242,35 +285,76 @@ export default function AbilityUpgradeModal({
           )}
 
           {/* Upgrade Cost */}
-          {!isMaxLevel && upgradeCost && (
+          {!isMaxLevel && (
             <View style={styles.costSection}>
               <Text variant="titleSmall" style={styles.costTitle}>
                 Upgrade Cost
               </Text>
               
-              <View style={styles.costItems}>
-                {upgradeCost.gems && (
-                  <View style={styles.costItem}>
-                    <View style={styles.costIcon}>
-                      <Text style={styles.gemIcon}>💎</Text>
+              {loadingCost ? (
+                <View style={styles.loadingCost}>
+                  <Text variant="bodyMedium" style={styles.loadingText}>
+                    Calculating cost...
+                  </Text>
+                </View>
+              ) : upgradeCost ? (
+                <View style={styles.costItems}>
+                  {upgradeCost.gems && (
+                    <View style={styles.costItem}>
+                      <View style={styles.costIcon}>
+                        <Text style={styles.gemIcon}>💎</Text>
+                      </View>
+                      <View style={styles.costTextContainer}>
+                        <Text variant="bodyMedium" style={styles.costText}>
+                          {upgradeCost.gems} Gems
+                        </Text>
+                        {playerResources && (
+                          <Text variant="bodySmall" style={[
+                            styles.resourceCount,
+                            { color: playerResources.gems >= upgradeCost.gems ? '#10B981' : '#DC2626' }
+                          ]}>
+                            You have: {playerResources.gems}
+                          </Text>
+                        )}
+                      </View>
                     </View>
-                    <Text variant="bodyMedium" style={styles.costText}>
-                      {upgradeCost.gems} Gems
-                    </Text>
-                  </View>
-                )}
-                
-                {upgradeCost.items?.map((item, index) => (
-                  <View key={index} style={styles.costItem}>
-                    <View style={styles.costIcon}>
-                      <Text style={styles.scrollIcon}>📜</Text>
+                  )}
+                  
+                  {upgradeCost.items?.map((item, index) => (
+                    <View key={index} style={styles.costItem}>
+                      <View style={styles.costIcon}>
+                        <Text style={styles.scrollIcon}>📜</Text>
+                      </View>
+                      <View style={styles.costTextContainer}>
+                        <Text variant="bodyMedium" style={styles.costText}>
+                          {item.quantity}x {item.itemName}
+                        </Text>
+                        {playerResources && (
+                          <Text variant="bodySmall" style={[
+                            styles.resourceCount,
+                            { color: playerResources.scrolls >= item.quantity ? '#10B981' : '#DC2626' }
+                          ]}>
+                            You have: {playerResources.scrolls}
+                          </Text>
+                        )}
+                      </View>
                     </View>
-                    <Text variant="bodyMedium" style={styles.costText}>
-                      {item.quantity}x {item.itemName}
-                    </Text>
-                  </View>
-                ))}
-              </View>
+                  ))}
+                </View>
+              ) : (
+                <View style={styles.errorCost}>
+                  <Text variant="bodyMedium" style={styles.errorText}>
+                    Unable to calculate cost
+                  </Text>
+                  <Button
+                    mode="outlined"
+                    onPress={loadUpgradeCost}
+                    style={styles.retryButton}
+                  >
+                    Retry
+                  </Button>
+                </View>
+              )}
             </View>
           )}
 
@@ -302,7 +386,7 @@ export default function AbilityUpgradeModal({
                 mode="contained"
                 onPress={handleUpgrade}
                 style={[styles.upgradeButton, { backgroundColor: primaryColor }]}
-                disabled={isUpgrading}
+                disabled={isUpgrading || loadingCost || !upgradeCost}
                 loading={isUpgrading}
               >
                 {isUpgrading ? 'Upgrading...' : 'Upgrade Ability'}
@@ -469,6 +553,13 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginBottom: spacing.md,
   },
+  loadingCost: {
+    alignItems: 'center',
+    padding: spacing.md,
+  },
+  loadingText: {
+    color: colors.textSecondary,
+  },
   costItems: {
     gap: spacing.md,
   },
@@ -494,6 +585,24 @@ const styles = StyleSheet.create({
   costText: {
     fontWeight: '600',
     color: colors.text,
+  },
+  costTextContainer: {
+    flex: 1,
+  },
+  resourceCount: {
+    marginTop: spacing.xs / 2,
+    fontWeight: '500',
+  },
+  errorCost: {
+    alignItems: 'center',
+    padding: spacing.md,
+    gap: spacing.sm,
+  },
+  errorText: {
+    color: '#DC2626',
+  },
+  retryButton: {
+    marginTop: spacing.sm,
   },
   maxLevelSection: {
     padding: spacing.lg,

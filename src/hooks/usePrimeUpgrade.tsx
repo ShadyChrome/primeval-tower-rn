@@ -392,6 +392,26 @@ export const usePrimeUpgrade = () => {
         }
       }
 
+      // Use secure ability upgrade function to update the database
+      const { data, error } = await supabase
+        .rpc('secure_upgrade_ability', {
+          p_device_id: deviceId,
+          p_prime_id: prime.id,
+          p_ability_index: abilityIndex,
+          p_current_level: abilityLevel
+        })
+
+      if (error) {
+        console.error('Secure ability upgrade failed:', error)
+        throw error
+      }
+
+      const result = data && data.length > 0 ? data[0] : null
+      if (!result || !result.success) {
+        console.warn('Ability upgrade failed:', result?.message)
+        return { success: false, message: result?.message || 'Upgrade failed' }
+      }
+
       // Log upgrade activity
       await supabase.rpc('log_player_activity', {
         p_device_id: deviceId,
@@ -401,20 +421,22 @@ export const usePrimeUpgrade = () => {
           prime_name: prime.name,
           ability_index: abilityIndex,
           old_level: abilityLevel,
-          new_level: abilityLevel + 1,
+          new_level: result.new_level,
           cost_paid: JSON.parse(JSON.stringify(cost)) // Convert to proper JSON
         }
       })
 
-      // Update ability level in prime abilities array
-      const currentAbilities = Array.isArray(prime.abilities) ? [...prime.abilities] : []
-      // For now, we'll just track that an upgrade happened
-      // In a full implementation, you'd store ability levels in the database
-      
+      console.log('✅ Secure ability upgrade successful:', {
+        prime: prime.name,
+        ability_index: abilityIndex,
+        old_level: abilityLevel,
+        new_level: result.new_level
+      })
+
       return {
         success: true,
-        message: `Ability upgraded to level ${abilityLevel + 1}!`,
-        newAbilityLevel: abilityLevel + 1,
+        message: `Ability upgraded to level ${result.new_level}!`,
+        newAbilityLevel: result.new_level,
         costPaid: cost
       }
     } catch (err) {

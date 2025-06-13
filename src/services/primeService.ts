@@ -13,6 +13,7 @@ export interface UIPrime {
   experience: number
   power: number
   abilities: string[]
+  abilityLevels: number[]
   imageName?: PrimeImageType
 }
 
@@ -49,13 +50,20 @@ export class PrimeService {
    */
   static async getPrimeById(primeId: string): Promise<UIPrime | null> {
     try {
+      const playerId = await PlayerManager.getCachedPlayerId()
+      if (!playerId) {
+        return null
+      }
+
       const { data, error } = await supabase
         .from('player_primes')
         .select('*')
         .eq('id', primeId)
+        .eq('player_id', playerId)
         .single()
 
       if (error) throw error
+
       return data ? this.convertToUIPrime(data) : null
     } catch (error) {
       console.error('Error fetching prime by ID:', error)
@@ -96,55 +104,7 @@ export class PrimeService {
   }
 
   /**
-   * Convert database PlayerPrime to UI Prime format
-   */
-  private static convertToUIPrime(dbPrime: PlayerPrime): UIPrime {
-    return {
-      id: dbPrime.id,
-      name: dbPrime.prime_name,
-      element: dbPrime.element as ElementType,
-      rarity: dbPrime.rarity as 'Common' | 'Rare' | 'Epic' | 'Legendary' | 'Mythical',
-      level: dbPrime.level || 1,
-      experience: dbPrime.experience || 0,
-      power: dbPrime.power || 0,
-      abilities: Array.isArray(dbPrime.abilities) ? dbPrime.abilities as string[] : [],
-      imageName: PrimeService.getImageNameForPrime(dbPrime.prime_name)
-    }
-  }
-
-  /**
-   * Map Prime names to image assets
-   */
-  private static getImageNameForPrime(primeName: string): PrimeImageType | undefined {
-    // Map database prime names to image asset names
-    const nameMap: Record<string, PrimeImageType> = {
-      'Great Izuchi': 'Great Izuchi',
-      'Kulu-Ya-Ku': 'Kulu-Ya-Ku',
-      'Basarios': 'Basarios',
-      'Rathalos': 'Rathalos',
-      'Mizutsune': 'Mizutsune',
-      'Zinogre': 'Zinogre',
-      'Nargacuga': 'Nargacuga',
-      'Teostra': 'Teostra',
-      'Rathian': 'Rathian',
-      'Pukei-Pukei': 'Pukei-Pukei',
-      'Bishaten': 'Bishaten',
-      'Somnacanth': 'Somnacanth',
-      'VioletMizu': 'VioletMizu',
-      'Garangolm': 'Garangolm',
-      'Astalos': 'Astalos',
-      'Barioth': 'Barioth',
-      'Kushala Daora': 'Kushala Daora',
-      'Magnamalo': 'Magnamalo',
-      'Malzeno': 'Malzeno',
-      'Gaismagorm': 'Gaismagorm'
-    }
-
-    return nameMap[primeName]
-  }
-
-  /**
-   * Update a Prime's stats
+   * Update a Prime's basic stats
    */
   static async updatePrime(primeId: string, updates: Partial<PlayerPrime>): Promise<UIPrime | null> {
     try {
@@ -156,10 +116,134 @@ export class PrimeService {
         .single()
 
       if (error) throw error
+
       return data ? this.convertToUIPrime(data) : null
     } catch (error) {
       console.error('Error updating prime:', error)
       return null
     }
+  }
+
+  /**
+   * Convert database PlayerPrime to UI Prime format
+   */
+  private static convertToUIPrime(dbPrime: PlayerPrime): UIPrime {
+    // Parse ability levels from database, fallback to calculated levels if not available
+    let abilityLevels: number[] = []
+    
+    if (dbPrime.ability_levels && Array.isArray(dbPrime.ability_levels)) {
+      abilityLevels = dbPrime.ability_levels as number[]
+    } else {
+      // Fallback: calculate ability levels based on prime level and rarity (legacy support)
+      const abilities = Array.isArray(dbPrime.abilities) ? dbPrime.abilities as string[] : []
+      abilityLevels = abilities.map((_, index) => {
+        const baseLevel = Math.max(1, Math.floor((dbPrime.level || 1) / 8) + index)
+        const rarityBonus = {
+          Common: 0,
+          Rare: 1,
+          Epic: 2,
+          Legendary: 3,
+          Mythical: 5,
+        }[dbPrime.rarity] || 0
+
+        const abilityLevel = Math.min(baseLevel + rarityBonus, 10)
+        const maxLevel = index === 0 ? 15 : index === 1 ? 12 : 10
+        return Math.min(abilityLevel, maxLevel)
+      })
+    }
+
+    return {
+      id: dbPrime.id,
+      name: dbPrime.prime_name,
+      element: dbPrime.element as ElementType,
+      rarity: dbPrime.rarity as 'Common' | 'Rare' | 'Epic' | 'Legendary' | 'Mythical',
+      level: dbPrime.level || 1,
+      experience: dbPrime.experience || 0,
+      power: dbPrime.power || 0,
+      abilities: Array.isArray(dbPrime.abilities) ? dbPrime.abilities as string[] : [],
+      abilityLevels: abilityLevels,
+      imageName: PrimeService.getImageNameForPrime(dbPrime.prime_name)
+    }
+  }
+
+  /**
+   * Get image name for a prime based on its name
+   */
+  private static getImageNameForPrime(primeName: string): PrimeImageType | undefined {
+    // Only map actual prime names to their image assets
+    // Basic element names (Ignis, Azur, etc.) will return undefined
+    const imageMap: Record<string, PrimeImageType> = {
+      // Exact matches for actual prime names only
+      'Rathalos': 'Rathalos',
+      'Rathian': 'Rathian',
+      'Anjanath': 'Anjanath',
+      'Barroth': 'Barroth',
+      'Diablos': 'Diablos',
+      'Teostra': 'Teostra',
+      'Silver Rathalos': 'Silver Rathalos',
+      'Gold Rathian': 'Gold Rathian',
+      'Apex Rathalos': 'Apex Rathalos',
+      'Apex Rathian': 'Apex Rathian',
+      'Espinas': 'Espinas',
+      'Pukei-Pukei': 'Pukei-Pukei',
+      'Great Izuchi': 'Great Izuchi',
+      'Bishaten': 'Bishaten',
+      'Blood Orange Bishaten': 'Blood Orange Bishaten',
+      'Tetranadon': 'Tetranadon',
+      'Royal Ludroth': 'Royal Ludroth',
+      'Tobi-Kadachi': 'Tobi-Kadachi',
+      'Great Baggi': 'Great Baggi',
+      'Great Wroggi': 'Great Wroggi',
+      'Mizutsune': 'Mizutsune',
+      'Apex Mizutsune': 'Apex Mizutsune',
+      'Somnacanth': 'Somnacanth',
+      'Aurora Somnacanth': 'Aurora Somnacanth',
+      'Jyuratodus': 'Jyuratodus',
+      'VioletMizu': 'VioletMizu',
+      'Almudron': 'Almudron',
+      'Magma Almudron': 'Magma Almudron',
+      'Basarios': 'Basarios',
+      'Shogun Ceanataur': 'Shogun Ceanataur',
+      'Daimyo Hermitaur': 'Daimyo Hermitaur',
+      'Volvidon': 'Volvidon',
+      'Garangolm': 'Garangolm',
+      'Zinogre': 'Zinogre',
+      'Apex Zinogre': 'Apex Zinogre',
+      'Astalos': 'Astalos',
+      'Kulu-Ya-Ku': 'Kulu-Ya-Ku',
+      'Seregios': 'Seregios',
+      'Wind Serpent Ibushi': 'Wind Serpent Ibushi',
+      'Bazelgeuse': 'Bazelgeuse',
+      'Seething Bazelgeuse': 'Seething Bazelgeuse',
+      'Nargacuga': 'Nargacuga',
+      'Lucent Nargacuga': 'Lucent Nargacuga',
+      'Barioth': 'Barioth',
+      'Kushala Daora': 'Kushala Daora',
+      'Tigrex': 'Tigrex',
+      'Lagombi': 'Lagombi',
+      'Khezu': 'Khezu',
+      'Magnamalo': 'Magnamalo',
+      'Scorned Magnamalo': 'Scorned Magnamalo',
+      'Malzeno': 'Malzeno',
+      'Gaismagorm': 'Gaismagorm',
+      'Gore Magala': 'Gore Magala',
+      'Shagaru': 'Shagaru',
+      'Chameleos': 'Chameleos',
+      'Narwa the Allmother': 'Narwa the Allmother',
+      'Narwa': 'Narwa',
+      'Rajang': 'Rajang',
+      'Furious Rajang': 'Furious Rajang',
+      'Crimson Glow Valstrax': 'Crimson Glow Valstrax',
+      'Lunagaron': 'Lunagaron',
+      'Arzuros': 'Arzuros',
+      'Apex Arzuros': 'Apex Arzuros',
+      'Goss Harag': 'Goss Harag',
+      'Aknosom': 'Aknosom',
+      'Apex Diablos': 'Apex Diablos',
+      'Rakna': 'Rakna',
+      'Pyre Rakna-Kadaki': 'Pyre Rakna-Kadaki'
+    }
+
+    return imageMap[primeName]
   }
 } 

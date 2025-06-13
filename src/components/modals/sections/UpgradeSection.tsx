@@ -73,11 +73,30 @@ export default function UpgradeSection({
   const handleAbilityUpgradeSuccess = (result: AbilityUpgradeResult) => {
     if (result.success) {
       HapticManager.upgradeSuccess()
-      // In a full implementation, you'd update the abilities in the database
-      // For now, we'll just close the modal
-      console.log('Ability upgraded successfully:', result)
+      // Refresh the prime data from database to sync ability levels
+      refreshPrimeData()
     } else {
       HapticManager.upgradeFailure()
+    }
+  }
+
+  // Add function to refresh prime data from database
+  const refreshPrimeData = async () => {
+    try {
+      // Import PrimeService to refresh data
+      const { PrimeService } = await import('../../../services/primeService')
+      const updatedPrime = await PrimeService.getPrimeById(prime.id)
+      if (updatedPrime) {
+        // Update the prime with all the latest data including ability levels
+        onPrimeUpdated({
+          level: updatedPrime.level,
+          experience: updatedPrime.experience,
+          power: updatedPrime.power,
+          abilityLevels: updatedPrime.abilityLevels
+        })
+      }
+    } catch (error) {
+      console.error('Error refreshing prime data:', error)
     }
   }
 
