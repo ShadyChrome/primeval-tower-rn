@@ -1,9 +1,28 @@
 # Active Context: Primeval Tower
 
 ## Current Work Focus
-**🎯 PHASE 3: RUNE EQUIPMENT SYSTEM COMPLETE:** Implemented a beautiful Summoners War-inspired rune system with 6 hexagonal slots, synergy calculations, and complete integration with the prime details interface.
+**🎯 PHASE 4: ABILITY UPGRADE SYSTEM & PRIME ACQUISITION PLANNING:** Completed ability upgrade system with atomic database functions and created comprehensive plan for prime acquisition system with AXP-based ability progression.
 
 ## Recent Changes
+- **🎯 PRIME ACQUISITION SYSTEM PLANNING:**
+  - **Comprehensive Plan Created:** Detailed implementation plan for prime uniqueness and duplicate handling
+  - **AXP Threshold System:** Abilities upgrade automatically when AXP thresholds are reached (10, 100, 1,000, 10,000)
+  - **Duplicate Mechanics:** Same prime higher rarity = evolution, same/lower rarity = AXP award
+  - **Database Schema:** Planned AXP tracking with ability_xp and ability_xp_allocated columns
+  - **Evolution System:** Refund spent AXP + add bonus AXP when prime evolves to higher rarity
+  - **Complete AXP Table:** All evolution bonuses from Common→Mythical transitions documented
+- **🔧 ABILITY UPGRADE SYSTEM FIXES:**
+  - **State Synchronization Fixed:** Resolved desync between abilities section and prime upgrade screen
+  - **Database-Only Sources:** Removed all fallback calculations, abilities now use only database values
+  - **Consistent Data Flow:** Both AbilitiesSection and PrimeDetailsScreen use same generateAbilityData logic
+  - **Required Fields:** Made abilityLevels required field, removed optional chaining
+  - **PrimeService Cleanup:** Removed legacy calculation logic from convertToUIPrime function
+- **⏰ TREASURE BOX TIMER OPTIMIZATION:**
+  - **Navigation-Aware Timers:** Fixed timer freezing issue after app restart using useFocusEffect
+  - **Proper State Management:** Timer now uses current status directly instead of stale statusRef
+  - **Focus-Based Control:** Timer only runs when screen is focused, stops when unfocused
+  - **Performance Improvement:** Eliminated continuous background timer execution
+  - **Battery Optimization:** Reduced CPU usage and battery drain from constant calculations
 - **🎯 RUNE EQUIPMENT SYSTEM IMPLEMENTATION:**
   - **RuneEquipment Component:** 6 hexagonal slots arranged in Summoners War-style layout optimized for mobile portrait
   - **RuneSlot Component:** Individual slots with rune type icons, level badges, rarity colors, and synergy indicators
@@ -109,17 +128,22 @@
 - **🎯 DESIGN SYSTEM:** Created `/src/theme/designSystem.ts` with complete color palette, typography, spacing, and styling standards
 
 ## Next Steps
-1. **🔧 PRIME DETAILS MODAL:** Implement the prime details modal/screen that opens when cards are clicked
-   - Show detailed prime information: stats, abilities, power, runes, etc.
-   - Add rune equipment interface
-   - Include upgrade/level up functionality
-   - Display full-size prime images with animations
-2. **🎨 COMPLETE DESIGN ROLLOUT:** Apply the new design system to remaining screens:
+1. **🎯 PRIME ACQUISITION IMPLEMENTATION:** Execute the comprehensive plan for prime uniqueness system
+   - Implement database schema changes (AXP columns, uniqueness constraints)
+   - Create secure_prime_claim function with duplicate handling logic
+   - Build PrimeAcquisitionService and AbilityXPService
+   - Update ability upgrade modals for AXP allocation system
+   - Implement database cleanup for existing duplicate primes
+2. **🥚 EGG HATCHING SYSTEM:** Complete the hatching functionality
+   - Implement HatchingService with probability calculations
+   - Connect egg consumption to prime acquisition system
+   - Add enhancer system for improved hatch rates
+   - Create hatching animations and result modals
+3. **🎨 COMPLETE DESIGN ROLLOUT:** Apply the new design system to remaining screens:
    - Transform HatchingScreen, BagScreen, ShopScreen with new components
    - Update MainNavigation with new styling
    - Implement ProgressCard in relevant screens for progress tracking
-3. **📱 ENHANCE UX:** Add micro-interactions and animations using react-native-reanimated
-4. **🛠️ GAME FUNCTIONALITY:** Build on the beautiful foundation to add core game mechanics
+4. **📱 ENHANCE UX:** Add micro-interactions and animations using react-native-reanimated
 5. **🎯 STATE MANAGEMENT:** Set up Zustand stores for game data management
 6. **🔗 BACKEND INTEGRATION:** Connect screens to Supabase for data persistence
 
