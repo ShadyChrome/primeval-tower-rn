@@ -40,57 +40,26 @@ export default function TreasureBox({ playerId, onGemsUpdated }: TreasureBoxProp
     loadTreasureBoxStatus()
   }, [playerId])
 
-  // Navigation-aware timer management
-  useFocusEffect(
-    React.useCallback(() => {
-      console.log('🔄 TreasureBox: Screen focused - starting timer')
-      
-      // Start the timer when screen becomes focused
-      if (statusRef.current) {
-        updateClientSideTimer() // Immediate update
-        timerRef.current = setInterval(updateClientSideTimer, 1000)
-      }
-      
-      return () => {
-        // Cleanup timer when screen loses focus or unmounts
-        console.log('⏸️ TreasureBox: Screen unfocused - pausing timer')
-        if (timerRef.current) {
-          clearInterval(timerRef.current)
-          timerRef.current = null
-        }
-      }
-    }, [status]) // Re-run when status changes
-  )
-
-  useEffect(() => {
-    statusRef.current = status
-    if (status) {
-      startAnimations()
-      updateClientSideTimer()
-    }
-  }, [status])
-
-  const updateClientSideTimer = () => {
-    const currentStatus = statusRef.current
-    
-    if (!currentStatus) {
+  // Create a shared timer update function
+  const updateClientSideTimer = React.useCallback(() => {
+    if (!status) {
       console.log('🚨 No status available yet, skipping timer update')
       return
     }
     
-    if (!currentStatus.last_claim_time) {
-      console.log('🚨 No last_claim_time found in status:', currentStatus)
+    if (!status.last_claim_time) {
+      console.log('🚨 No last_claim_time found in status:', status)
       setAccumulationTime('00:00:00')
       setClientAccumulatedGems(0)
       return
     }
 
     console.log('⏰ Client-side timer calculation:', {
-      last_claim_time: currentStatus.last_claim_time,
+      last_claim_time: status.last_claim_time,
       current_time: new Date().toISOString()
     })
 
-    const lastClaimDate = new Date(currentStatus.last_claim_time)
+    const lastClaimDate = new Date(status.last_claim_time)
     const now = new Date()
     const diffInSeconds = Math.floor((now.getTime() - lastClaimDate.getTime()) / 1000)
 
@@ -112,11 +81,9 @@ export default function TreasureBox({ playerId, onGemsUpdated }: TreasureBoxProp
     const formattedTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
     
     // Calculate client-side accumulated gems based on minutes (1 gem per minute)
-    // Note: gems_per_hour from server is 60 (representing 1 gem per minute)
-    // but we calculate directly from minutes for more precise client-side updates
     const minutesElapsed = Math.min(diffInSeconds / 60, 30 * 60) // Cap at 30 hours = 1800 minutes
     const calculatedGems = Math.floor(minutesElapsed) // 1 gem per minute
-    const cappedGems = Math.min(calculatedGems, currentStatus.max_storage || 300)
+    const cappedGems = Math.min(calculatedGems, status.max_storage || 300)
     
     console.log('⏰ Client calculation:', {
       formattedTime,
@@ -126,7 +93,37 @@ export default function TreasureBox({ playerId, onGemsUpdated }: TreasureBoxProp
     
     setAccumulationTime(formattedTime)
     setClientAccumulatedGems(cappedGems)
-  }
+  }, [status])
+
+  // Navigation-aware timer management
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('🔄 TreasureBox: Screen focused - starting timer')
+      
+      // Start the timer when screen becomes focused and we have status
+      if (status) {
+        updateClientSideTimer() // Immediate update
+        timerRef.current = setInterval(updateClientSideTimer, 1000)
+      }
+      
+      return () => {
+        // Cleanup timer when screen loses focus or unmounts
+        console.log('⏸️ TreasureBox: Screen unfocused - pausing timer')
+        if (timerRef.current) {
+          clearInterval(timerRef.current)
+          timerRef.current = null
+        }
+      }
+    }, [status, updateClientSideTimer]) // Re-run when status or timer function changes
+  )
+
+  useEffect(() => {
+    statusRef.current = status
+    if (status) {
+      startAnimations()
+      updateClientSideTimer()
+    }
+  }, [status, updateClientSideTimer])
 
   const loadTreasureBoxStatus = async (forceTimerUpdate = false) => {
     try {
