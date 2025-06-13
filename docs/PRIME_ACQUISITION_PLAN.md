@@ -72,13 +72,23 @@ Implement a comprehensive prime acquisition system that ensures uniqueness, hand
 - **Mythical Duplicate**: 10,000 AXP
 
 #### Evolution AXP Bonus (added to all abilities)
+**From Common:**
 - **Common → Rare**: +10 AXP per ability
 - **Common → Epic**: +100 AXP per ability
 - **Common → Legendary**: +1,000 AXP per ability
 - **Common → Mythical**: +10,000 AXP per ability
+
+**From Rare:**
 - **Rare → Epic**: +100 AXP per ability
 - **Rare → Legendary**: +1,000 AXP per ability
+- **Rare → Mythical**: +10,000 AXP per ability
+
+**From Epic:**
 - **Epic → Legendary**: +1,000 AXP per ability
+- **Epic → Mythical**: +10,000 AXP per ability
+
+**From Legendary:**
+- **Legendary → Mythical**: +10,000 AXP per ability
 
 ## Database Schema Changes
 
