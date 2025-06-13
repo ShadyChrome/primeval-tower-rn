@@ -11,12 +11,20 @@
 * **Rarity:** Common, Rare, Epic, Legendary, Mythical
 * **Element Affiliation:** Ignis, Vitae, Azur, Geo, Tempest, Aeris
 * **Abilities:** Each Prime can have up to four Abilities. Abilities have levels that increase when duplicate Primes are hatched.
+  * Every Ability can be upgraded using Ability XP (AXP) to match the potential of an higher evolved Prime
+  * AXP required to upgrade a single ability to the next stage: (10,100,1.000,10.000,100.000) = (C,R,E,L,M)
 * **Uniqueness:** A player can only ever own one Prime with the same name.
 * **Rarity Bonus:** Higher rarity Primes begin with higher base levels of their abilities.
 * **Duplicate Mechanic:**
 
   * If a new Prime hatches that is already owned in the same or higher rarity, it is immediately consumed to grant Ability XP to the existing Prime.
+    * Common Dupe grants 1 AXP
+    * Rare Cupe grants 10 AXP
+    * Epic 100 AXP
+    * Legendary 1.000 AXP
+    * Mythical 10.000 AXP
   * If a Prime hatches in a higher rarity than the one currently owned, the existing Prime evolves to that new rarity, refunding previously invested Ability XP.
+    * math: subtract spent AXP on ability and add it back to the pool, then add (C,R,E,L,M) = (10,100,1.000,10.000,100.000) AXP to all abilities to level them up
 
 ## Elements
 
@@ -53,7 +61,6 @@
 * **Element Determination After Hatching:**
 
   1. Based on Rarity of hatched Prime:
-
      * Common: 80% Lower, 20% Higher
      * Rare: 70% Lower, 30% Higher
      * Epic: 60% Lower, 40% Higher
@@ -117,23 +124,3 @@
 
   * Standard: 2+2+2, 3+3, 4+2, 6+0
   * Exception: Some Runes only synergize with themselves, allowing combinations like 5+1
-
-
-## UI
-
-* **Look and Feel**
-  * warm, relaxing, chilling ui 
-  * pastel colored theme
-  * modern, flat
-* **Main UI structure**
-  * bottom tab navigation
-    * Hatching
-    * Primes
-    * Home
-    * Bag
-    * Shop
-  * Header component always visible indepent from selected tab
-    * show player name
-    * show player level
-    * show player experience bar
-    * show player resources
