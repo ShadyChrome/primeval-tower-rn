@@ -128,29 +128,10 @@ export class PrimeService {
    * Convert database PlayerPrime to UI Prime format
    */
   private static convertToUIPrime(dbPrime: PlayerPrime): UIPrime {
-    // Parse ability levels from database, fallback to calculated levels if not available
-    let abilityLevels: number[] = []
-    
-    if (dbPrime.ability_levels && Array.isArray(dbPrime.ability_levels)) {
-      abilityLevels = dbPrime.ability_levels as number[]
-    } else {
-      // Fallback: calculate ability levels based on prime level and rarity (legacy support)
-      const abilities = Array.isArray(dbPrime.abilities) ? dbPrime.abilities as string[] : []
-      abilityLevels = abilities.map((_, index) => {
-        const baseLevel = Math.max(1, Math.floor((dbPrime.level || 1) / 8) + index)
-        const rarityBonus = {
-          Common: 0,
-          Rare: 1,
-          Epic: 2,
-          Legendary: 3,
-          Mythical: 5,
-        }[dbPrime.rarity] || 0
-
-        const abilityLevel = Math.min(baseLevel + rarityBonus, 10)
-        const maxLevel = index === 0 ? 15 : index === 1 ? 12 : 10
-        return Math.min(abilityLevel, maxLevel)
-      })
-    }
+    // Parse ability levels from database
+    const abilityLevels: number[] = dbPrime.ability_levels && Array.isArray(dbPrime.ability_levels) 
+      ? dbPrime.ability_levels as number[]
+      : [] // Default to empty array if not found
 
     return {
       id: dbPrime.id,
