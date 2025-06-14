@@ -1,143 +1,155 @@
-import React, { useState } from 'react'
-import { View, ActivityIndicator, StyleSheet } from 'react-native'
-import { Text } from 'react-native-paper'
-import FastImage from '@d11/react-native-fast-image'
-import { ElementType, PrimeImageType, ImageAssets } from '../assets/ImageAssets'
-import { colors } from '../theme/designSystem'
+import React, { useState, useEffect } from 'react'
+import { Image, ImageStyle, ViewStyle, ActivityIndicator, View } from 'react-native'
+import { ImageAssets, ElementType, PrimeImageType } from '../src/assets/ImageAssets'
 
-// Element Icon Component with FastImage optimization
+interface OptimizedImageProps {
+  element: ElementType
+  style?: ImageStyle
+  containerStyle?: ViewStyle
+  size?: number
+  showLoadingIndicator?: boolean
+  resizeMode?: 'contain' | 'cover' | 'stretch' | 'center'
+  lazy?: boolean
+}
+
 interface ElementIconProps {
   element: ElementType
   size?: 'small' | 'medium' | 'large'
-  style?: any
+  style?: ImageStyle
 }
 
-export function ElementIcon({ element, size = 'medium', style }: ElementIconProps) {
-  const sizeMap = {
-    small: 16,
-    medium: 24,
-    large: 32,
-  }
-
-  return (
-    <FastImage
-      source={ImageAssets.getElementImage(element)}
-      style={[
-        {
-          width: sizeMap[size],
-          height: sizeMap[size],
-        },
-        style,
-      ]}
-      resizeMode={FastImage.resizeMode.contain}
-    />
-  )
-}
-
-// Optimized Prime Image Component
 interface PrimeImageProps {
   primeName: PrimeImageType
+  style?: ImageStyle
   width?: number
   height?: number
-  style?: any
-  showLoader?: boolean
-  priority?: 'low' | 'normal' | 'high'
 }
 
-export function PrimeImage({ 
-  primeName, 
-  style, 
-  width = 100, 
-  height = 100, 
-  showLoader = true,
-  priority = 'normal'
-}: PrimeImageProps) {
-  const [isLoading, setIsLoading] = useState(true)
+const sizeMap = {
+  small: 20,
+  medium: 32,
+  large: 48,
+}
+
+export const OptimizedImage: React.FC<OptimizedImageProps> = ({
+  element,
+  style,
+  containerStyle,
+  size = 50,
+  showLoadingIndicator = true,
+  resizeMode = 'contain',
+  lazy = false,
+}) => {
+  const [isLoading, setIsLoading] = useState(lazy)
   const [hasError, setHasError] = useState(false)
 
-  const handleLoadStart = () => {
-    setIsLoading(true)
-    setHasError(false)
+  useEffect(() => {
+    if (lazy) {
+      // Simulate lazy loading delay
+      const timer = setTimeout(() => {
+        setIsLoading(false)
+      }, 100)
+      
+      return () => clearTimeout(timer)
+    }
+  }, [lazy])
+
+  const imageSource = ImageAssets.getElementImage(element)
+
+  const imageStyles: ImageStyle = {
+    width: size,
+    height: size,
+    ...style,
   }
 
-  const handleLoadEnd = () => {
-    setIsLoading(false)
+  const containerStyles: ViewStyle = {
+    width: size,
+    height: size,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...containerStyle,
   }
 
-  const handleError = () => {
-    setIsLoading(false)
-    setHasError(true)
+  if (isLoading && showLoadingIndicator) {
+    return (
+      <View style={containerStyles}>
+        <ActivityIndicator size="small" color="#A0C49D" />
+      </View>
+    )
+  }
+
+  if (hasError) {
+    return (
+      <View style={containerStyles}>
+        <View style={[imageStyles, { backgroundColor: '#E0E0E0', borderRadius: 4 }]} />
+      </View>
+    )
   }
 
   return (
-    <View style={[{ width, height }, style]}>
-      <FastImage
-        source={ImageAssets.getPrimeImage(primeName)}
-        style={{
-          width,
-          height,
-        }}
-        resizeMode={FastImage.resizeMode.contain}
-        onLoadStart={handleLoadStart}
-        onLoadEnd={handleLoadEnd}
-        onError={handleError}
+    <View style={containerStyles}>
+      <Image
+        source={imageSource}
+        style={imageStyles}
+        resizeMode={resizeMode}
+        onError={() => setHasError(true)}
+        onLoad={() => setIsLoading(false)}
+        // Performance optimizations
+        fadeDuration={200}
+        borderRadius={style?.borderRadius as number}
       />
-      
-      {/* Loading indicator */}
-      {isLoading && showLoader && (
-        <View style={styles.loaderContainer}>
-          <ActivityIndicator size="small" color={colors.primary} />
-        </View>
-      )}
-      
-      {/* Error state */}
-      {hasError && (
-        <View style={styles.errorContainer}>
-          <Text variant="bodySmall" style={styles.errorText}>
-            Failed to load
-          </Text>
-        </View>
-      )}
     </View>
   )
 }
 
-// Preload function for critical images
-export const preloadImages = (imageNames: PrimeImageType[]) => {
-  // For local assets, FastImage doesn't need explicit preloading
-  // as they're bundled with the app. This function is kept for API compatibility
-  console.log(`Preloading ${imageNames.length} prime images`)
+export function ElementIcon({ element, size = 'medium', style }: ElementIconProps) {
+  const imageSize = sizeMap[size]
+  
+  return (
+    <Image
+      source={ImageAssets.getElementImage(element)}
+      style={[
+        {
+          width: imageSize,
+          height: imageSize,
+          resizeMode: 'contain',
+        },
+        style,
+      ]}
+      // Add performance optimizations
+      resizeMode="contain"
+      fadeDuration={0}
+    />
+  )
 }
 
-// Clear cache function
-export const clearImageCache = () => {
-  FastImage.clearMemoryCache()
-  FastImage.clearDiskCache()
+export function PrimeImage({ primeName, style, width = 100, height = 100 }: PrimeImageProps) {
+  return (
+    <Image
+      source={ImageAssets.getPrimeImage(primeName)}
+      style={[
+        {
+          width,
+          height,
+          resizeMode: 'contain',
+        },
+        style,
+      ]}
+      // Add performance optimizations
+      resizeMode="contain"
+      fadeDuration={0}
+    />
+  )
 }
 
-const styles = StyleSheet.create({
-  loaderContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.surface + '80',
-  },
-  errorContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-  },
-  errorText: {
-    color: colors.textSecondary,
-    textAlign: 'center',
-  },
-}) 
+// Performance optimization: Preload images on app start
+export const preloadImages = () => {
+  ImageAssets.preloadAllImages()
+}
+
+// Export individual components
+export default {
+  ElementIcon,
+  PrimeImage,
+  preloadImages,
+} 
