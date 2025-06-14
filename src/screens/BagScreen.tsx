@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { View, StyleSheet, FlatList } from 'react-native'
+import React, { useState, useEffect } from 'react'
+import { View, StyleSheet, FlatList, RefreshControl } from 'react-native'
 import { Text, SegmentedButtons, Surface } from 'react-native-paper'
 import { PlayerRune } from '../../types/supabase'
 import { RuneService } from '../services/runeService'
@@ -11,23 +11,13 @@ import { filterRunes, sortRunes } from '../utils/runeFilters'
 import { useFocusEffect } from '@react-navigation/native'
 import { colors, spacing } from '../theme/designSystem'
 
-interface Rune {
-  id: string
-  name: string
-  type: string
-  rarity: string
-  primaryStat: string
-  synergy: string
-  level: number
-  equipped: boolean
-}
-
 export default function BagScreen() {
   const [activeTab, setActiveTab] = useState('runes')
   const [runeStatFilter, setRuneStatFilter] = useState('all')
   const [runeTierFilter, setRuneTierFilter] = useState('all')
   const [allRunes, setAllRunes] = useState<PlayerRune[]>([])
   const [allItems, setAllItems] = useState<UIInventoryItem[]>([])
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
   // Load runes from database
   const loadRunes = async () => {
@@ -49,11 +39,34 @@ export default function BagScreen() {
     }
   }
 
+  // Load all data
+  const loadAllData = async () => {
+    try {
+      await Promise.all([loadRunes(), loadItems()])
+    } catch (error) {
+      console.error('Error loading data:', error)
+    }
+  }
+
+  // Handle pull-to-refresh
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    try {
+      await loadAllData()
+    } finally {
+      setIsRefreshing(false)
+    }
+  }
+
+  // Load data on component mount
+  useEffect(() => {
+    loadAllData()
+  }, [])
+
   // Refresh data when screen comes into focus
   useFocusEffect(
     React.useCallback(() => {
-      loadRunes()
-      loadItems()
+      loadAllData()
     }, [])
   )
 
@@ -96,6 +109,20 @@ export default function BagScreen() {
     />
   )
 
+  const renderEmptyState = () => (
+    <View style={styles.emptyState}>
+      <Text variant="titleMedium" style={styles.emptyText}>
+        {activeTab === 'runes' ? 'No runes found' : 'No items in inventory'}
+      </Text>
+      <Text variant="bodyMedium" style={styles.emptySubtext}>
+        {activeTab === 'runes' 
+          ? 'Runes can be obtained from battles and rewards'
+          : 'Items can be purchased from the shop or earned through gameplay'
+        }
+      </Text>
+    </View>
+  )
+
   return (
     <View style={styles.container}>
       <Surface style={styles.headerSection} elevation={1}>
@@ -135,16 +162,38 @@ export default function BagScreen() {
           data={filteredRunes}
           renderItem={renderRuneCard}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContainer}
+          contentContainerStyle={[
+            styles.listContainer,
+            filteredRunes.length === 0 && styles.emptyContainer
+          ]}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={handleRefresh}
+              colors={[colors.primary]}
+            />
+          }
+          ListEmptyComponent={renderEmptyState}
         />
       ) : (
         <FlatList
           data={allItems}
           renderItem={renderItemCard}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContainer}
+          contentContainerStyle={[
+            styles.listContainer,
+            allItems.length === 0 && styles.emptyContainer
+          ]}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={handleRefresh}
+              colors={[colors.primary]}
+            />
+          }
+          ListEmptyComponent={renderEmptyState}
         />
       )}
     </View>
@@ -181,45 +230,22 @@ const styles = StyleSheet.create({
   listContainer: {
     padding: spacing.md,
   },
-  itemCard: {
-    marginBottom: spacing.sm,
-    backgroundColor: colors.surface,
-  },
-  itemCardContent: {
-    padding: spacing.md,
-  },
-  itemHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: spacing.sm,
-  },
-  itemInfo: {
+  emptyContainer: {
     flex: 1,
-  },
-  itemName: {
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 4,
-  },
-  itemType: {
-    color: colors.textSecondary,
-  },
-  quantityContainer: {
-    alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.accent,
-    borderRadius: 20,
-    width: 40,
-    height: 40,
   },
-  quantity: {
-    color: colors.surface,
-    fontWeight: '700',
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: spacing.xl,
   },
-  itemDescription: {
+  emptyText: {
+    color: colors.text,
+    marginBottom: spacing.sm,
+    textAlign: 'center',
+  },
+  emptySubtext: {
     color: colors.textSecondary,
-    marginTop: spacing.xs,
-    fontStyle: 'italic',
+    textAlign: 'center',
+    paddingHorizontal: spacing.lg,
   },
 }) 

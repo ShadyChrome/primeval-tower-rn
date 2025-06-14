@@ -66,7 +66,7 @@ export class ShopService {
         })
       }
 
-      console.log('✅ Loaded shop items with secure server pricing:', items.length)
+      // Shop items loaded successfully
       return items
     } catch (error) {
       console.error('Error loading shop items:', error)
@@ -177,12 +177,7 @@ export class ShopService {
         category: itemCategory as 'eggs' | 'enhancers' | 'consumables'
       }
 
-      console.log('✅ Secure purchase completed:', {
-        item: itemId,
-        quantity,
-        cost: totalCost,
-        newBalance: newGemBalance
-      })
+      // Purchase completed successfully
 
       return {
         success: true,

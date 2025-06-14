@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { View, StyleSheet, ScrollView, Alert, RefreshControl, TouchableOpacity } from 'react-native'
-import { Text, Card, Button, SegmentedButtons, Surface, Chip, ActivityIndicator } from 'react-native-paper'
+import { Text, Card, Button, SegmentedButtons, Surface, Chip } from 'react-native-paper'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { ShopService, ShopItem, PurchaseResult } from '../services/shopService'
 import { PlayerManager } from '../../lib/playerManager'
@@ -21,20 +21,13 @@ interface ShopScreenProps {
 export default function ShopScreen({ playerData, onPlayerDataUpdate }: ShopScreenProps) {
   const [activeCategory, setActiveCategory] = useState<'eggs' | 'enhancers'>('eggs')
   const [shopItems, setShopItems] = useState<ShopItem[]>([])
-  const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [purchasingItems, setPurchasingItems] = useState<Set<string>>(new Set())
   const [playerGems, setPlayerGems] = useState(0)
 
   // Load shop items and player data
-  const loadShopData = async (showRefreshIndicator = false) => {
+  const loadShopData = async () => {
     try {
-      if (showRefreshIndicator) {
-        setIsRefreshing(true)
-      } else {
-        setIsLoading(true)
-      }
-
       // Load shop items from server
       const items = await ShopService.getShopItems()
       setShopItems(items)
@@ -45,16 +38,18 @@ export default function ShopScreen({ playerData, onPlayerDataUpdate }: ShopScree
         const currencies = await ShopService.getPlayerCurrencies(playerId)
         setPlayerGems(currencies.gems)
       }
-
-      console.log('✅ Shop data loaded:', {
-        itemCount: items.length,
-        playerGems: playerGems
-      })
     } catch (error) {
       console.error('Error loading shop data:', error)
       Alert.alert('Error', 'Failed to load shop data. Please try again.')
+    }
+  }
+
+  // Handle pull-to-refresh
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    try {
+      await loadShopData()
     } finally {
-      setIsLoading(false)
       setIsRefreshing(false)
     }
   }
@@ -309,17 +304,6 @@ export default function ShopScreen({ playerData, onPlayerDataUpdate }: ShopScree
     )
   }
 
-  if (isLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.accent} />
-        <Text variant="bodyLarge" style={styles.loadingText}>
-          Loading Shop...
-        </Text>
-      </View>
-    )
-  }
-
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -348,7 +332,7 @@ export default function ShopScreen({ playerData, onPlayerDataUpdate }: ShopScree
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
-            onRefresh={() => loadShopData(true)}
+            onRefresh={handleRefresh}
             colors={[colors.accent]}
           />
         }
@@ -370,16 +354,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.background,
-  },
-  loadingText: {
-    marginTop: spacing.lg,
-    color: colors.textSecondary,
   },
   headerSection: {
     padding: spacing.lg,

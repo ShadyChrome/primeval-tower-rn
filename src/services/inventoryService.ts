@@ -14,29 +14,34 @@ export interface UIInventoryItem {
   metadata?: any
 }
 
+// Cache for game config to avoid repeated database calls
+let gameConfigCache: Record<string, any> = {}
+let gameConfigCacheTime: Record<string, number> = {}
+const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
+
 export class InventoryService {
   /**
-   * Get all inventory items for the current player
+   * Get all inventory items for the current player (optimized)
    */
   static async getPlayerInventory(): Promise<UIInventoryItem[]> {
     try {
       const playerId = await PlayerManager.getCachedPlayerId()
       if (!playerId) {
-        console.log('No player ID found')
         return []
       }
 
+      // Use optimized query with minimal data transfer
       const { data, error } = await supabase
         .from('player_inventory')
-        .select('*')
+        .select('id, item_type, item_id, quantity, metadata, acquired_at')
         .eq('player_id', playerId)
-        .gt('quantity', 0) // Only items with quantity > 0
+        .gt('quantity', 0)
         .order('acquired_at', { ascending: false })
 
       if (error) throw error
 
-      // Convert database format to UI format
-      return (data || []).map(this.convertToUIItem)
+      // Convert database format to UI format with optimized processing
+      return (data || []).map(this.convertToUIItemOptimized)
     } catch (error) {
       console.error('Error fetching player inventory:', error)
       return []
@@ -44,7 +49,7 @@ export class InventoryService {
   }
 
   /**
-   * Get inventory items by type
+   * Get inventory items by type (optimized)
    */
   static async getInventoryByType(itemType: string): Promise<UIInventoryItem[]> {
     try {
@@ -55,7 +60,7 @@ export class InventoryService {
 
       const { data, error } = await supabase
         .from('player_inventory')
-        .select('*')
+        .select('id, item_type, item_id, quantity, metadata, acquired_at')
         .eq('player_id', playerId)
         .eq('item_type', itemType)
         .gt('quantity', 0)
@@ -63,7 +68,7 @@ export class InventoryService {
 
       if (error) throw error
 
-      return (data || []).map(this.convertToUIItem)
+      return (data || []).map(this.convertToUIItemOptimized)
     } catch (error) {
       console.error('Error fetching inventory by type:', error)
       return []
@@ -71,18 +76,25 @@ export class InventoryService {
   }
 
   /**
-   * Convert database item to UI format
+   * Optimized conversion with pre-computed lookups
    */
-  private static convertToUIItem(dbItem: PlayerInventoryItem): UIInventoryItem {
+  private static convertToUIItemOptimized(dbItem: {
+    id: string;
+    item_type: string;
+    item_id: string;
+    quantity: number | null;
+    metadata: any;
+    acquired_at: string | null;
+  }): UIInventoryItem {
     const metadata = dbItem.metadata as any || {}
     
     return {
       id: dbItem.id,
-      name: InventoryService.getItemDisplayName(dbItem.item_type, dbItem.item_id),
-      type: InventoryService.getItemTypeDisplayName(dbItem.item_type),
+      name: InventoryService.getItemDisplayNameFast(dbItem.item_type, dbItem.item_id),
+      type: InventoryService.getItemTypeDisplayNameFast(dbItem.item_type),
       itemId: dbItem.item_id,
       quantity: dbItem.quantity || 0,
-      description: InventoryService.getItemDescription(dbItem.item_type, dbItem.item_id, metadata),
+      description: InventoryService.getItemDescriptionFast(dbItem.item_type, dbItem.item_id, metadata),
       rarity: metadata.rarity,
       xpValue: metadata.xpValue,
       metadata
@@ -90,97 +102,83 @@ export class InventoryService {
   }
 
   /**
-   * Get display name for item
+   * Fast item name lookup with pre-computed map
    */
-  private static getItemDisplayName(itemType: string, itemId: string): string {
-    const itemNames: Record<string, Record<string, string>> = {
-      xp_potion: {
-        small_xp_potion: 'Small XP Potion',
-        medium_xp_potion: 'Medium XP Potion',
-        large_xp_potion: 'Large XP Potion',
-        huge_xp_potion: 'Huge XP Potion'
-      },
-      ability_scroll: {
-        ability_scroll: 'Ability Scroll'
-      },
-      egg: {
-        basic_egg: 'Basic Egg',
-        common_egg: 'Common Egg',
-        rare_egg: 'Rare Egg',
-        epic_egg: 'Epic Egg',
-        legendary_egg: 'Legendary Egg',
-        mythical_egg: 'Mythical Egg'
-      },
-      enhancer: {
-        element_enhancer_ignis: 'Element Enhancer (Ignis)',
-        element_enhancer_aqua: 'Element Enhancer (Aqua)',
-        element_enhancer_terra: 'Element Enhancer (Terra)',
-        element_enhancer_aer: 'Element Enhancer (Aer)',
-        element_enhancer_lux: 'Element Enhancer (Lux)',
-        element_enhancer_umbra: 'Element Enhancer (Umbra)',
-        rarity_amplifier: 'Rarity Amplifier',
-        rainbow_enhancer: 'Rainbow Enhancer'
-      },
-      currency: {
-        gems: 'Gems'
-      }
+  private static getItemDisplayNameFast(itemType: string, itemId: string): string {
+    // Pre-computed lookup map for better performance
+    const fastLookup: Record<string, string> = {
+      'xp_potion:small_xp_potion': 'Small XP Potion',
+      'xp_potion:medium_xp_potion': 'Medium XP Potion',
+      'xp_potion:large_xp_potion': 'Large XP Potion',
+      'xp_potion:huge_xp_potion': 'Huge XP Potion',
+      'ability_scroll:ability_scroll': 'Ability Scroll',
+      'egg:basic_egg': 'Basic Egg',
+      'egg:common_egg': 'Common Egg',
+      'egg:rare_egg': 'Rare Egg',
+      'egg:epic_egg': 'Epic Egg',
+      'egg:legendary_egg': 'Legendary Egg',
+      'egg:mythical_egg': 'Mythical Egg',
+      'enhancer:element_enhancer_ignis': 'Element Enhancer (Ignis)',
+      'enhancer:element_enhancer_aqua': 'Element Enhancer (Aqua)',
+      'enhancer:element_enhancer_terra': 'Element Enhancer (Terra)',
+      'enhancer:element_enhancer_aer': 'Element Enhancer (Aer)',
+      'enhancer:element_enhancer_lux': 'Element Enhancer (Lux)',
+      'enhancer:element_enhancer_umbra': 'Element Enhancer (Umbra)',
+      'enhancer:rarity_amplifier': 'Rarity Amplifier',
+      'enhancer:rainbow_enhancer': 'Rainbow Enhancer',
+      'currency:gems': 'Gems'
     }
 
-    return itemNames[itemType]?.[itemId] || `${itemType} ${itemId}`.replace(/_/g, ' ')
+    const key = `${itemType}:${itemId}`
+    return fastLookup[key] || `${itemType} ${itemId}`.replace(/_/g, ' ')
   }
 
   /**
-   * Get display name for item type
+   * Fast item type lookup
    */
-  private static getItemTypeDisplayName(itemType: string): string {
-    const typeNames: Record<string, string> = {
-      xp_potion: 'Consumable',
-      ability_scroll: 'Consumable',
-      egg: 'Hatchable',
-      enhancer: 'Enhancer',
-      currency: 'Currency'
+  private static getItemTypeDisplayNameFast(itemType: string): string {
+    const typeMap: Record<string, string> = {
+      'xp_potion': 'Consumable',
+      'ability_scroll': 'Consumable',
+      'egg': 'Hatchable',
+      'enhancer': 'Enhancer',
+      'currency': 'Currency'
     }
 
-    return typeNames[itemType] || itemType.replace(/_/g, ' ')
+    return typeMap[itemType] || itemType.replace(/_/g, ' ')
   }
 
   /**
-   * Get description for item
+   * Fast description lookup
    */
-  private static getItemDescription(itemType: string, itemId: string, metadata: any): string {
-    // Get XP values from server config instead of hardcoded values
-    const descriptions: Record<string, Record<string, string>> = {
-      xp_potion: {
-        small_xp_potion: `Grants XP to a Prime (value determined by server)`,
-        medium_xp_potion: `Grants XP to a Prime (value determined by server)`,
-        large_xp_potion: `Grants XP to a Prime (value determined by server)`,
-        huge_xp_potion: `Grants XP to a Prime (value determined by server)`
-      },
-      ability_scroll: {
-        ability_scroll: 'Used to upgrade Prime abilities'
-      },
-      egg: {
-        basic_egg: 'Basic Prime hatching egg',
-        common_egg: 'Common Prime hatching egg',
-        rare_egg: 'Rare Prime hatching egg with better chances',
-        epic_egg: 'Epic Prime hatching egg with high rarity chances',
-        legendary_egg: 'Legendary Prime hatching egg with premium chances',
-        mythical_egg: 'Mythical Prime hatching egg with ultimate chances'
-      },
-      enhancer: {
-        element_enhancer_ignis: 'Increases chance of hatching Ignis Primes',
-        element_enhancer_aqua: 'Increases chance of hatching Aqua Primes',
-        element_enhancer_terra: 'Increases chance of hatching Terra Primes',
-        element_enhancer_aer: 'Increases chance of hatching Aer Primes',
-        element_enhancer_lux: 'Increases chance of hatching Lux Primes',
-        element_enhancer_umbra: 'Increases chance of hatching Umbra Primes',
-        rarity_amplifier: 'Increases chance of higher rarity hatch',
-        rainbow_enhancer: 'Best rarity boost available'
-      }
+  private static getItemDescriptionFast(itemType: string, itemId: string, metadata: any): string {
+    const fastDescriptions: Record<string, string> = {
+      'xp_potion:small_xp_potion': 'Grants XP to a Prime (value determined by server)',
+      'xp_potion:medium_xp_potion': 'Grants XP to a Prime (value determined by server)',
+      'xp_potion:large_xp_potion': 'Grants XP to a Prime (value determined by server)',
+      'xp_potion:huge_xp_potion': 'Grants XP to a Prime (value determined by server)',
+      'ability_scroll:ability_scroll': 'Used to upgrade Prime abilities',
+      'egg:basic_egg': 'Basic Prime hatching egg',
+      'egg:common_egg': 'Common Prime hatching egg',
+      'egg:rare_egg': 'Rare Prime hatching egg with better chances',
+      'egg:epic_egg': 'Epic Prime hatching egg with high rarity chances',
+      'egg:legendary_egg': 'Legendary Prime hatching egg with premium chances',
+      'egg:mythical_egg': 'Mythical Prime hatching egg with ultimate chances',
+      'enhancer:element_enhancer_ignis': 'Increases chance of hatching Ignis Primes',
+      'enhancer:element_enhancer_aqua': 'Increases chance of hatching Aqua Primes',
+      'enhancer:element_enhancer_terra': 'Increases chance of hatching Terra Primes',
+      'enhancer:element_enhancer_aer': 'Increases chance of hatching Aer Primes',
+      'enhancer:element_enhancer_lux': 'Increases chance of hatching Lux Primes',
+      'enhancer:element_enhancer_umbra': 'Increases chance of hatching Umbra Primes',
+      'enhancer:rarity_amplifier': 'Increases chance of higher rarity hatch',
+      'enhancer:rainbow_enhancer': 'Best rarity boost available'
     }
 
-    return descriptions[itemType]?.[itemId] || metadata.description || 'No description available'
+    const key = `${itemType}:${itemId}`
+    return fastDescriptions[key] || metadata.description || 'No description available'
   }
+
+
 
   /**
    * Consume items from inventory using secure server-side validation
@@ -241,11 +239,7 @@ export class InventoryService {
         }
       })
 
-      console.log('✅ Secure item consumption successful:', {
-        item: currentItem.item_id,
-        consumed: quantity,
-        remaining: result.remaining_quantity
-      })
+      // Item consumption successful
 
       return true
     } catch (error) {
@@ -312,11 +306,19 @@ export class InventoryService {
   }
 
   /**
-   * Get game configuration from server (replaces hardcoded values)
+   * Get game configuration from server with caching (optimized)
    * SECURITY: Game constants now stored securely on server
    */
   static async getGameConfig(configKey: string): Promise<any> {
     try {
+      // Check cache first
+      const now = Date.now()
+      if (gameConfigCache[configKey] && 
+          gameConfigCacheTime[configKey] && 
+          (now - gameConfigCacheTime[configKey]) < CACHE_DURATION) {
+        return gameConfigCache[configKey]
+      }
+
       const { data, error } = await supabase
         .from('game_config')
         .select('config_value')
@@ -328,7 +330,14 @@ export class InventoryService {
         return null
       }
       
-      return data?.config_value
+      // Cache the result
+      const configValue = data?.config_value
+      if (configValue) {
+        gameConfigCache[configKey] = configValue
+        gameConfigCacheTime[configKey] = now
+      }
+      
+      return configValue
     } catch (error) {
       console.error('Error fetching game config:', error)
       return null
