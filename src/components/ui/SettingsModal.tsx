@@ -3,7 +3,7 @@ import { View, StyleSheet } from 'react-native'
 import { Text, Card, Button, List, Divider } from 'react-native-paper'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import CenteredModal from './CenteredModal'
-import { colors, spacing, typography, shadows } from '../../src/theme/designSystem'
+import { colors, spacing, typography, shadows } from '../../theme/designSystem'
 
 interface SettingsModalProps {
   visible: boolean

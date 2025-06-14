@@ -2,8 +2,8 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Button, Text } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
-import GradientCard from '../../components/ui/GradientCard';
-import ModernCard from '../../components/ui/ModernCard';
+import GradientCard from '../components/ui/GradientCard';
+import ModernCard from '../components/ui/ModernCard';
 import { colors, spacing, typography, shadows } from '../theme/designSystem';
 
 const LoginScreen = ({ onSignIn }: { onSignIn: () => void }) => {

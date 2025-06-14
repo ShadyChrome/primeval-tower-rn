@@ -10,7 +10,7 @@ import { PlayerManager, PlayerData } from './lib/playerManager'
 import { StatusBar } from 'expo-status-bar'
 import LoginScreen from './src/screens/LoginScreen'
 import PlayerNameScreen from './src/screens/PlayerNameScreen'
-import AppNavigation from './components/AppNavigation'
+import AppNavigation from './src/components/AppNavigation'
 import { ImageAssets } from './src/assets/ImageAssets'
 import { theme, colors } from './src/theme/designSystem'
 

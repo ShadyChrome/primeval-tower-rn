@@ -9,7 +9,7 @@ import Animated, {
   withSpring,
   interpolateColor,
 } from 'react-native-reanimated'
-import { ElementIcon } from '../../../../components/OptimizedImage'
+import { ElementIcon } from '../../OptimizedImage'
 import { ElementType } from '../../../assets/ImageAssets'
 import { colors, spacing, shadows } from '../../../theme/designSystem'
 import { HapticManager } from '../../../utils/haptics'

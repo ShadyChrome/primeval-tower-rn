@@ -4,12 +4,12 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 
 import Header from './Header'
-import HomeScreen from '../src/screens/HomeScreen'
-import HatchingScreen from '../src/screens/HatchingScreen'
-import PrimesScreen from '../src/screens/PrimesScreen'
-import BagScreen from '../src/screens/BagScreen'
-import ShopScreen from '../src/screens/ShopScreen'
-import { PlayerData } from '../lib/playerManager'
+import HomeScreen from '../screens/HomeScreen'
+import HatchingScreen from '../screens/HatchingScreen'
+import PrimesScreen from '../screens/PrimesScreen'
+import BagScreen from '../screens/BagScreen'
+import ShopScreen from '../screens/ShopScreen'
+import { PlayerData } from '../../lib/playerManager'
 
 const Tab = createBottomTabNavigator()
 

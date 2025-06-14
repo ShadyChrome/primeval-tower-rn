@@ -13,7 +13,7 @@ import Animated, {
   SlideOutLeft,
 } from 'react-native-reanimated'
 
-import { ElementIcon, PrimeImage } from '../../components/OptimizedImage'
+import { ElementIcon, PrimeImage } from '../components/OptimizedImage'
 import { ElementType, PrimeImageType } from '../assets/ImageAssets'
 import {
   MemoizedStatsSection,

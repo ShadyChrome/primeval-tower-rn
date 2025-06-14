@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react'
 import { View, StyleSheet, Animated } from 'react-native'
 import { Text, Card, Button } from 'react-native-paper'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
-import CenteredModal from '../src/components/ui/CenteredModal'
+import CenteredModal from './ui/CenteredModal'
 
 interface LootModalProps {
   visible: boolean

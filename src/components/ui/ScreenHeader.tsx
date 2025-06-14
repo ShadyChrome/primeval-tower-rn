@@ -1,7 +1,7 @@
 import React from 'react'
 import { View, StyleSheet } from 'react-native'
 import { Text, IconButton } from 'react-native-paper'
-import { headerStyles, colors, spacing } from '../../src/theme/designSystem'
+import { headerStyles, colors, spacing } from '../../theme/designSystem'
 
 interface ScreenHeaderProps {
   title: string

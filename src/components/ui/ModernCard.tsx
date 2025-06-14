@@ -1,6 +1,6 @@
 import React from 'react'
 import { View, ViewStyle } from 'react-native'
-import { cardStyles, colors, shadows, spacing } from '../../src/theme/designSystem'
+import { cardStyles, colors, shadows, spacing } from '../../theme/designSystem'
 
 interface ModernCardProps {
   children: React.ReactNode

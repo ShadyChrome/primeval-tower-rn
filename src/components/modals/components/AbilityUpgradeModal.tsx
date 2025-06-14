@@ -3,7 +3,7 @@ import { View, StyleSheet, Dimensions } from 'react-native'
 import { Text, Modal, Portal, IconButton, Button, Chip } from 'react-native-paper'
 import { usePrimeUpgrade, AbilityUpgradeResult, AbilityUpgradeCost } from '../../../hooks/usePrimeUpgrade'
 import { UIPrime } from '../../../services/primeService'
-import { ElementIcon } from '../../../../components/OptimizedImage'
+import { ElementIcon } from '../../OptimizedImage'
 import { colors, spacing } from '../../../theme/designSystem'
 import { PlayerManager } from '../../../../lib/playerManager'
 

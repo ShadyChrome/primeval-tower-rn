@@ -5,10 +5,10 @@ import { RecyclerListView, DataProvider, LayoutProvider } from 'recyclerlistview
 import { LinearGradient } from 'expo-linear-gradient'
 import { useNavigation, useFocusEffect } from '@react-navigation/native'
 import { NativeStackNavigationProp } from '@react-navigation/native-stack'
-import { ElementIcon, PrimeImage } from '../../components/OptimizedImage'
+import { ElementIcon, PrimeImage } from '../components/OptimizedImage'
 import { ElementType, PrimeImageType, ImageAssets } from '../assets/ImageAssets'
-import ModernCard from '../../components/ui/ModernCard'
-import GradientCard from '../../components/ui/GradientCard'
+import ModernCard from '../components/ui/ModernCard'
+import GradientCard from '../components/ui/GradientCard'
 import { PrimeService, UIPrime } from '../services/primeService'
 
 import { colors, spacing, typography, shadows } from '../theme/designSystem'

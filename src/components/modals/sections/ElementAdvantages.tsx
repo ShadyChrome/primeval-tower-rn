@@ -1,7 +1,7 @@
 import React from 'react'
 import { View, StyleSheet } from 'react-native'
 import { Text } from 'react-native-paper'
-import { ElementIcon } from '../../../../components/OptimizedImage'
+import { ElementIcon } from '../../OptimizedImage'
 import { ElementType } from '../../../assets/ImageAssets'
 import { colors, spacing } from '../../../theme/designSystem'
 

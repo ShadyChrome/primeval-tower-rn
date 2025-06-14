@@ -2,7 +2,7 @@ import React from 'react'
 import { View, ViewStyle, StyleSheet } from 'react-native'
 import { Text } from 'react-native-paper'
 import { LinearGradient } from 'expo-linear-gradient'
-import { colors, spacing, typography, shadows } from '../../src/theme/designSystem'
+import { colors, spacing, typography, shadows } from '../../theme/designSystem'
 
 interface ProgressCardProps {
   title: string

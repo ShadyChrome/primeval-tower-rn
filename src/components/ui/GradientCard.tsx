@@ -1,7 +1,7 @@
 import React from 'react'
 import { View, ViewStyle, StyleSheet } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
-import { colors, shadows, spacing } from '../../src/theme/designSystem'
+import { colors, shadows, spacing } from '../../theme/designSystem'
 
 interface GradientCardProps {
   children: React.ReactNode

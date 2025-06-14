@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Image, ImageStyle, ViewStyle, ActivityIndicator, View } from 'react-native'
-import { ImageAssets, ElementType, PrimeImageType } from '../src/assets/ImageAssets'
+import { ImageAssets, ElementType, PrimeImageType } from '../assets/ImageAssets'
 
 interface OptimizedImageProps {
   element: ElementType

@@ -8,8 +8,8 @@ import {
 } from 'react-native-paper'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import GradientCard from '../../components/ui/GradientCard'
-import ModernCard from '../../components/ui/ModernCard'
+import GradientCard from '../components/ui/GradientCard'
+import ModernCard from '../components/ui/ModernCard'
 import { colors, spacing, typography, shadows } from '../theme/designSystem'
 
 interface PlayerNameScreenProps {

@@ -2,8 +2,8 @@ import React from 'react'
 import { NavigationContainer } from '@react-navigation/native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import MainNavigation from './MainNavigation'
-import PrimeDetailsScreen from '../src/screens/PrimeDetailsScreen'
-import { PlayerData } from '../lib/playerManager'
+import PrimeDetailsScreen from '../screens/PrimeDetailsScreen'
+import { PlayerData } from '../../lib/playerManager'
 
 const Stack = createNativeStackNavigator()
 

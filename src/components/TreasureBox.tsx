@@ -3,10 +3,10 @@ import { View, StyleSheet, TouchableOpacity, Animated } from 'react-native'
 import { Text, ActivityIndicator } from 'react-native-paper'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { useFocusEffect } from '@react-navigation/native'
-import { TreasureBoxManager } from '../lib/treasureBoxManager'
-import { TreasureBoxStatus } from '../types/supabase'
+import { TreasureBoxManager } from '../../lib/treasureBoxManager'
+import { TreasureBoxStatus } from '../../types/supabase'
 import LootModal from './LootModal'
-import { HapticManager } from '../src/utils/haptics'
+import { HapticManager } from '../utils/haptics'
 
 interface TreasureBoxProps {
   playerId: string
