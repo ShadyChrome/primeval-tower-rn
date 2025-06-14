@@ -1,17 +1,7 @@
-import React, { useState, useEffect } from 'react'
-import { ImageStyle, ViewStyle, ActivityIndicator, View } from 'react-native'
-import { Image, ImageContentFit } from 'expo-image'
+import React from 'react'
+import { ImageStyle } from 'react-native'
+import { Image } from 'expo-image'
 import { ImageAssets, ElementType, PrimeImageType } from '../assets/ImageAssets'
-
-interface OptimizedImageProps {
-  element: ElementType
-  style?: ImageStyle
-  containerStyle?: ViewStyle
-  size?: number
-  showLoadingIndicator?: boolean
-  resizeMode?: ImageContentFit
-  lazy?: boolean
-}
 
 interface ElementIconProps {
   element: ElementType
@@ -30,78 +20,6 @@ const sizeMap = {
   small: 20,
   medium: 32,
   large: 48,
-}
-
-export const OptimizedImage: React.FC<OptimizedImageProps> = ({
-  element,
-  style,
-  containerStyle,
-  size = 50,
-  showLoadingIndicator = true,
-  resizeMode = 'contain',
-  lazy = false,
-}) => {
-  const [isLoading, setIsLoading] = useState(lazy)
-  const [hasError, setHasError] = useState(false)
-
-  useEffect(() => {
-    if (lazy) {
-      // Simulate lazy loading delay
-      const timer = setTimeout(() => {
-        setIsLoading(false)
-      }, 100)
-      
-      return () => clearTimeout(timer)
-    }
-  }, [lazy])
-
-  const imageSource = ImageAssets.getElementImage(element)
-
-  const imageStyles: ImageStyle = {
-    width: size,
-    height: size,
-    ...style,
-  }
-
-  const containerStyles: ViewStyle = {
-    width: size,
-    height: size,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...containerStyle,
-  }
-
-  if (isLoading && showLoadingIndicator) {
-    return (
-      <View style={containerStyles}>
-        <ActivityIndicator size="small" color="#A0C49D" />
-      </View>
-    )
-  }
-
-  if (hasError) {
-    return (
-      <View style={containerStyles}>
-        <View style={[imageStyles, { backgroundColor: '#E0E0E0', borderRadius: 4 }]} />
-      </View>
-    )
-  }
-
-  return (
-    <View style={containerStyles}>
-      <Image
-        source={imageSource}
-        style={imageStyles}
-        contentFit={resizeMode}
-        onError={() => setHasError(true)}
-        onLoad={() => setIsLoading(false)}
-        // Expo Image optimizations
-        transition={200}
-        cachePolicy="memory-disk"
-        priority="normal"
-      />
-    </View>
-  )
 }
 
 export function ElementIcon({ element, size = 'medium', style }: ElementIconProps) {
