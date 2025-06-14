@@ -250,47 +250,4 @@ export class ShopService {
 
     return rarityMap[eggId] || 'Common'
   }
-
-  /**
-   * Get available currencies for player
-   */
-  static async getPlayerCurrencies(playerId: string): Promise<{ gems: number; coins: number }> {
-    try {
-      const playerData = await PlayerManager.loadPlayerData(playerId)
-      return {
-        gems: playerData?.player.gems || 0,
-        coins: 0 // Coins not implemented yet
-      }
-    } catch (error) {
-      console.error('Error getting player currencies:', error)
-      return { gems: 0, coins: 0 }
-    }
-  }
-
-  /**
-   * Check if player can afford item
-   */
-  static async canAffordItem(playerId: string, itemId: string, quantity: number = 1): Promise<boolean> {
-    try {
-      const currencies = await this.getPlayerCurrencies(playerId)
-      const shopConfig = await InventoryService.getGameConfig('shop_prices')
-      
-      if (!shopConfig) return false
-
-      let itemPrice: number | undefined
-      if (shopConfig.eggs && shopConfig.eggs[itemId]) {
-        itemPrice = shopConfig.eggs[itemId]
-      } else if (shopConfig.enhancers && shopConfig.enhancers[itemId]) {
-        itemPrice = shopConfig.enhancers[itemId]
-      }
-
-      if (!itemPrice) return false
-
-      const totalCost = itemPrice * quantity
-      return currencies.gems >= totalCost
-    } catch (error) {
-      console.error('Error checking affordability:', error)
-      return false
-    }
-  }
 } 

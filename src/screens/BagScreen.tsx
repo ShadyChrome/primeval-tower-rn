@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { View, StyleSheet, FlatList, RefreshControl } from 'react-native'
 import { Text, SegmentedButtons, Surface } from 'react-native-paper'
 import { PlayerRune } from '../../types/supabase'
@@ -70,10 +70,20 @@ export default function BagScreen() {
     }, [])
   )
 
-  const filteredRunes = sortRunes(filterRunes(allRunes, runeStatFilter, runeTierFilter, true))
-  
-  // Calculate rune counts by tier
-  const getRuneCountByTier = (runes: PlayerRune[]) => {
+  // Memoized expensive operations for better performance
+  const filteredRunes = useMemo(() => 
+    sortRunes(filterRunes(allRunes, runeStatFilter, runeTierFilter, true)),
+    [allRunes, runeStatFilter, runeTierFilter]
+  )
+
+  // Memoized item count calculation
+  const totalItemCount = useMemo(() => 
+    allItems.reduce((total, item) => total + item.quantity, 0),
+    [allItems]
+  )
+
+  // Memoized rune count calculation (for potential future use)
+  const runeCounts = useMemo(() => {
     const counts = {
       common: 0,
       rare: 0,
@@ -82,7 +92,7 @@ export default function BagScreen() {
       mythical: 0
     }
     
-    runes.forEach(rune => {
+    allRunes.forEach(rune => {
       const tier = rune.rune_tier?.toLowerCase() as keyof typeof counts
       if (tier && counts.hasOwnProperty(tier)) {
         counts[tier]++
@@ -90,23 +100,26 @@ export default function BagScreen() {
     })
     
     return counts
-  }
-  
-  const runeCounts = getRuneCountByTier(allRunes)
+  }, [allRunes])
 
-  const renderRuneCard = ({ item: rune }: { item: PlayerRune }) => (
-    <RuneCard 
-      rune={rune}
-      primaryColor={colors.primary}
-      showEquipStatus={true}
-    />
+  // Memoized render functions for better performance
+  const renderRuneCard = useMemo(() => 
+    ({ item: rune }: { item: PlayerRune }) => (
+      <RuneCard 
+        rune={rune}
+        primaryColor={colors.primary}
+        showEquipStatus={true}
+      />
+    ), [colors.primary]
   )
 
-  const renderItemCard = ({ item }: { item: UIInventoryItem }) => (
-    <ItemCard 
-      item={item}
-      primaryColor={colors.primary}
-    />
+  const renderItemCard = useMemo(() =>
+    ({ item }: { item: UIInventoryItem }) => (
+      <ItemCard 
+        item={item}
+        primaryColor={colors.primary}
+      />
+    ), [colors.primary]
   )
 
   const renderEmptyState = () => (
@@ -152,7 +165,7 @@ export default function BagScreen() {
           />
         ) : (
           <Text variant="titleMedium" style={styles.tabStats}>
-            Items: {allItems.reduce((total, item) => total + item.quantity, 0)} total
+            Items: {totalItemCount} total
           </Text>
         )}
       </View>

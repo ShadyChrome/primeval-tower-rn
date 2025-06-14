@@ -23,55 +23,46 @@ export default function ShopScreen({ playerData, onPlayerDataUpdate }: ShopScree
   const [shopItems, setShopItems] = useState<ShopItem[]>([])
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [purchasingItems, setPurchasingItems] = useState<Set<string>>(new Set())
-  const [playerGems, setPlayerGems] = useState(0)
 
-  // Load shop items and player data
-  const loadShopData = async () => {
+  // Use playerData gems directly instead of separate state
+  const playerGems = playerData?.player?.gems || 0
+
+  // Load only shop items (no need to load player currency separately)
+  const loadShopItems = async () => {
     try {
-      // Load shop items from server
       const items = await ShopService.getShopItems()
       setShopItems(items)
-
-      // Load current player gems
-      const playerId = await PlayerManager.getCachedPlayerId()
-      if (playerId) {
-        const currencies = await ShopService.getPlayerCurrencies(playerId)
-        setPlayerGems(currencies.gems)
-      }
     } catch (error) {
-      console.error('Error loading shop data:', error)
-      Alert.alert('Error', 'Failed to load shop data. Please try again.')
+      console.error('Error loading shop items:', error)
+      Alert.alert('Error', 'Failed to load shop items. Please try again.')
     }
   }
 
-  // Handle pull-to-refresh
+  // Handle pull-to-refresh (refresh both shop items and player data)
   const handleRefresh = async () => {
     setIsRefreshing(true)
     try {
-      await loadShopData()
+      // Load shop items and trigger parent to refresh player data
+      await Promise.all([
+        loadShopItems(),
+        onPlayerDataUpdate?.()
+      ])
     } finally {
       setIsRefreshing(false)
     }
   }
 
-  // Load data on component mount
+  // Load shop items on component mount
   useEffect(() => {
-    loadShopData()
+    loadShopItems()
   }, [])
 
-  // Refresh data when screen comes into focus
+  // Only refresh shop items when screen comes into focus (player data is managed by parent)
   useFocusEffect(
     useCallback(() => {
-      loadShopData()
+      loadShopItems()
     }, [])
   )
-
-  // Update gems from props if available
-  useEffect(() => {
-    if (playerData?.player?.gems !== undefined && playerData.player.gems !== null) {
-      setPlayerGems(playerData.player.gems)
-    }
-  }, [playerData?.player?.gems])
 
   const handlePurchase = async (item: ShopItem, quantity: number = 1) => {
     try {
@@ -80,7 +71,7 @@ export default function ShopScreen({ playerData, onPlayerDataUpdate }: ShopScree
         return
       }
 
-      // Check if player can afford the item
+      // Check if player can afford the item using current playerData
       const totalCost = item.price * quantity
       if (playerGems < totalCost) {
         Alert.alert(
@@ -107,14 +98,9 @@ export default function ShopScreen({ playerData, onPlayerDataUpdate }: ShopScree
                 const result: PurchaseResult = await ShopService.purchaseItem(item.id, quantity)
                 
                 if (result.success) {
-                  // Update local gem balance
-                  if (result.newBalance !== undefined) {
-                    setPlayerGems(result.newBalance)
-                  }
-
-                  // Trigger parent component to refresh player data
+                  // Trigger parent component to refresh player data (includes updated gems)
                   if (onPlayerDataUpdate) {
-                    onPlayerDataUpdate()
+                    await onPlayerDataUpdate()
                   }
 
                   Alert.alert(
