@@ -1,169 +1,144 @@
 import React, { useState } from 'react'
-import { View, StyleSheet, ScrollView } from 'react-native'
-import { Text, Card, Button, Chip, Surface } from 'react-native-paper'
+import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native'
+import { Text, Surface } from 'react-native-paper'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
+import { colors, spacing, shadows, typography } from '../theme/designSystem'
 
 export default function HatchingScreen() {
   const [selectedEgg, setSelectedEgg] = useState<string | null>(null)
-  const [selectedEnhancers, setSelectedEnhancers] = useState<string[]>([])
 
   const eggTypes = [
-    { id: 'common', name: 'Common Egg', cost: 100, rarity: 'Common', color: '#ADB5BD' },
-    { id: 'rare', name: 'Rare Egg', cost: 250, rarity: 'Rare', color: '#74C0FC' },
-    { id: 'epic', name: 'Epic Egg', cost: 500, rarity: 'Epic', color: '#B197FC' },
-    { id: 'legendary', name: 'Legendary Egg', cost: 1000, rarity: 'Legendary', color: '#FFCC8A' },
-    { id: 'mythical', name: 'Mythical Egg', cost: 2500, rarity: 'Mythical', color: '#FFA8A8' },
-  ]
-
-  const enhancers = [
-    { id: 'element_ignis', name: 'Ignis Enhancer', cost: 50, type: 'Element', description: '+1% Ignis chance' },
-    { id: 'element_vitae', name: 'Vitae Enhancer', cost: 50, type: 'Element', description: '+1% Vitae chance' },
-    { id: 'element_azur', name: 'Azur Enhancer', cost: 50, type: 'Element', description: '+1% Azur chance' },
-    { id: 'rarity_amplifier', name: 'Rarity Amplifier', cost: 100, type: 'Rarity', description: '+1% higher rarity chance' },
-    { id: 'rainbow_enhancer', name: 'Rainbow Enhancer', cost: 200, type: 'Rainbow', description: 'Better odds across all rarities' },
+    { 
+      id: 'common', 
+      name: 'Common Egg', 
+      cost: 100, 
+      rarity: 'Common', 
+      color: '#9E9E9E',
+      bgColor: '#F5F5F5'
+    },
+    { 
+      id: 'rare', 
+      name: 'Rare Egg', 
+      cost: 250, 
+      rarity: 'Rare', 
+      color: '#2196F3',
+      bgColor: '#E3F2FD'
+    },
+    { 
+      id: 'epic', 
+      name: 'Epic Egg', 
+      cost: 500, 
+      rarity: 'Epic', 
+      color: '#9C27B0',
+      bgColor: '#F3E5F5'
+    },
+    { 
+      id: 'legendary', 
+      name: 'Legendary Egg', 
+      cost: 1000, 
+      rarity: 'Legendary', 
+      color: '#FF9800',
+      bgColor: '#FFF3E0'
+    },
+    { 
+      id: 'mythical', 
+      name: 'Mythical Egg', 
+      cost: 2500, 
+      rarity: 'Mythical', 
+      color: '#F44336',
+      bgColor: '#FFEBEE'
+    },
   ]
 
   const selectedEggData = eggTypes.find(egg => egg.id === selectedEgg)
-  const totalCost = (selectedEggData?.cost || 0) + 
-    selectedEnhancers.reduce((total, enhancerId) => {
-      const enhancer = enhancers.find(e => e.id === enhancerId)
-      return total + (enhancer?.cost || 0)
-    }, 0)
 
-  const toggleEnhancer = (enhancerId: string) => {
-    setSelectedEnhancers(prev => 
-      prev.includes(enhancerId) 
-        ? prev.filter(id => id !== enhancerId)
-        : [...prev, enhancerId]
+  const renderEggCard = (egg: typeof eggTypes[0]) => {
+    const isSelected = selectedEgg === egg.id
+    
+    return (
+      <TouchableOpacity
+        key={egg.id}
+        style={[
+          styles.eggCard,
+          isSelected && { borderColor: egg.color, borderWidth: 3 }
+        ]}
+        onPress={() => setSelectedEgg(egg.id)}
+        activeOpacity={0.8}
+      >
+        <View style={[styles.eggIconContainer, { backgroundColor: egg.bgColor }]}>
+          <View style={[styles.eggIcon, { backgroundColor: egg.color }]} />
+        </View>
+        
+        <Text variant="titleMedium" style={styles.eggName}>
+          {egg.name.replace(' Egg', '')}
+        </Text>
+        <Text variant="titleMedium" style={styles.eggType}>
+          Egg
+        </Text>
+        <Text variant="bodySmall" style={[styles.eggRarity, { color: egg.color }]}>
+          {egg.rarity}
+        </Text>
+        
+        <View style={styles.eggCostContainer}>
+          <MaterialCommunityIcons 
+            name="diamond" 
+            size={16} 
+            color="#4CAF50" 
+          />
+          <Text variant="titleMedium" style={styles.eggCost}>
+            {egg.cost}
+          </Text>
+        </View>
+      </TouchableOpacity>
     )
   }
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-      <View style={styles.section}>
-        <Text variant="headlineSmall" style={styles.sectionTitle}>
+      {/* Header Section */}
+      <View style={styles.headerSection}>
+        <Text variant="headlineMedium" style={styles.title}>
           Choose an Egg
         </Text>
-        <Text variant="bodyMedium" style={styles.sectionDescription}>
+        <Text variant="bodyLarge" style={styles.description}>
           Select an egg to hatch a new Prime. Higher rarity eggs have better chances for powerful Primes.
         </Text>
-        
-        <View style={styles.eggGrid}>
-          {eggTypes.map((egg) => (
-            <Card 
-              key={egg.id}
-              style={[
-                styles.eggCard,
-                selectedEgg === egg.id && styles.selectedEggCard,
-                { borderColor: egg.color }
-              ]}
-              onPress={() => setSelectedEgg(egg.id)}
-            >
-              <Card.Content style={styles.eggCardContent}>
-                <View style={[styles.eggIcon, { backgroundColor: egg.color }]}>
-                  <Text style={styles.eggEmoji}>🥚</Text>
-                </View>
-                <Text variant="titleMedium" style={styles.eggName}>
-                  {egg.name}
-                </Text>
-                <Text variant="bodySmall" style={styles.eggRarity}>
-                  {egg.rarity}
-                </Text>
-                <View style={styles.eggCostContainer}>
-                  <MaterialCommunityIcons 
-                    name="diamond" 
-                    size={14} 
-                    color="#A0C49D" 
-                  />
-                  <Text variant="titleSmall" style={styles.eggCost}>
-                    {egg.cost}
-                  </Text>
-                </View>
-              </Card.Content>
-            </Card>
-          ))}
+      </View>
+
+      {/* Egg Grid */}
+      <View style={styles.eggGrid}>
+        <View style={styles.eggRow}>
+          {renderEggCard(eggTypes[0])}
+          {renderEggCard(eggTypes[1])}
+          {renderEggCard(eggTypes[2])}
+        </View>
+        <View style={styles.eggRow}>
+          {renderEggCard(eggTypes[3])}
+          {renderEggCard(eggTypes[4])}
         </View>
       </View>
 
+      {/* Hatch Button */}
       {selectedEgg && (
-        <View style={styles.section}>
-          <Text variant="titleLarge" style={styles.sectionTitle}>
-            Enhancers (Optional)
-          </Text>
-          <Text variant="bodyMedium" style={styles.sectionDescription}>
-            Apply enhancers to improve your hatching chances.
-          </Text>
-          
-          <View style={styles.enhancerList}>
-            {enhancers.map((enhancer) => (
-              <Card 
-                key={enhancer.id}
-                style={[
-                  styles.enhancerCard,
-                  selectedEnhancers.includes(enhancer.id) && styles.selectedEnhancerCard
-                ]}
-                onPress={() => toggleEnhancer(enhancer.id)}
-              >
-                <Card.Content style={styles.enhancerContent}>
-                  <View style={styles.enhancerInfo}>
-                    <Text variant="titleMedium" style={styles.enhancerName}>
-                      {enhancer.name}
-                    </Text>
-                    <Text variant="bodySmall" style={styles.enhancerDescription}>
-                      {enhancer.description}
-                    </Text>
-                  </View>
-                  <Chip 
-                    style={[
-                      styles.enhancerCost,
-                      selectedEnhancers.includes(enhancer.id) && styles.selectedEnhancerCost
-                    ]}
-                  >
-                    <View style={styles.enhancerCostContent}>
-                      <MaterialCommunityIcons 
-                        name="diamond" 
-                        size={12} 
-                        color={selectedEnhancers.includes(enhancer.id) ? "white" : "#666666"} 
-                      />
-                      <Text style={[styles.enhancerCostText, {
-                        color: selectedEnhancers.includes(enhancer.id) ? "white" : "#666666"
-                      }]}>
-                        {enhancer.cost}
-                      </Text>
-                    </View>
-                  </Chip>
-                </Card.Content>
-              </Card>
-            ))}
-          </View>
-        </View>
-      )}
-
-      {selectedEgg && (
-        <Surface style={styles.hatchSection} elevation={3}>
-          <View style={styles.totalCostContainer}>
-            <Text variant="titleMedium" style={styles.totalCostLabel}>
-              Total Cost:
+        <Surface style={styles.hatchSection} elevation={2}>
+          <TouchableOpacity 
+            style={[styles.hatchButton, { backgroundColor: selectedEggData?.color }]}
+            activeOpacity={0.8}
+          >
+            <Text variant="titleLarge" style={styles.hatchButtonText}>
+              Hatch Egg
             </Text>
-            <View style={styles.totalCostContent}>
+            <View style={styles.hatchCostContainer}>
               <MaterialCommunityIcons 
                 name="diamond" 
-                size={24} 
-                color="#A0C49D" 
+                size={20} 
+                color="white" 
               />
-              <Text variant="headlineSmall" style={styles.totalCostValue}>
-                {totalCost.toLocaleString()}
+              <Text variant="titleLarge" style={styles.hatchCostText}>
+                {selectedEggData?.cost}
               </Text>
             </View>
-          </View>
-          
-          <Button 
-            mode="contained" 
-            style={styles.hatchButton}
-            contentStyle={styles.hatchButtonContent}
-          >
-            Hatch Egg
-          </Button>
+          </TouchableOpacity>
         </Surface>
       )}
     </ScrollView>
@@ -173,62 +148,78 @@ export default function HatchingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7EFE5',
+    backgroundColor: colors.background,
   },
   contentContainer: {
-    padding: 16,
+    padding: spacing.lg,
+    paddingBottom: spacing.xxl,
   },
-  section: {
-    marginBottom: 24,
+  headerSection: {
+    marginBottom: spacing.xl,
+    alignItems: 'center',
   },
-  sectionTitle: {
-    fontWeight: '600',
-    color: '#333333',
-    marginBottom: 8,
+  title: {
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: spacing.sm,
+    textAlign: 'center',
   },
-  sectionDescription: {
-    color: '#666666',
-    marginBottom: 16,
+  description: {
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 24,
+    paddingHorizontal: spacing.md,
   },
   eggGrid: {
+    gap: spacing.md,
+    marginBottom: spacing.xl,
+  },
+  eggRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
+    gap: spacing.md,
+    justifyContent: 'center',
   },
   eggCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 20,
+    padding: spacing.lg,
+    alignItems: 'center',
+    minWidth: 100,
     flex: 1,
-    minWidth: '45%',
-    backgroundColor: 'white',
+    maxWidth: 120,
     borderWidth: 2,
     borderColor: 'transparent',
+    ...shadows.light,
   },
-  selectedEggCard: {
-    borderWidth: 2,
-  },
-  eggCardContent: {
-    alignItems: 'center',
-    paddingVertical: 16,
-  },
-  eggIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+  eggIconContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
+    marginBottom: spacing.md,
   },
-  eggEmoji: {
-    fontSize: 24,
+  eggIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
   },
   eggName: {
+    fontWeight: '600',
+    color: colors.text,
     textAlign: 'center',
-    marginBottom: 4,
-    color: '#333333',
+    marginBottom: 2,
+  },
+  eggType: {
+    fontWeight: '400',
+    color: colors.text,
+    textAlign: 'center',
+    marginBottom: spacing.xs,
   },
   eggRarity: {
     textAlign: 'center',
-    color: '#666666',
-    marginBottom: 8,
+    fontWeight: '500',
+    marginBottom: spacing.sm,
   },
   eggCostContainer: {
     flexDirection: 'row',
@@ -236,80 +227,34 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   eggCost: {
-    fontWeight: '600',
-    color: '#A0C49D',
-  },
-  enhancerList: {
-    gap: 8,
-  },
-  enhancerCard: {
-    backgroundColor: 'white',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-  },
-  selectedEnhancerCard: {
-    borderColor: '#A0C49D',
-    backgroundColor: '#F0F7ED',
-  },
-  enhancerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-  },
-  enhancerInfo: {
-    flex: 1,
-  },
-  enhancerName: {
-    color: '#333333',
-    marginBottom: 4,
-  },
-  enhancerDescription: {
-    color: '#666666',
-  },
-  enhancerCost: {
-    backgroundColor: '#E0E0E0',
-  },
-  selectedEnhancerCost: {
-    backgroundColor: '#A0C49D',
-  },
-  enhancerCostContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  enhancerCostText: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
+    color: '#4CAF50',
   },
   hatchSection: {
-    padding: 20,
-    borderRadius: 12,
-    backgroundColor: 'white',
-    marginBottom: 16,
-  },
-  totalCostContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  totalCostLabel: {
-    color: '#333333',
-  },
-  totalCostValue: {
-    fontWeight: '700',
-    color: '#A0C49D',
+    borderRadius: 20,
+    padding: spacing.lg,
+    backgroundColor: colors.surface,
+    marginTop: spacing.lg,
   },
   hatchButton: {
-    backgroundColor: '#A0C49D',
-  },
-  hatchButtonContent: {
-    paddingVertical: 12,
-  },
-  totalCostContent: {
+    borderRadius: 16,
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.xl,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'space-between',
+  },
+  hatchButtonText: {
+    color: 'white',
+    fontWeight: '700',
+  },
+  hatchCostContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  hatchCostText: {
+    color: 'white',
+    fontWeight: '700',
   },
 }) 

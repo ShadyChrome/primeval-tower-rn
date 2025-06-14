@@ -63,8 +63,12 @@ export default function MainNavigation({
             name="Hatching" 
             component={HatchingScreen}
             options={{
-              tabBarIcon: ({ color, size }) => (
-                <MaterialCommunityIcons name="egg" color={color} size={size} />
+              tabBarIcon: ({ focused, color, size }) => (
+                <MaterialCommunityIcons
+                  name={focused ? 'egg' : 'egg-outline'}
+                  size={size}
+                  color={color}
+                />
               ),
             }}
           />
@@ -73,7 +77,7 @@ export default function MainNavigation({
             component={PrimesScreen}
             options={{
               tabBarIcon: ({ color, size }) => (
-                <MaterialCommunityIcons name="pokemon-go" color={color} size={size} />
+                <MaterialCommunityIcons name="paw" color={color} size={size} />
               ),
             }}
           />
@@ -81,7 +85,7 @@ export default function MainNavigation({
             name="Home"
             options={{
               tabBarIcon: ({ color, size }) => (
-                <MaterialCommunityIcons name="castle" color={color} size={size} />
+                <MaterialCommunityIcons name="home" color={color} size={size} />
               ),
             }}
           >
@@ -97,8 +101,12 @@ export default function MainNavigation({
             name="Bag" 
             component={BagScreen}
             options={{
-              tabBarIcon: ({ color, size }) => (
-                <MaterialCommunityIcons name="bag-personal" color={color} size={size} />
+              tabBarIcon: ({ focused, color, size }) => (
+                <MaterialCommunityIcons 
+                  name={focused ? 'bag-personal' : 'bag-personal-outline'} 
+                  color={color} 
+                  size={size} 
+                />
               ),
             }}
           />
@@ -106,8 +114,12 @@ export default function MainNavigation({
             name="Shop" 
             component={ShopScreen}
             options={{
-              tabBarIcon: ({ color, size }) => (
-                <MaterialCommunityIcons name="store" color={color} size={size} />
+              tabBarIcon: ({ focused, color, size }) => (
+                <MaterialCommunityIcons 
+                  name={focused ? 'shopping' : 'shopping-outline'} 
+                  color={color} 
+                  size={size} 
+                />
               ),
             }}
           />
