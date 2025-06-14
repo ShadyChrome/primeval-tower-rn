@@ -267,7 +267,7 @@ export default function ShopScreen({ playerData, onPlayerDataUpdate }: ShopScree
           loading={isPurchasing}
           compact
         >
-          {isPurchasing ? 'Buying...' : canAfford ? 'Buy' : 'Not enough'}
+          {isPurchasing ? 'Buying...' : 'Buy'}
         </Button>
       </TouchableOpacity>
     )
