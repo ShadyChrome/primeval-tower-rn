@@ -56,6 +56,7 @@ This document outlines the complete implementation plan for the shop system that
   - Mythical: `#FFA8A8` (Soft Coral)
 - **Real-time Gem Balance**: Synced with header, no duplicate display
 - **Purchase Validation**: Visual feedback for affordable/unaffordable items
+- **Simplified Button Text**: Clean "Buy" button text with disabled state for unaffordable items
 - **Loading States**: Proper loading indicators and refresh functionality
 
 ### **Technical Implementation**

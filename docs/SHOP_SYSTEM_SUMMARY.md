@@ -48,6 +48,7 @@ This document provides a comprehensive summary of the shop system implementation
 - **Proper Egg Icons**: Visible egg emoji with colored backgrounds
 - **Responsive Layout**: Works on all screen sizes
 - **Accessibility**: Proper touch targets and visual feedback
+- **Clean Button Design**: Simplified "Buy" button text with proper disabled states
 
 #### **Backend Integration**
 - **ShopService**: Complete service layer for shop operations
@@ -149,7 +150,7 @@ Performance indexes
 
 ### **Shop Experience** ✅ **EXCELLENT**
 1. **Browse**: Clean 3+2 grid shows all eggs at once
-2. **Affordability**: Clear visual indicators for affordable items
+2. **Affordability**: Clear visual indicators with disabled buttons for unaffordable items
 3. **Purchase**: Simple tap-to-buy with confirmation dialog
 4. **Feedback**: Immediate success/failure messages
 5. **Balance**: Real-time gem balance updates
