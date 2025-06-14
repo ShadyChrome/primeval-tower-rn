@@ -4,8 +4,6 @@ import AbilitiesSection from './modals/sections/AbilitiesSection'
 import ElementAdvantages from './modals/sections/ElementAdvantages'
 import RuneEquipment from './modals/sections/RuneEquipment'
 import UpgradeSection from './modals/sections/UpgradeSection'
-import { ElementType } from '../assets/ImageAssets'
-import { PlayerRune } from '../../types/supabase'
 
 // Memoized sections for better performance
 export const MemoizedStatsSection = React.memo(StatsSection)

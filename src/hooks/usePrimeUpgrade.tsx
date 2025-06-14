@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react'
 import { supabase } from '../../lib/supabase'
 import { PlayerManager } from '../../lib/playerManager'
-import { PrimeRuneService } from '../services/primeRuneService'
 import { UIPrime } from '../services/primeService'
 import { PlayerInventoryItem } from '../../types/supabase'
 import { InventoryService } from '../services/inventoryService'

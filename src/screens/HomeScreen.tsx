@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
 import { View, StyleSheet, ScrollView } from 'react-native'
 import { Text, Button, IconButton } from 'react-native-paper'
-import { LinearGradient } from 'expo-linear-gradient'
 import TreasureBox from '../components/TreasureBox'
 import ModernCard from '../components/ui/ModernCard'
 import GradientCard from '../components/ui/GradientCard'

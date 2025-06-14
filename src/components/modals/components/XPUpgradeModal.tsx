@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { View, StyleSheet, FlatList, TouchableOpacity, Dimensions } from 'react-native'
-import { Text, Modal, Portal, IconButton, Button, ProgressBar } from 'react-native-paper'
+import { Text, Modal, Portal, IconButton, Button } from 'react-native-paper'
 import { usePrimeUpgrade, XPItem, UpgradeResult } from '../../../hooks/usePrimeUpgrade'
 import { UIPrime } from '../../../services/primeService'
 import { colors, spacing } from '../../../theme/designSystem'

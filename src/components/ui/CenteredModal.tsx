@@ -1,5 +1,5 @@
 import React from 'react'
-import { View, StyleSheet, Dimensions } from 'react-native'
+import { StyleSheet, Dimensions } from 'react-native'
 import { Portal, Modal } from 'react-native-paper'
 
 interface CenteredModalProps {

@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { View, StyleSheet, FlatList } from 'react-native'
-import { Text, Card, SegmentedButtons, Surface, Chip } from 'react-native-paper'
+import { Text, SegmentedButtons, Surface } from 'react-native-paper'
 import { PlayerRune } from '../../types/supabase'
 import { RuneService } from '../services/runeService'
 import { InventoryService, UIInventoryItem } from '../services/inventoryService'

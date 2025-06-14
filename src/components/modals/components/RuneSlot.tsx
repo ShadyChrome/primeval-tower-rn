@@ -1,8 +1,8 @@
 import React from 'react'
-import { View, StyleSheet, TouchableOpacity, Image } from 'react-native'
+import { View, StyleSheet, TouchableOpacity } from 'react-native'
 import { Text, IconButton } from 'react-native-paper'
 import { PlayerRune } from '../../../../types/supabase'
-import { colors, spacing } from '../../../theme/designSystem'
+import { colors } from '../../../theme/designSystem'
 
 interface RuneSlotProps {
   slotIndex: number

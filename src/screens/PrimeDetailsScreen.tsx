@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react'
+import React, { useState, useCallback } from 'react'
 import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native'
 import { Text, IconButton } from 'react-native-paper'
 import { LinearGradient } from 'expo-linear-gradient'
@@ -8,13 +8,10 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import { PanGestureHandler } from 'react-native-gesture-handler'
 import Animated, {
   FadeIn,
-  FadeOut,
-  SlideInRight,
-  SlideOutLeft,
+  FadeOut
 } from 'react-native-reanimated'
 
 import { ElementIcon, PrimeImage } from '../components/OptimizedImage'
-import { ElementType, PrimeImageType } from '../assets/ImageAssets'
 import {
   MemoizedStatsSection,
   MemoizedAbilitiesSection,

@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react'
 import { View, StyleSheet, FlatList, TouchableOpacity, Dimensions } from 'react-native'
-import { Text, Modal, Portal, IconButton, Chip } from 'react-native-paper'
+import { Text, Modal, Portal, IconButton } from 'react-native-paper'
 import { PlayerRune } from '../../../../types/supabase'
 import { colors, spacing } from '../../../theme/designSystem'
 import RuneFilter from '../../common/RuneFilter'
