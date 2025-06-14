@@ -13,40 +13,40 @@ export default function HatchingScreen() {
       name: 'Common Egg', 
       cost: 100, 
       rarity: 'Common', 
-      color: '#9E9E9E',
-      bgColor: '#F5F5F5'
+      color: '#ADB5BD',      // Soft Gray
+      bgColor: '#F8F9FA'
     },
     { 
       id: 'rare', 
       name: 'Rare Egg', 
       cost: 250, 
       rarity: 'Rare', 
-      color: '#2196F3',
-      bgColor: '#E3F2FD'
+      color: '#74C0FC',      // Pastel Blue
+      bgColor: '#E7F5FF'
     },
     { 
       id: 'epic', 
       name: 'Epic Egg', 
       cost: 500, 
       rarity: 'Epic', 
-      color: '#9C27B0',
-      bgColor: '#F3E5F5'
+      color: '#B197FC',      // Lavender Purple
+      bgColor: '#F3F0FF'
     },
     { 
       id: 'legendary', 
       name: 'Legendary Egg', 
       cost: 1000, 
       rarity: 'Legendary', 
-      color: '#FF9800',
-      bgColor: '#FFF3E0'
+      color: '#FFCC8A',      // Warm Peach
+      bgColor: '#FFF4E6'
     },
     { 
       id: 'mythical', 
       name: 'Mythical Egg', 
       cost: 2500, 
       rarity: 'Mythical', 
-      color: '#F44336',
-      bgColor: '#FFEBEE'
+      color: '#FFA8A8',      // Soft Coral
+      bgColor: '#FFE8E8'
     },
   ]
 

@@ -112,7 +112,6 @@ export default function MainNavigation({
           />
           <Tab.Screen 
             name="Shop" 
-            component={ShopScreen}
             options={{
               tabBarIcon: ({ focused, color, size }) => (
                 <MaterialCommunityIcons 
@@ -122,7 +121,14 @@ export default function MainNavigation({
                 />
               ),
             }}
-          />
+          >
+            {() => (
+              <ShopScreen 
+                playerData={playerData}
+                onPlayerDataUpdate={onRefreshPlayerData}
+              />
+            )}
+          </Tab.Screen>
         </Tab.Navigator>
       </View>
   )
