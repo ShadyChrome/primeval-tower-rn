@@ -1,4 +1,4 @@
-import { PrimeAcquisitionService } from './PrimeAcquisitionService'
+import { PrimeAcquisitionService } from './primeAcquisitionService'
 import { PrimeClaimResult } from '../../types/supabase'
 import { InventoryService } from './inventoryService'
 import { PlayerManager } from '../../lib/playerManager'
