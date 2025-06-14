@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { Image, ImageStyle, ViewStyle, ActivityIndicator, View } from 'react-native'
+import { ImageStyle, ViewStyle, ActivityIndicator, View } from 'react-native'
+import { Image, ImageContentFit } from 'expo-image'
 import { ImageAssets, ElementType, PrimeImageType } from '../assets/ImageAssets'
 
 interface OptimizedImageProps {
@@ -8,7 +9,7 @@ interface OptimizedImageProps {
   containerStyle?: ViewStyle
   size?: number
   showLoadingIndicator?: boolean
-  resizeMode?: 'contain' | 'cover' | 'stretch' | 'center'
+  resizeMode?: ImageContentFit
   lazy?: boolean
 }
 
@@ -91,12 +92,13 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
       <Image
         source={imageSource}
         style={imageStyles}
-        resizeMode={resizeMode}
+        contentFit={resizeMode}
         onError={() => setHasError(true)}
         onLoad={() => setIsLoading(false)}
-        // Performance optimizations
-        fadeDuration={200}
-        borderRadius={style?.borderRadius as number}
+        // Expo Image optimizations
+        transition={200}
+        cachePolicy="memory-disk"
+        priority="normal"
       />
     </View>
   )
@@ -112,13 +114,12 @@ export function ElementIcon({ element, size = 'medium', style }: ElementIconProp
         {
           width: imageSize,
           height: imageSize,
-          resizeMode: 'contain',
         },
         style,
       ]}
-      // Add performance optimizations
-      resizeMode="contain"
-      fadeDuration={0}
+      contentFit="contain"
+      cachePolicy="memory-disk"
+      priority="high"
     />
   )
 }
@@ -131,13 +132,12 @@ export function PrimeImage({ primeName, style, width = 100, height = 100 }: Prim
         {
           width,
           height,
-          resizeMode: 'contain',
         },
         style,
       ]}
-      // Add performance optimizations
-      resizeMode="contain"
-      fadeDuration={0}
+      contentFit="contain"
+      cachePolicy="memory-disk"
+      priority="normal"
     />
   )
 }
