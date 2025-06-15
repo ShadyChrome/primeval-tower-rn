@@ -23,9 +23,6 @@ export class AuthManager {
   static async initialize(): Promise<AuthState> {
     console.log('🔐 Initializing AuthManager...')
 
-    // Migrate device mapping from AsyncStorage to database
-    await this.migrateDeviceMappingToDatabase()
-
     // Set up auth state change listener
     supabase.auth.onAuthStateChange((event, session) => {
       console.log('🔄 Auth state changed:', event, session?.user?.id)
@@ -491,54 +488,5 @@ export class AuthManager {
     }
   }
 
-  /**
-   * Migrate device mapping from AsyncStorage to database
-   * This should be called once during app startup to migrate existing data
-   */
-  static async migrateDeviceMappingToDatabase(): Promise<void> {
-    try {
-      console.log('🔄 Starting device mapping migration...')
-      
-      const deviceId = await this.getDeviceId()
-      const mappingKey = `device_mapping_${deviceId}`
-      
-      // Check if there's existing AsyncStorage data
-      const mappingDataStr = await AsyncStorage.getItem(mappingKey)
-      
-      if (mappingDataStr) {
-        console.log('📦 Found existing AsyncStorage device mapping')
-        const mappingData = JSON.parse(mappingDataStr)
-        
-        // Check if already migrated to database
-        const existingMapping = await this.getDeviceMappingFromDB(deviceId)
-        
-        if (!existingMapping) {
-          console.log('💾 Migrating to database...')
-          
-          // Migrate to database
-          await this.upsertDeviceMappingInDB(
-            deviceId,
-            mappingData.currentUserId || mappingData.originalUserId,
-            mappingData.originalUserId
-          )
-          
-          console.log('✅ Migration completed successfully')
-          
-          // Clean up AsyncStorage after successful migration
-          await AsyncStorage.removeItem(mappingKey)
-          console.log('🧹 Cleaned up AsyncStorage data')
-        } else {
-          console.log('ℹ️ Already migrated to database')
-          // Clean up AsyncStorage since data is already in database
-          await AsyncStorage.removeItem(mappingKey)
-        }
-      } else {
-        console.log('ℹ️ No AsyncStorage device mapping found to migrate')
-      }
-      
-    } catch (error) {
-      console.error('❌ Error during device mapping migration:', error)
-      // Don't throw error to prevent app from crashing
-    }
-  }
+
 } 
