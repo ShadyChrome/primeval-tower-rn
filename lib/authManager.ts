@@ -23,11 +23,18 @@ export class AuthManager {
   static async initialize(): Promise<AuthState> {
     console.log('🔐 Initializing AuthManager...')
 
+    // Migrate device mapping from AsyncStorage to database
+    await this.migrateDeviceMappingToDatabase()
+
     // Set up auth state change listener
     supabase.auth.onAuthStateChange((event, session) => {
       console.log('🔄 Auth state changed:', event, session?.user?.id)
       this.notifyAuthStateChange(session)
     })
+
+    // Force refresh session from storage to ensure persistence works
+    console.log('🔄 Refreshing session from storage...')
+    await supabase.auth.refreshSession()
 
     // Try to restore existing session or create anonymous user
     const authState = await this.getOrCreateAnonymousUser()
@@ -79,12 +86,18 @@ export class AuthManager {
       }
 
       const deviceId = await this.getDeviceId()
+      console.log('🔍 No existing session found, checking device mapping...')
       
       // Check if we have an existing user mapped to this device
       const existingUserId = await this.getExistingUserForDevice(deviceId)
       
-      // Create new anonymous user (this is expected behavior for Supabase anonymous auth)
-      console.log('🆕 Creating new anonymous user...')
+      if (existingUserId) {
+        console.log('🔍 Found existing user mapping for device:', existingUserId)
+        console.log('⚠️  Creating new auth session but preserving game data with existing user ID')
+      }
+      
+      // Create new anonymous user 
+      console.log('🆕 Creating new anonymous user session...')
       const { data, error } = await supabase.auth.signInAnonymously()
 
       if (error) {
@@ -99,18 +112,19 @@ export class AuthManager {
       console.log('✅ Anonymous user created:', data.user.id)
       
       if (existingUserId) {
-        console.log('🔍 Found existing user mapping for device:', existingUserId)
-        console.log('🔄 Will preserve existing user ID for game data persistence')
-        console.log('💡 New auth user for RLS, existing user for game data')
+        // Preserve existing user ID for game data persistence
+        console.log('🔄 Preserving existing user ID for game data persistence')
+        console.log('💡 New auth user:', data.user.id, 'Game user:', existingUserId)
         
-        // DON'T update the device mapping - it should stay as is
-        // The existing mapping already has the correct originalUserId
-        console.log('🔗 Device mapping preserved (no changes needed)')
+        // Update the current user ID in the existing mapping
+        await this.upsertDeviceMappingInDB(deviceId, data.user.id, existingUserId)
+        
+        console.log('🔗 Device mapping updated with new auth user but preserved game user')
       } else {
         console.log('🆕 First time user - creating new device mapping')
         
-        // Create new device mapping with this user as the original
-        await this.ensureDeviceMapping(deviceId, data.user.id)
+        // Create new device mapping with this user as both auth and game user
+        await this.upsertDeviceMappingInDB(deviceId, data.user.id, data.user.id)
         
         console.log('🔗 New device mapping created')
       }
@@ -129,23 +143,29 @@ export class AuthManager {
   }
 
   /**
-   * Ensure device mapping exists for user
+   * Ensure device mapping exists for user in database
    */
   private static async ensureDeviceMapping(deviceId: string, userId: string): Promise<void> {
     try {
-      console.log('🔗 Creating device mapping for:', { deviceId, userId })
+      console.log('🔗 Creating device mapping in database for:', { deviceId, userId })
       
-      // Store the mapping in AsyncStorage for now (simple approach)
-      const mappingKey = `device_mapping_${deviceId}`
-      const mappingData = {
-        deviceId,
-        currentUserId: userId,
-        originalUserId: userId,
-        updatedAt: new Date().toISOString()
+      // Check if mapping already exists
+      const existingMapping = await this.getDeviceMappingFromDB(deviceId)
+      
+      if (existingMapping) {
+        console.log('🔍 Found existing device mapping:', existingMapping)
+        
+        // Update current user ID if different
+        if (existingMapping.current_user_id !== userId) {
+          console.log('🔄 Updating current user ID in existing mapping')
+          await this.upsertDeviceMappingInDB(deviceId, userId, existingMapping.original_user_id)
+        }
+      } else {
+        console.log('🆕 Creating new device mapping')
+        await this.upsertDeviceMappingInDB(deviceId, userId, userId)
       }
       
-      await AsyncStorage.setItem(mappingKey, JSON.stringify(mappingData))
-      console.log('✅ Device mapping stored locally:', mappingData)
+      console.log('✅ Device mapping ensured in database')
       
     } catch (error) {
       console.error('❌ Error ensuring device mapping:', error)
@@ -154,20 +174,17 @@ export class AuthManager {
   }
 
   /**
-   * Get existing user ID for device (if any)
+   * Get existing user ID for device from database
    */
   private static async getExistingUserForDevice(deviceId: string): Promise<string | null> {
     try {
       console.log('🔍 Checking for existing user mapping for device:', deviceId)
       
-      // Check AsyncStorage for existing mapping
-      const mappingKey = `device_mapping_${deviceId}`
-      const mappingDataStr = await AsyncStorage.getItem(mappingKey)
+      const mapping = await this.getDeviceMappingFromDB(deviceId)
       
-      if (mappingDataStr) {
-        const mappingData = JSON.parse(mappingDataStr)
-        console.log('✅ Found existing user mapping:', mappingData)
-        return mappingData.originalUserId || null
+      if (mapping) {
+        console.log('✅ Found existing user mapping:', mapping)
+        return mapping.original_user_id || mapping.current_user_id
       }
 
       console.log('ℹ️ No existing user mapping found for device')
@@ -175,6 +192,68 @@ export class AuthManager {
     } catch (error) {
       console.error('❌ Error getting user by device ID:', error)
       return null
+    }
+  }
+
+  /**
+   * Get device mapping from database
+   */
+  private static async getDeviceMappingFromDB(deviceId: string): Promise<any | null> {
+    try {
+      const { data, error } = await supabase
+        .from('device_user_mapping')
+        .select('*')
+        .eq('device_id', deviceId)
+        .single()
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          // No rows found
+          return null
+        }
+        console.error('❌ Error getting device mapping:', error)
+        return null
+      }
+
+      return data
+    } catch (error) {
+      console.error('❌ Error in getDeviceMappingFromDB:', error)
+      return null
+    }
+  }
+
+  /**
+   * Upsert device mapping in database
+   */
+  private static async upsertDeviceMappingInDB(
+    deviceId: string, 
+    currentUserId: string, 
+    originalUserId?: string
+  ): Promise<void> {
+    try {
+      console.log('💾 Upserting device mapping:', {
+        deviceId,
+        currentUserId,
+        originalUserId: originalUserId || currentUserId
+      })
+
+      const { data, error } = await supabase
+        .rpc('bypass_rls_upsert_device_mapping', {
+          device_id_param: deviceId,
+          current_user_id_param: currentUserId,
+          original_user_id_param: originalUserId || undefined
+        })
+
+      if (error) {
+        console.error('❌ Error upserting device mapping:', error)
+        console.error('❌ Error details:', JSON.stringify(error, null, 2))
+        throw error
+      }
+
+      console.log('✅ Device mapping upserted successfully:', data)
+    } catch (error) {
+      console.error('❌ Error in upsertDeviceMappingInDB:', error)
+      throw error
     }
   }
 
@@ -385,19 +464,22 @@ export class AuthManager {
 
   /**
    * Get the user ID that should be used for game data operations
-   * This returns the original/persistent user ID from device mapping
+   * This returns the original/persistent user ID from device mapping in database
    */
   static async getGameUserId(): Promise<string | null> {
     try {
       const deviceId = await this.getDeviceId()
-      const mappingKey = `device_mapping_${deviceId}`
-      const mappingDataStr = await AsyncStorage.getItem(mappingKey)
       
-      if (mappingDataStr) {
-        const mappingData = JSON.parse(mappingDataStr)
-        console.log('🎮 Using game user ID:', mappingData.originalUserId)
-        return mappingData.originalUserId
-      }
+             // Try to get game user ID from database mapping
+       const mapping = await this.getDeviceMappingFromDB(deviceId)
+       
+       if (mapping) {
+         const gameUserId = mapping.original_user_id || mapping.current_user_id
+         console.log('🎮 Using game user ID from database:', gameUserId)
+         return gameUserId
+       }
+
+       console.log('ℹ️ No device mapping found in database')
 
       // Fallback to current auth user ID
       const currentUserId = await this.getCurrentUserId()
@@ -406,6 +488,57 @@ export class AuthManager {
     } catch (error) {
       console.error('❌ Error getting game user ID:', error)
       return await this.getCurrentUserId()
+    }
+  }
+
+  /**
+   * Migrate device mapping from AsyncStorage to database
+   * This should be called once during app startup to migrate existing data
+   */
+  static async migrateDeviceMappingToDatabase(): Promise<void> {
+    try {
+      console.log('🔄 Starting device mapping migration...')
+      
+      const deviceId = await this.getDeviceId()
+      const mappingKey = `device_mapping_${deviceId}`
+      
+      // Check if there's existing AsyncStorage data
+      const mappingDataStr = await AsyncStorage.getItem(mappingKey)
+      
+      if (mappingDataStr) {
+        console.log('📦 Found existing AsyncStorage device mapping')
+        const mappingData = JSON.parse(mappingDataStr)
+        
+        // Check if already migrated to database
+        const existingMapping = await this.getDeviceMappingFromDB(deviceId)
+        
+        if (!existingMapping) {
+          console.log('💾 Migrating to database...')
+          
+          // Migrate to database
+          await this.upsertDeviceMappingInDB(
+            deviceId,
+            mappingData.currentUserId || mappingData.originalUserId,
+            mappingData.originalUserId
+          )
+          
+          console.log('✅ Migration completed successfully')
+          
+          // Clean up AsyncStorage after successful migration
+          await AsyncStorage.removeItem(mappingKey)
+          console.log('🧹 Cleaned up AsyncStorage data')
+        } else {
+          console.log('ℹ️ Already migrated to database')
+          // Clean up AsyncStorage since data is already in database
+          await AsyncStorage.removeItem(mappingKey)
+        }
+      } else {
+        console.log('ℹ️ No AsyncStorage device mapping found to migrate')
+      }
+      
+    } catch (error) {
+      console.error('❌ Error during device mapping migration:', error)
+      // Don't throw error to prevent app from crashing
     }
   }
 } 

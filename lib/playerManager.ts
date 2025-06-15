@@ -51,37 +51,7 @@ export class PlayerManager {
     }
   }
 
-  /**
-   * Check if a player exists for this device
-   */
-  static async getExistingPlayer(): Promise<Player | null> {
-    try {
-      const deviceId = await this.getDeviceID()
-      console.log('🔍 Checking for existing player with device ID:', deviceId)
-      
-      const { data, error } = await supabase
-        .from('players')
-        .select('*')
-        .eq('device_id', deviceId)
-        .single()
-
-      if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
-        console.error('❌ Database error when checking for existing player:', error)
-        throw error
-      }
-
-      if (data) {
-        console.log('✅ Found existing player:', data.player_name, 'ID:', data.id)
-      } else {
-        console.log('ℹ️ No existing player found for this device')
-      }
-
-      return data || null
-    } catch (error) {
-      console.error('Error checking for existing player:', error)
-      return null
-    }
-  }
+  // Legacy device-based player lookup removed - using auth-based system only
 
   /**
    * Check if a player exists for the authenticated user (auth-based)
@@ -120,45 +90,7 @@ export class PlayerManager {
     }
   }
 
-  /**
-   * Create a new player
-   */
-  static async createPlayer(playerName: string): Promise<Player> {
-    try {
-      const deviceId = await this.getDeviceID()
-      
-      const playerData: PlayerInsert = {
-        device_id: deviceId,
-        player_name: playerName,
-        level: 1,
-        current_xp: 0,
-        max_xp: 100,
-        gems: 100, // Starting gems
-        total_playtime: 0,
-        last_login: new Date().toISOString()
-      }
-
-      const { data, error } = await supabase
-        .from('players')
-        .insert(playerData)
-        .select()
-        .single()
-
-      if (error) throw error
-
-      // Store player ID locally for quick access
-      await AsyncStorage.setItem(PLAYER_ID_KEY, data.id)
-
-      // Initialize with starter items
-      await this.initializeStarterItems(data.id)
-
-      console.log('Player created successfully:', data)
-      return data
-    } catch (error) {
-      console.error('Error creating player:', error)
-      throw error
-    }
-  }
+  // Legacy device-based player creation removed - using auth-based system only
 
   /**
    * Create a new player with authentication context
@@ -176,6 +108,7 @@ export class PlayerManager {
       const playerData: PlayerInsert = {
         id: gameUserId, // Use the game user ID as the player ID
         device_id: deviceId,
+        auth_user_id: gameUserId, // Also store the auth user ID
         player_name: playerName,
         level: 1,
         current_xp: 0,
@@ -231,41 +164,27 @@ export class PlayerManager {
           quantity: 1,
           metadata: { rarity: 'Rare' }
         },
-        // XP Potions for testing upgrade system
+        // XP Potions for progression
         {
           player_id: playerId,
           item_type: 'xp_potion',
           item_id: 'small_xp_potion',
-          quantity: 15,
+          quantity: 5,
           metadata: { rarity: 'Common', xpValue: 50 }
         },
         {
           player_id: playerId,
           item_type: 'xp_potion',
           item_id: 'medium_xp_potion',
-          quantity: 8,
+          quantity: 2,
           metadata: { rarity: 'Rare', xpValue: 150 }
-        },
-        {
-          player_id: playerId,
-          item_type: 'xp_potion',
-          item_id: 'large_xp_potion',
-          quantity: 3,
-          metadata: { rarity: 'Epic', xpValue: 400 }
-        },
-        {
-          player_id: playerId,
-          item_type: 'xp_potion',
-          item_id: 'huge_xp_potion',
-          quantity: 1,
-          metadata: { rarity: 'Legendary', xpValue: 1000 }
         },
         // Ability Scrolls for ability upgrades
         {
           player_id: playerId,
           item_type: 'ability_scroll',
           item_id: 'ability_scroll',
-          quantity: 12,
+          quantity: 3,
           metadata: { description: 'Used to upgrade Prime abilities' }
         },
         // Enhancers
@@ -280,7 +199,7 @@ export class PlayerManager {
           player_id: playerId,
           item_type: 'enhancer',
           item_id: 'rarity_amplifier',
-          quantity: 3,
+          quantity: 1,
           metadata: { description: 'Increases chance of higher rarity hatch' }
         }
       ]
@@ -365,6 +284,7 @@ export class PlayerManager {
         player: {
           id: playerResult.player_id,
           device_id: deviceId,
+          auth_user_id: playerResult.player_id, // Same as ID for auth-based system
           player_name: playerResult.player_name,
           level: playerResult.level,
           current_xp: playerResult.current_xp,
@@ -438,6 +358,7 @@ export class PlayerManager {
             player: {
               id: playerResult.player_id,
               device_id: deviceId,
+              auth_user_id: playerResult.player_id, // Same as ID for auth-based system
               player_name: playerResult.player_name,
               level: playerResult.level,
               current_xp: playerResult.current_xp,
@@ -643,23 +564,5 @@ export class PlayerManager {
     }
   }
 
-  /**
-   * Debug method to check current storage state
-   */
-  static async debugStorageState(): Promise<void> {
-    try {
-      const deviceId = await AsyncStorage.getItem('device_id')
-      const playerId = await AsyncStorage.getItem(PLAYER_ID_KEY)
-      console.log('🔍 Current storage state:')
-      console.log('  Device ID:', deviceId)
-      console.log('  Player ID:', playerId)
-      
-      if (deviceId) {
-        const existingPlayer = await this.getExistingPlayer()
-        console.log('  Player in DB:', existingPlayer?.player_name || 'Not found')
-      }
-    } catch (error) {
-      console.error('Error checking storage state:', error)
-    }
-  }
+
 } 

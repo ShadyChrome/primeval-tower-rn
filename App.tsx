@@ -34,23 +34,8 @@ export default function App() {
     try {
       setIsLoading(true)
       
-      // First try the old device-based system for existing users
-      console.log('🔄 App: Checking for existing device-based player...')
-      const existingDevicePlayer = await PlayerManager.getExistingPlayer()
-      
-      if (existingDevicePlayer) {
-        console.log('✅ App: Found existing device-based player, loading data...')
-        const devicePlayerData = await PlayerManager.loadPlayerData(existingDevicePlayer.id)
-        if (devicePlayerData) {
-          console.log('✅ App: Device-based player data loaded:', devicePlayerData.player.player_name)
-          setPlayerData(devicePlayerData)
-          setAppState('loggedIn')
-          return
-        }
-      }
-      
-      // No device-based player found, try the new auth system
-      console.log('🔐 App: No device-based player found, trying auth system...')
+      // Initialize auth system for all users
+      console.log('🔐 App: Initializing auth system...')
       await AuthManager.initialize()
       
       // Check if user is authenticated
@@ -60,7 +45,7 @@ export default function App() {
         setAppState('loginScreen')
         return
       }
-      
+
       console.log('✅ App: User authenticated, game user ID:', gameUserId)
       
       // Try to load existing auth-based player data
@@ -88,23 +73,8 @@ export default function App() {
     try {
       setIsLoading(true)
       
-      // First check for existing device-based player
-      console.log('🔍 App: Checking for existing device-based player...')
-      const existingDevicePlayer = await PlayerManager.getExistingPlayer()
-      
-      if (existingDevicePlayer) {
-        console.log('✅ App: Found existing device-based player, loading data...')
-        const devicePlayerData = await PlayerManager.loadPlayerData(existingDevicePlayer.id)
-        if (devicePlayerData) {
-          console.log('✅ App: Device-based player signed in successfully:', devicePlayerData.player.player_name)
-          setPlayerData(devicePlayerData)
-          setAppState('loggedIn')
-          return
-        }
-      }
-      
-      // No device-based player, initialize auth for new user
-      console.log('🔐 App: No device-based player found, initializing auth for new user...')
+      // Initialize auth for new user
+      console.log('🔐 App: Initializing auth for new user...')
       await AuthManager.initialize()
       
       // Check if we have an authenticated user
@@ -143,46 +113,26 @@ export default function App() {
     try {
       setIsLoading(true)
       
-      // Check if we have an auth context (new user) or should use device-based (fallback)
-      let gameUserId: string | null = null
-      try {
-        gameUserId = await AuthManager.getGameUserId()
-      } catch (error) {
-        console.log('ℹ️ App: No auth context available, using device-based creation')
+      // Get authenticated user context
+      const gameUserId = await AuthManager.getGameUserId()
+      if (!gameUserId) {
+        throw new Error('No authenticated user for player creation')
       }
       
-      if (gameUserId) {
-        console.log('🔐 App: Creating auth-based player for user:', gameUserId)
-        // Create new player with auth context
-        const newPlayer = await PlayerManager.createPlayerWithAuth(playerName)
-        console.log('Player created successfully with auth:', newPlayer)
-        
-        // Load complete player data
-        const completePlayerData = await PlayerManager.loadPlayerDataWithAuth()
-        
-        if (completePlayerData) {
-          setPlayerData(completePlayerData)
-          setAppState('loggedIn')
-          console.log('Auth-based player creation complete, logging in...')
-        } else {
-          throw new Error('Failed to load player data after auth-based creation')
-        }
+      console.log('🔐 App: Creating auth-based player for user:', gameUserId)
+      // Create new player with auth context
+      const newPlayer = await PlayerManager.createPlayerWithAuth(playerName)
+      console.log('Player created successfully with auth:', newPlayer)
+      
+      // Load complete player data
+      const completePlayerData = await PlayerManager.loadPlayerDataWithAuth()
+      
+      if (completePlayerData) {
+        setPlayerData(completePlayerData)
+        setAppState('loggedIn')
+        console.log('Auth-based player creation complete, logging in...')
       } else {
-        console.log('📱 App: Creating device-based player (fallback)')
-        // Create new player with device-based system
-        const newPlayer = await PlayerManager.createPlayer(playerName)
-        console.log('Player created successfully with device-based system:', newPlayer)
-        
-        // Load complete player data
-        const completePlayerData = await PlayerManager.loadPlayerData(newPlayer.id)
-        
-        if (completePlayerData) {
-          setPlayerData(completePlayerData)
-          setAppState('loggedIn')
-          console.log('Device-based player creation complete, logging in...')
-        } else {
-          throw new Error('Failed to load player data after device-based creation')
-        }
+        throw new Error('Failed to load player data after auth-based creation')
       }
     } catch (error) {
       console.error('Failed to create player:', error)

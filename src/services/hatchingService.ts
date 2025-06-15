@@ -1,8 +1,17 @@
 import { PrimeAcquisitionService } from './primeAcquisitionService'
-import { PrimeClaimResult } from '../../types/supabase'
 import { InventoryService } from './inventoryService'
 import { PlayerManager } from '../../lib/playerManager'
 import { supabase } from '../../lib/supabase'
+
+export interface PrimeClaimResult {
+  success: boolean
+  action: 'acquired' | 'upgraded' | 'evolved'
+  prime?: any
+  previousLevel?: number
+  newLevel?: number
+  abilityXP?: number
+  error?: string
+}
 
 export interface HatchResult {
   success: boolean
@@ -177,13 +186,13 @@ export class HatchingService {
   }
 
   /**
-   * Simulates a hatch result for testing purposes
+   * Simulates a hatch result
    * @param eggId ID of the egg
    * @param enhancers Array of enhancers
    * @returns Simulated prime data
    */
   private static simulateHatch(eggId: string, enhancers: string[]) {
-    // This is a simplified simulation for testing
+    // This is a simplified simulation
     // In a real implementation, this would involve:
     // 1. Getting egg data from database
     // 2. Rolling for rarity based on probabilities

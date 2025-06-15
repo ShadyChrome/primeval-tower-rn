@@ -188,7 +188,7 @@ export const getAllEquippedRuneIds = async (): Promise<string[]> => {
   }
 }
 
-// Clear all storage (for testing/reset purposes)
+// Clear all storage (for logout/reset purposes)
 export const clearAllPrimeRuneStorage = async (): Promise<void> => {
   try {
     const playerId = await PlayerManager.getCachedPlayerId()

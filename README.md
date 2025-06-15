@@ -2,62 +2,66 @@
 
 A Monster Hunter-inspired mobile game built with React Native, Expo, and Supabase.
 
-## 🚀 Current Status: Phase 3 Complete ✅
+## 🚀 Current Status: Production-Ready Architecture ✅
 
-### **Fully Integrated Supabase Backend System**
+### **Simplified Authentication System**
 
-**Phase 3: Rune System** - **COMPLETED** ✅
-- 🔮 **Complete rune equipment system** with 6-slot flower layout
-- 🎯 **Prime-specific rune management** with cross-Prime awareness  
-- 📊 **Real-time stat calculations** from equipped runes
-- 🗄️ **Full Supabase backend integration** (zero mock data!)
-- 🔐 **Device-based authentication** with PlayerManager
-- ⚡ **Real-time synchronization** with in-memory caching
+**Phase 4.5: Auth Simplification** - **COMPLETED** ✅
+- 🔐 **Unified auth flow** - All users use anonymous auth + device mapping
+- 🧹 **Clean architecture** - No legacy system complexity  
+- 🛡️ **Enhanced security** - Single RLS-enabled auth system
+- ⚡ **Simplified codebase** - Reduced complexity and maintenance overhead
 
-## 🎮 Key Features
+## 🎮 Authentication Architecture
 
-### **Rune System (Production Ready)**
-- **Equipment Interface**: 6-slot hexagonal flower layout with center stats display
-- **Prime-Specific Storage**: Each Prime maintains their own rune equipment
-- **Cross-Prime Management**: Equipped runes unavailable to other Primes
-- **Database Integration**: All data persisted to Supabase with real-time sync
-- **Stat Filtering**: Filter runes by Attack, Defense, Speed, and more
-- **Visual Feedback**: Immediate UI updates with database persistence
+### **Simplified Guest Flow**
+```
+User taps "Play as Guest" → 
+Anonymous Auth Creation → 
+Device Mapping Storage → 
+Player Creation (if new) → 
+Game Access
+```
 
-### **Backend Architecture**
-- **Authentication**: Device-based auth with automatic player creation
-- **Database**: PostgreSQL via Supabase with proper relationships
-- **Services**: Clean separation with PrimeService, RuneService, PrimeRuneService
-- **Security**: Row Level Security policies for data protection
-- **Performance**: In-memory caching with database as source of truth
+### **Key Benefits**
+- **Single Code Path**: No legacy fallbacks or dual systems
+- **Persistent Data**: Device mapping ensures data survives app reinstalls
+- **Enhanced Security**: All operations use Supabase RLS policies
+- **Better Maintainability**: Simplified architecture without legacy overhead
 
 ## 🛠️ Tech Stack
 
 - **Frontend**: React Native + Expo + TypeScript
 - **Backend**: Supabase (PostgreSQL + Real-time + Auth)
-- **UI**: React Native Paper + Custom components
+- **Authentication**: Anonymous users + device mapping
+- **UI**: React Native Paper + Custom design system
 - **State**: React hooks with database synchronization
 - **Navigation**: React Navigation 6
-- **Storage**: Supabase backend with caching layer
+- **Storage**: Supabase backend with local caching
 
 ## 📊 Database Schema
 
 ### **Core Tables**
-- `players` - Device-based player authentication
+- `players` - Auth-based player data with device mapping
+- `device_user_mapping` - Device persistence across sessions
 - `player_primes` - Owned Primes with progression data
 - `player_runes` - Rune inventory with equipment state
+- `player_inventory` - Item management system
+- `player_treasure_box` - Treasure box progression
 
-### **Key Relationships**
-- Primes belong to players (player_id foreign key)
-- Runes belong to players and optionally equipped to Primes
-- Equipment tracking via prime_id and equipped_slot columns
+### **Authentication Tables**
+- `auth.users` - Supabase anonymous users
+- `device_user_mapping` - Links devices to persistent game data
 
-## 🎯 Current Data
+## 🎯 Current State: Production Ready
 
-### **Player: "Shady"**
-- **11 Primes**: Including Rathalos, Mizutsune, Zinogre, Nargacuga, Teostra
-- **17 Runes**: Diverse collection across all types and tiers
-- **Real Equipment**: Runes can be equipped/unequipped with full persistence
+### **Core Systems**
+- **Authentication**: Simplified anonymous auth with device mapping
+- **Player Management**: Secure player creation and data persistence
+- **Shop System**: Real purchasing with gem-based transactions
+- **Prime Collection**: Comprehensive prime management and display
+- **Rune Equipment**: 6-slot equipment system with real-time sync
+- **Design System**: Professional UI with consistent theming
 
 ## 🚀 Getting Started
 
@@ -84,74 +88,76 @@ A Monster Hunter-inspired mobile game built with React Native, Expo, and Supabas
    npm start
    ```
 
+5. **Launch the game**
+   - Tap "Play as Guest"
+   - Create a new player
+   - Enjoy the game experience
+
 ## 📱 App Structure
 
 ```
 src/
 ├── screens/           # Main app screens
-│   ├── PrimesScreen.tsx      # Prime collection (database-driven)
+│   ├── LoginScreen.tsx       # Simplified guest login
+│   ├── PrimesScreen.tsx      # Prime collection
 │   └── PrimeDetailsScreen.tsx # Prime details + rune equipment
 ├── services/          # Database service layer
-│   ├── primeService.ts       # Prime CRUD operations
-│   ├── runeService.ts        # Rune management
-│   └── primeRuneService.ts   # Equipment operations
-├── components/        # Reusable UI components
-│   └── modals/sections/RuneEquipment.tsx # Main rune interface
-└── utils/            # Utility functions
-    └── primeRuneStorage.ts   # Persistence layer
+│   ├── shopService.ts        # Purchase operations
+│   ├── primeService.ts       # Prime CRUD operations  
+│   └── runeService.ts        # Rune management
+├── lib/              # Core system libraries
+│   ├── authManager.ts        # Simplified auth system
+│   └── playerManager.ts      # Player data management
+└── components/        # Reusable UI components
+    └── modals/sections/RuneEquipment.tsx # Rune interface
 ```
 
 ## 🏗️ Architecture Highlights
+
+### **Simplified Authentication**
+- Anonymous users with device mapping for persistence
+- No legacy device-based fallbacks
+- Single auth code path for all users
+- Enhanced security with RLS policies
 
 ### **Service Layer Pattern**
 - Clean separation between UI and database operations
 - Consistent error handling and data transformation
 - Type-safe operations with TypeScript
 
-### **Real-time Synchronization**
-- Database as single source of truth
-- In-memory caching for UI responsiveness
-- Automatic cache invalidation on updates
+## 📈 Next Development Phases
 
-### **Device-Based Authentication**
-- No user registration required
-- Automatic player creation on first launch
-- Secure device identification with PlayerManager
-
-## 📈 Next Steps
-
-- **Phase 4: Battle System** - Integrate rune effects in combat
-- **Prime Evolution** - Level up and evolve Primes
-- **Enhanced Runes** - Upgrade system for rune improvement
-- **Multiplayer** - Compare collections with other players
-
----
+- **Phase 5: Prime Acquisition** - Unique prime collection with AXP system
+- **Enhanced Shop System** - Improved purchasing and inventory
+- **Battle Integration** - Combat system with rune effects
+- **Advanced Features** - Events, achievements, social features
 
 ## 🔧 Development
 
+### **Authentication Operations**
+```typescript
+// Initialize auth system
+await AuthManager.initialize()
+
+// Create auth-based player
+const player = await PlayerManager.createPlayerWithAuth(playerName)
+
+// Load player data
+const playerData = await PlayerManager.loadPlayerDataWithAuth()
+```
+
 ### **Database Operations**
-All database operations go through the service layer:
 ```typescript
 // Load player's Primes
 const primes = await PrimeService.getPlayerPrimes()
 
-// Equip a rune
+// Purchase items
+const result = await ShopService.purchaseEgg(eggType, quantity)
+
+// Equipment operations
 await PrimeRuneService.equipRuneToPrime(playerId, primeId, runeId, slot)
-
-// Get available runes
-const runes = await RuneService.getAvailableRunes()
 ```
 
-### **State Management**
-Components use React hooks with database synchronization:
-```typescript
-const [primes, setPrimes] = useState<UIPrime[]>([])
-const [equippedRunes, setEquippedRunes] = useState<PlayerRune[]>([])
+---
 
-// Load data from database
-useEffect(() => {
-  loadPrimesFromDatabase()
-}, [])
-```
-
-**🎉 Primeval Tower is now production-ready with complete Supabase backend integration!** 
+**🎉 Primeval Tower features a clean, production-ready architecture optimized for scalable development!** 
