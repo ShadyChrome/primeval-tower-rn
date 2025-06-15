@@ -44,3 +44,5 @@ yarn-error.*
 android/
 ios/
 userinput.py
+acli.exe
+token.txt
