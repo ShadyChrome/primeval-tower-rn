@@ -1,11 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react'
-import { View, StyleSheet, ScrollView, Alert, RefreshControl, TouchableOpacity } from 'react-native'
-import { Text, Card, Button, SegmentedButtons, Surface, Chip } from 'react-native-paper'
+import React from 'react'
+import { View, StyleSheet, TouchableOpacity } from 'react-native'
+import { Text, Surface } from 'react-native-paper'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
-import { ShopService, ShopItem, PurchaseResult } from '../services/shopService'
-import { PlayerManager } from '../../lib/playerManager'
-import { useFocusEffect } from '@react-navigation/native'
 import { colors, spacing, shadows } from '../theme/designSystem'
+import { useNavigation } from '@react-navigation/native'
 
 interface ShopScreenProps {
   playerData?: {
@@ -18,320 +16,155 @@ interface ShopScreenProps {
   onPlayerDataUpdate?: () => void
 }
 
+interface ShopCategory {
+  id: string
+  title: string
+  subtitle: string
+  icon: string
+  iconColor: string
+  backgroundColor: string
+  onPress: () => void
+  isPlaceholder?: boolean
+}
+
 export default function ShopScreen({ playerData, onPlayerDataUpdate }: ShopScreenProps) {
-  const [activeCategory, setActiveCategory] = useState<'eggs' | 'enhancers'>('eggs')
-  const [shopItems, setShopItems] = useState<ShopItem[]>([])
-  const [isRefreshing, setIsRefreshing] = useState(false)
-  const [purchasingItems, setPurchasingItems] = useState<Set<string>>(new Set())
+  const navigation = useNavigation()
 
-  // Use playerData gems directly instead of separate state
-  const playerGems = playerData?.player?.gems || 0
-
-  // Load only shop items (no need to load player currency separately)
-  const loadShopItems = async () => {
-    try {
-      const items = await ShopService.getShopItems()
-      setShopItems(items)
-    } catch (error) {
-      console.error('Error loading shop items:', error)
-      Alert.alert('Error', 'Failed to load shop items. Please try again.')
-    }
-  }
-
-  // Handle pull-to-refresh (refresh both shop items and player data)
-  const handleRefresh = async () => {
-    setIsRefreshing(true)
-    try {
-      // Load shop items and trigger parent to refresh player data
-      await Promise.all([
-        loadShopItems(),
-        onPlayerDataUpdate?.()
-      ])
-    } finally {
-      setIsRefreshing(false)
-    }
-  }
-
-  // Load shop items on component mount
-  useEffect(() => {
-    loadShopItems()
-  }, [])
-
-  // Only refresh shop items when screen comes into focus (player data is managed by parent)
-  useFocusEffect(
-    useCallback(() => {
-      loadShopItems()
-    }, [])
-  )
-
-  const handlePurchase = async (item: ShopItem, quantity: number = 1) => {
-    try {
-      // Prevent multiple purchases of the same item
-      if (purchasingItems.has(item.id)) {
-        return
+  const shopCategories: ShopCategory[] = [
+    {
+      id: 'eggs',
+      title: 'Eggs',
+      subtitle: 'Hatch new Primes',
+      icon: 'egg',
+      iconColor: colors.primary,
+      backgroundColor: colors.gradients.coral[0],
+      onPress: () => {
+        navigation.navigate('EggsShop' as never, { 
+          playerData, 
+          onPlayerDataUpdate 
+        } as never)
       }
-
-      // Check if player can afford the item using current playerData
-      const totalCost = item.price * quantity
-      if (playerGems < totalCost) {
-        Alert.alert(
-          'Insufficient Gems',
-          `You need ${totalCost} gems but only have ${playerGems} gems.`,
-          [{ text: 'OK' }]
-        )
-        return
+    },
+    {
+      id: 'items',
+      title: 'Items',
+      subtitle: 'Enhancers & Amplifiers',
+      icon: 'star-outline',
+      iconColor: colors.secondary,
+      backgroundColor: colors.gradients.lavender[0],
+      onPress: () => {
+        navigation.navigate('ItemsShop' as never, { 
+          playerData, 
+          onPlayerDataUpdate 
+        } as never)
       }
-
-      // Confirm purchase
-      Alert.alert(
-        'Confirm Purchase',
-        `Purchase ${quantity}x ${item.name} for ${totalCost} gems?`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Purchase',
-            onPress: async () => {
-              // Add item to purchasing set
-              setPurchasingItems(prev => new Set(prev).add(item.id))
-
-              try {
-                const result: PurchaseResult = await ShopService.purchaseItem(item.id, quantity)
-                
-                if (result.success) {
-                  // Trigger parent component to refresh player data (includes updated gems)
-                  if (onPlayerDataUpdate) {
-                    await onPlayerDataUpdate()
-                  }
-
-                  Alert.alert(
-                    'Purchase Successful!',
-                    result.message,
-                    [{ text: 'OK' }]
-                  )
-                } else {
-                  Alert.alert(
-                    'Purchase Failed',
-                    result.message,
-                    [{ text: 'OK' }]
-                  )
-                }
-              } catch (error) {
-                console.error('Purchase error:', error)
-                Alert.alert(
-                  'Purchase Error',
-                  'An unexpected error occurred. Please try again.',
-                  [{ text: 'OK' }]
-                )
-              } finally {
-                // Remove item from purchasing set
-                setPurchasingItems(prev => {
-                  const newSet = new Set(prev)
-                  newSet.delete(item.id)
-                  return newSet
-                })
-              }
-            }
-          }
-        ]
-      )
-    } catch (error) {
-      console.error('Error in handlePurchase:', error)
+    },
+    {
+      id: 'gems',
+      title: 'Gems',
+      subtitle: 'Premium Currency',
+      icon: 'diamond',
+      iconColor: colors.accent,
+      backgroundColor: colors.gradients.mint[0],
+      onPress: () => {
+        console.log('Gem purchase coming soon!')
+      },
+      isPlaceholder: true
+    },
+    {
+      id: 'special',
+      title: 'Special',
+      subtitle: 'Limited Offers',
+      icon: 'gift',
+      iconColor: colors.pastelPeach,
+      backgroundColor: colors.gradients.peach[0],
+      onPress: () => {
+        console.log('Special offers coming soon!')
+      },
+      isPlaceholder: true
     }
-  }
-
-  const categories = [
-    { value: 'eggs' as const, label: 'Eggs' },
-    { value: 'enhancers' as const, label: 'Enhancers' },
   ]
 
-  // Define rarity order for sorting eggs
-  const rarityOrder = {
-    'Common': 1,
-    'Rare': 2,
-    'Epic': 3,
-    'Legendary': 4,
-    'Mythical': 5
-  }
-
-  // Get egg colors matching the design system rarity colors
-  const getEggColors = (eggId: string) => {
-    const colorMap: Record<string, { color: string; bgColor: string }> = {
-      'common_egg': { color: '#ADB5BD', bgColor: '#F8F9FA' },      // Soft Gray
-      'rare_egg': { color: '#74C0FC', bgColor: '#E7F5FF' },        // Pastel Blue
-      'epic_egg': { color: '#B197FC', bgColor: '#F3F0FF' },        // Lavender Purple
-      'legendary_egg': { color: '#FFCC8A', bgColor: '#FFF4E6' },   // Warm Peach
-      'mythical_egg': { color: '#FFA8A8', bgColor: '#FFE8E8' }     // Soft Coral
-    }
-    return colorMap[eggId] || { color: '#ADB5BD', bgColor: '#F8F9FA' }
-  }
-
-  // Sort items by rarity for eggs, keep original order for enhancers
-  const getSortedItems = (items: ShopItem[]) => {
-    if (activeCategory === 'eggs') {
-      return [...items].sort((a, b) => {
-        const rarityA = rarityOrder[a.rarity as keyof typeof rarityOrder] || 0
-        const rarityB = rarityOrder[b.rarity as keyof typeof rarityOrder] || 0
-        return rarityA - rarityB
-      })
-    }
-    return items
-  }
-
-  const filteredItems = getSortedItems(shopItems.filter(item => item.category === activeCategory))
-
-  const renderShopItem = (item: ShopItem) => {
-    const isPurchasing = purchasingItems.has(item.id)
-    const canAfford = playerGems >= item.price
-    const isEgg = item.category === 'eggs'
-    const eggColors = isEgg ? getEggColors(item.id) : { color: colors.accent, bgColor: colors.accentLight }
-
-    return (
-      <TouchableOpacity
-        key={item.id}
-        style={[
-          isEgg ? styles.eggCard : styles.itemCard,
-          !canAfford && styles.itemCardDisabled
-        ]}
-        onPress={() => handlePurchase(item)}
-        disabled={!canAfford || isPurchasing}
-        activeOpacity={0.8}
-      >
-        {/* Item Icon */}
-        <View style={[styles.itemIcon, { backgroundColor: eggColors.bgColor }]}>
-          {isEgg ? (
-            <Text style={[styles.eggEmoji, { color: eggColors.color }]}>🥚</Text>
-          ) : (
-            <MaterialCommunityIcons name="star-outline" size={24} color={eggColors.color} />
-          )}
-        </View>
-        
-        {/* Item Name */}
-        <Text variant="titleSmall" style={styles.itemName} numberOfLines={2}>
-          {item.name}
-        </Text>
-        
-        {/* Rarity Chip */}
-        {item.rarity && (
-          <Chip 
-            style={[styles.rarityChip, { backgroundColor: eggColors.color }]}
-            textStyle={styles.rarityText}
-            compact
-          >
-            {item.rarity}
-          </Chip>
-        )}
-        
-        {/* Price */}
-        <View style={styles.priceContainer}>
+  const renderShopCategory = (category: ShopCategory) => (
+    <TouchableOpacity
+      key={category.id}
+      style={[
+        styles.categoryCard,
+        { backgroundColor: category.backgroundColor },
+        category.isPlaceholder && styles.placeholderCard
+      ]}
+      onPress={category.onPress}
+      activeOpacity={0.8}
+      disabled={category.isPlaceholder}
+    >
+      <View style={styles.categoryContent}>
+        <View style={[styles.iconContainer, { backgroundColor: colors.surface }]}>
           <MaterialCommunityIcons 
-            name="diamond" 
-            size={14} 
-            color={canAfford ? '#4CAF50' : '#DC2626'} 
+            name={category.icon as any} 
+            size={32} 
+            color={category.iconColor} 
           />
-          <Text variant="bodyMedium" style={[
-            styles.price,
-            canAfford ? styles.affordablePrice : styles.unaffordablePrice
-          ]}>
-            {item.price}
-          </Text>
         </View>
         
-        {/* Purchase Button */}
-        <Button 
-          mode="contained" 
-          style={[
-            styles.purchaseButton,
-            canAfford ? styles.affordableButton : styles.unaffordableButton
-          ]}
-          contentStyle={styles.buttonContent}
-          disabled={!canAfford || isPurchasing}
-          loading={isPurchasing}
-          compact
-        >
-          {isPurchasing ? 'Buying...' : 'Buy'}
-        </Button>
-      </TouchableOpacity>
-    )
-  }
-
-  const renderEggGrid = () => {
-    if (filteredItems.length === 0) {
-      return (
-        <View style={styles.emptyState}>
-          <Text variant="bodyLarge" style={styles.emptyStateText}>
-            No items available in this category
+        <View style={styles.textContent}>
+          <Text variant="titleMedium" style={styles.categoryTitle}>
+            {category.title}
           </Text>
-          <Text variant="bodyMedium" style={styles.emptyStateSubtext}>
-            Check back later for new items!
+          <Text variant="bodySmall" style={styles.categorySubtitle}>
+            {category.subtitle}
           </Text>
         </View>
-      )
-    }
 
-    if (activeCategory !== 'eggs') {
-      // For enhancers, use regular grid
-      return (
-        <View style={styles.itemsGrid}>
-          {filteredItems.map(renderShopItem)}
-        </View>
-      )
-    }
+        {category.isPlaceholder && (
+          <View style={styles.placeholderBadge}>
+            <Text variant="labelSmall" style={styles.placeholderText}>
+              Coming Soon
+            </Text>
+          </View>
+        )}
 
-    // For eggs, use 3+2 layout like HatchingScreen
-    return (
-      <View style={styles.eggGrid}>
-        <View style={styles.eggRow}>
-          {filteredItems.slice(0, 3).map(renderShopItem)}
-        </View>
-        <View style={styles.eggRow}>
-          {filteredItems.slice(3, 5).map(renderShopItem)}
-        </View>
+        {!category.isPlaceholder && (
+          <MaterialCommunityIcons 
+            name="chevron-right" 
+            size={24} 
+            color={colors.textSecondary} 
+            style={styles.arrowIcon}
+          />
+        )}
       </View>
-    )
-  }
+    </TouchableOpacity>
+  )
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <Surface style={styles.headerSection} elevation={1}>
         <Text variant="headlineSmall" style={styles.screenTitle}>
           Shop
         </Text>
         <Text variant="bodyMedium" style={styles.subtitle}>
-          Purchase eggs and enhancers with gems
+          Purchase items to enhance your collection
         </Text>
-        
-        {/* Category Selector */}
-        <SegmentedButtons
-          value={activeCategory}
-          onValueChange={setActiveCategory}
-          buttons={categories}
-          style={styles.categorySelector}
-        />
       </Surface>
 
-      {/* Shop Items Grid */}
-      <ScrollView 
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={handleRefresh}
-            colors={[colors.accent]}
-          />
-        }
-      >
-        {renderEggGrid()}
+      <View style={styles.contentContainer}>
+        <View style={styles.categoriesGrid}>
+          {/* First Row */}
+          <View style={styles.gridRow}>
+            {shopCategories.slice(0, 2).map(renderShopCategory)}
+          </View>
+          
+          {/* Second Row */}
+          <View style={styles.gridRow}>
+            {shopCategories.slice(2, 4).map(renderShopCategory)}
+          </View>
+        </View>
         
-        {/* Footer */}
         <View style={styles.footer}>
           <Text variant="bodySmall" style={styles.footerText}>
-            💡 Tip: Eggs can be used in the Hatching screen to get new Primes!
+            Tip: Use eggs to hatch new Primes and items to enhance them!
           </Text>
         </View>
-      </ScrollView>
+      </View>
     </View>
   )
 }
@@ -352,101 +185,71 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     color: colors.textSecondary,
-    marginBottom: spacing.lg,
   },
-  categorySelector: {
-    backgroundColor: colors.surfaceVariant,
+  contentContainer: {
+    flex: 1,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.md,
   },
-  scrollView: {
+  categoriesGrid: {
     flex: 1,
   },
-  scrollContent: {
-    padding: spacing.lg,
-  },
-  itemsGrid: {
+  gridRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.md,
+    justifyContent: 'space-between',
+    marginBottom: spacing.lg,
+  },
+  categoryCard: {
+    width: '47%',
+    aspectRatio: 1.1,
+    borderRadius: 20,
+    padding: spacing.md,
+    ...shadows.medium,
+  },
+  placeholderCard: {
+    opacity: 0.7,
+  },
+  categoryContent: {
+    flex: 1,
     justifyContent: 'space-between',
   },
-  itemCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    padding: spacing.md,
-    alignItems: 'center',
-    width: '48%', // Two columns for enhancers
-    minHeight: 180,
-    ...shadows.light,
-  },
-  itemCardDisabled: {
-    opacity: 0.6,
-  },
-  itemIcon: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+  iconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: spacing.sm,
+    alignSelf: 'flex-start',
+    ...shadows.light,
   },
-  eggEmoji: {
-    fontSize: 32,
-    textShadowColor: 'rgba(0,0,0,0.1)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
+  textContent: {
+    flex: 1,
+    justifyContent: 'center',
+    marginVertical: spacing.sm,
   },
-  itemName: {
-    fontWeight: '600',
-    color: colors.text,
-    textAlign: 'center',
-    marginBottom: spacing.xs,
-    minHeight: 32, // Consistent height for alignment
-  },
-  rarityChip: {
-    marginBottom: spacing.sm,
-  },
-  rarityText: {
-    color: 'white',
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  priceContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    marginBottom: spacing.sm,
-  },
-  price: {
+  categoryTitle: {
     fontWeight: '700',
-  },
-  affordablePrice: {
-    color: '#4CAF50',
-  },
-  unaffordablePrice: {
-    color: '#DC2626',
-  },
-  purchaseButton: {
-    width: '100%',
-  },
-  affordableButton: {
-    backgroundColor: colors.accent,
-  },
-  unaffordableButton: {
-    backgroundColor: colors.textTertiary,
-  },
-  buttonContent: {
-    paddingVertical: spacing.xs,
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: spacing.xxl * 2,
-  },
-  emptyStateText: {
     color: colors.text,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
   },
-  emptyStateSubtext: {
+  categorySubtitle: {
     color: colors.textSecondary,
+    lineHeight: 16,
+  },
+  placeholderBadge: {
+    backgroundColor: colors.surface,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+  },
+  placeholderText: {
+    color: colors.textSecondary,
+    fontWeight: '600',
+  },
+  arrowIcon: {
+    alignSelf: 'flex-end',
   },
   footer: {
     marginTop: spacing.xl,
@@ -458,23 +261,4 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     textAlign: 'center',
   },
-  eggGrid: {
-    gap: spacing.md,
-    marginBottom: spacing.xl,
-  },
-  eggRow: {
-    flexDirection: 'row',
-    gap: spacing.md,
-    justifyContent: 'center',
-  },
-  eggCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    padding: spacing.md,
-    alignItems: 'center',
-    flex: 1, // Flexible width for 3+2 layout
-    minHeight: 180,
-    maxWidth: 120, // Limit max width to keep cards compact
-    ...shadows.light,
-  },
-}) 
+})

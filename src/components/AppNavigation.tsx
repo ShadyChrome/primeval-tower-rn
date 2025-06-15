@@ -3,6 +3,8 @@ import { NavigationContainer } from '@react-navigation/native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import MainNavigation from './MainNavigation'
 import PrimeDetailsScreen from '../screens/PrimeDetailsScreen'
+import EggsShopScreen from '../screens/EggsShopScreen'
+import ItemsShopScreen from '../screens/ItemsShopScreen'
 import { PlayerData } from '../../lib/playerManager'
 
 const Stack = createNativeStackNavigator()
@@ -43,6 +45,24 @@ export default function AppNavigation({
         <Stack.Screen 
           name="PrimeDetails" 
           component={PrimeDetailsScreen}
+          options={{
+            headerShown: false,
+            animation: 'slide_from_right',
+          }}
+        />
+        
+        <Stack.Screen 
+          name="EggsShop" 
+          component={EggsShopScreen}
+          options={{
+            headerShown: false,
+            animation: 'slide_from_right',
+          }}
+        />
+        
+        <Stack.Screen 
+          name="ItemsShop" 
+          component={ItemsShopScreen}
           options={{
             headerShown: false,
             animation: 'slide_from_right',
