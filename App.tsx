@@ -7,6 +7,7 @@ import {
 } from 'react-native-paper'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { PlayerManager, PlayerData } from './lib/playerManager'
+import { AuthManager } from './lib/authManager'
 import { StatusBar } from 'expo-status-bar'
 import LoginScreen from './src/screens/LoginScreen'
 import PlayerNameScreen from './src/screens/PlayerNameScreen'
@@ -33,36 +34,46 @@ export default function App() {
     try {
       setIsLoading(true)
       
-      // Try to load existing player data
-      console.log('🔄 App: Attempting to load existing player data...')
-      const existingPlayerData = await PlayerManager.loadPlayerData()
+      // First try the old device-based system for existing users
+      console.log('🔄 App: Checking for existing device-based player...')
+      const existingDevicePlayer = await PlayerManager.getExistingPlayer()
       
-      if (existingPlayerData) {
-        console.log('✅ App: Existing player data found:', existingPlayerData.player.player_name)
-        setPlayerData(existingPlayerData)
+      if (existingDevicePlayer) {
+        console.log('✅ App: Found existing device-based player, loading data...')
+        const devicePlayerData = await PlayerManager.loadPlayerData(existingDevicePlayer.id)
+        if (devicePlayerData) {
+          console.log('✅ App: Device-based player data loaded:', devicePlayerData.player.player_name)
+          setPlayerData(devicePlayerData)
+          setAppState('loggedIn')
+          return
+        }
+      }
+      
+      // No device-based player found, try the new auth system
+      console.log('🔐 App: No device-based player found, trying auth system...')
+      await AuthManager.initialize()
+      
+      // Check if user is authenticated
+      const gameUserId = await AuthManager.getGameUserId()
+      if (!gameUserId) {
+        console.log('❌ App: No authenticated user, showing login screen')
+        setAppState('loginScreen')
+        return
+      }
+      
+      console.log('✅ App: User authenticated, game user ID:', gameUserId)
+      
+      // Try to load existing auth-based player data
+      console.log('🔄 App: Attempting to load auth-based player data...')
+      const authPlayerData = await PlayerManager.loadPlayerDataWithAuth()
+      
+      if (authPlayerData) {
+        console.log('✅ App: Auth-based player data found:', authPlayerData.player.player_name)
+        setPlayerData(authPlayerData)
         setAppState('loggedIn')
       } else {
-        console.log('❌ App: No player data loaded, checking for existing player...')
-        // Check if player exists but we don't have their data
-        const existingPlayer = await PlayerManager.getExistingPlayer()
-        
-        if (existingPlayer) {
-          console.log('✅ App: Player found, loading their data...')
-          // Player exists, load their data
-          const playerData = await PlayerManager.loadPlayerData(existingPlayer.id)
-          if (playerData) {
-            console.log('✅ App: Player found and data loaded:', playerData.player.player_name)
-            setPlayerData(playerData)
-            setAppState('loggedIn')
-          } else {
-            console.log('❌ App: Failed to load player data')
-            setAppState('loginScreen')
-          }
-        } else {
-          // No player found, show login screen
-          console.log('ℹ️ App: No existing player found, showing login screen')
-          setAppState('loginScreen')
-        }
+        console.log('ℹ️ App: No auth-based player found, showing login screen for new user')
+        setAppState('loginScreen')
       }
     } catch (error) {
       console.error('❌ App: Error checking player status:', error)
@@ -77,22 +88,43 @@ export default function App() {
     try {
       setIsLoading(true)
       
-      // First check if a player already exists for this device
-      console.log('🔍 App: Checking for existing player before creating new one...')
-      const existingPlayer = await PlayerManager.getExistingPlayer()
+      // First check for existing device-based player
+      console.log('🔍 App: Checking for existing device-based player...')
+      const existingDevicePlayer = await PlayerManager.getExistingPlayer()
       
-      if (existingPlayer) {
-        console.log('✅ App: Found existing player during sign-in, loading data...')
-        // Player exists, load their data
-        const playerData = await PlayerManager.loadPlayerData(existingPlayer.id)
-        if (playerData) {
-          console.log('✅ App: Existing player signed in successfully:', playerData.player.player_name)
-          setPlayerData(playerData)
+      if (existingDevicePlayer) {
+        console.log('✅ App: Found existing device-based player, loading data...')
+        const devicePlayerData = await PlayerManager.loadPlayerData(existingDevicePlayer.id)
+        if (devicePlayerData) {
+          console.log('✅ App: Device-based player signed in successfully:', devicePlayerData.player.player_name)
+          setPlayerData(devicePlayerData)
           setAppState('loggedIn')
           return
-        } else {
-          console.log('❌ App: Failed to load existing player data, proceeding to create new player')
         }
+      }
+      
+      // No device-based player, initialize auth for new user
+      console.log('🔐 App: No device-based player found, initializing auth for new user...')
+      await AuthManager.initialize()
+      
+      // Check if we have an authenticated user
+      const gameUserId = await AuthManager.getGameUserId()
+      if (!gameUserId) {
+        console.log('❌ App: No authenticated user after initialization')
+        setAppState('needsPlayerName')
+        return
+      }
+      
+      console.log('✅ App: User authenticated, checking for existing auth-based player...')
+      
+      // Check if an auth-based player already exists
+      const authPlayerData = await PlayerManager.loadPlayerDataWithAuth()
+      
+      if (authPlayerData) {
+        console.log('✅ App: Found existing auth-based player:', authPlayerData.player.player_name)
+        setPlayerData(authPlayerData)
+        setAppState('loggedIn')
+        return
       }
       
       // No existing player found, proceed to player creation
@@ -111,19 +143,46 @@ export default function App() {
     try {
       setIsLoading(true)
       
-      // Create new player
-      const newPlayer = await PlayerManager.createPlayer(playerName)
-      console.log('Player created successfully:', newPlayer)
+      // Check if we have an auth context (new user) or should use device-based (fallback)
+      let gameUserId: string | null = null
+      try {
+        gameUserId = await AuthManager.getGameUserId()
+      } catch (error) {
+        console.log('ℹ️ App: No auth context available, using device-based creation')
+      }
       
-      // Load complete player data
-      const completePlayerData = await PlayerManager.loadPlayerData(newPlayer.id)
-      
-      if (completePlayerData) {
-        setPlayerData(completePlayerData)
-        setAppState('loggedIn')
-        console.log('Player creation complete, logging in...')
+      if (gameUserId) {
+        console.log('🔐 App: Creating auth-based player for user:', gameUserId)
+        // Create new player with auth context
+        const newPlayer = await PlayerManager.createPlayerWithAuth(playerName)
+        console.log('Player created successfully with auth:', newPlayer)
+        
+        // Load complete player data
+        const completePlayerData = await PlayerManager.loadPlayerDataWithAuth()
+        
+        if (completePlayerData) {
+          setPlayerData(completePlayerData)
+          setAppState('loggedIn')
+          console.log('Auth-based player creation complete, logging in...')
+        } else {
+          throw new Error('Failed to load player data after auth-based creation')
+        }
       } else {
-        throw new Error('Failed to load player data after creation')
+        console.log('📱 App: Creating device-based player (fallback)')
+        // Create new player with device-based system
+        const newPlayer = await PlayerManager.createPlayer(playerName)
+        console.log('Player created successfully with device-based system:', newPlayer)
+        
+        // Load complete player data
+        const completePlayerData = await PlayerManager.loadPlayerData(newPlayer.id)
+        
+        if (completePlayerData) {
+          setPlayerData(completePlayerData)
+          setAppState('loggedIn')
+          console.log('Device-based player creation complete, logging in...')
+        } else {
+          throw new Error('Failed to load player data after device-based creation')
+        }
       }
     } catch (error) {
       console.error('Failed to create player:', error)
@@ -134,16 +193,27 @@ export default function App() {
   }
 
   const handleSignOut = async () => {
-    console.log('Signing out...')
-    await PlayerManager.clearCachedData()
-    setPlayerData(null)
-    setAppState('loginScreen')
+    console.log('Signing out with auth context...')
+    try {
+      // Sign out from auth system
+      await AuthManager.signOut()
+      // Clear cached player data
+      await PlayerManager.clearCachedData()
+      setPlayerData(null)
+      setAppState('loginScreen')
+      console.log('✅ Sign out complete')
+    } catch (error) {
+      console.error('❌ Error during sign out:', error)
+      // Still clear local state even if auth sign out fails
+      setPlayerData(null)
+      setAppState('loginScreen')
+    }
   }
 
   // Update player data and pass to navigation
   const refreshPlayerData = async () => {
     if (playerData) {
-      const updatedData = await PlayerManager.loadPlayerData(playerData.player.id)
+      const updatedData = await PlayerManager.loadPlayerDataWithAuth()
       if (updatedData) {
         setPlayerData(updatedData)
       }

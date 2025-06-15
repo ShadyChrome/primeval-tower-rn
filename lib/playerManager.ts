@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { AuthManager } from './authManager'
 import { 
   Player, 
   PlayerInsert, 
@@ -83,6 +84,43 @@ export class PlayerManager {
   }
 
   /**
+   * Check if a player exists for the authenticated user (auth-based)
+   */
+  static async getExistingPlayerWithAuth(): Promise<Player | null> {
+    try {
+      const gameUserId = await AuthManager.getGameUserId()
+      if (!gameUserId) {
+        console.log('❌ No authenticated user for player lookup')
+        return null
+      }
+
+      console.log('🔍 Checking for existing player with game user ID:', gameUserId)
+      
+      const { data, error } = await supabase
+        .from('players')
+        .select('*')
+        .eq('id', gameUserId)
+        .single()
+
+      if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
+        console.error('❌ Database error when checking for existing player:', error)
+        throw error
+      }
+
+      if (data) {
+        console.log('✅ Found existing player:', data.player_name, 'ID:', data.id)
+      } else {
+        console.log('ℹ️ No existing player found for this user')
+      }
+
+      return data || null
+    } catch (error) {
+      console.error('Error checking for existing player with auth:', error)
+      return null
+    }
+  }
+
+  /**
    * Create a new player
    */
   static async createPlayer(playerName: string): Promise<Player> {
@@ -121,6 +159,55 @@ export class PlayerManager {
       throw error
     }
   }
+
+  /**
+   * Create a new player with authentication context
+   */
+  static async createPlayerWithAuth(playerName: string): Promise<Player> {
+    try {
+      const gameUserId = await AuthManager.getGameUserId()
+      if (!gameUserId) {
+        throw new Error('No authenticated user for player creation')
+      }
+
+      const deviceId = await AuthManager.getDeviceId()
+      console.log('Creating new player with auth context:', { gameUserId, deviceId, playerName })
+
+      const playerData: PlayerInsert = {
+        id: gameUserId, // Use the game user ID as the player ID
+        device_id: deviceId,
+        player_name: playerName,
+        level: 1,
+        current_xp: 0,
+        max_xp: 100,
+        gems: 100, // Starting gems
+        total_playtime: 0,
+        last_login: new Date().toISOString()
+      }
+
+      const { data, error } = await supabase
+        .from('players')
+        .insert(playerData)
+        .select()
+        .single()
+
+      if (error) throw error
+
+      // Store player ID locally for quick access
+      await AsyncStorage.setItem(PLAYER_ID_KEY, data.id)
+
+      // Initialize with starter items
+      await this.initializeStarterItems(data.id)
+
+      console.log('Player created successfully with auth:', data)
+      return data
+    } catch (error) {
+      console.error('Error creating player with auth:', error)
+      throw error
+    }
+  }
+
+
 
   /**
    * Initialize starter items for new players
@@ -300,6 +387,83 @@ export class PlayerManager {
              // For now, return null if atomic function fails
        console.log('❌ Atomic function failed, returning null')
        return null
+    }
+  }
+
+  /**
+   * Load complete player data using authentication context (for new auth-based users only)
+   */
+  static async loadPlayerDataWithAuth(): Promise<PlayerData | null> {
+    try {
+      const gameUserId = await AuthManager.getGameUserId()
+      if (!gameUserId) {
+        console.log('❌ No authenticated user for player data loading')
+        return null
+      }
+
+      console.log('🔄 Loading player data with auth context for user:', gameUserId)
+
+      // Try to load by game user ID (new auth system only)
+      console.log('🔍 Trying to load player by game user ID:', gameUserId)
+      const { data: authPlayer, error: authError } = await supabase
+        .from('players')
+        .select('*')
+        .eq('id', gameUserId)
+        .single()
+
+      if (!authError && authPlayer) {
+        console.log('✅ Found player by auth user ID, loading complete data...')
+        // Load complete data using the existing atomic function with device ID
+        const { data: completeData, error: completeError } = await supabase
+          .rpc('load_player_data_atomic', {
+            p_device_id: authPlayer.device_id
+          })
+
+        if (!completeError && completeData && completeData.length > 0) {
+          const playerResult = completeData[0]
+          console.log('✅ Auth-based player data loaded successfully:', {
+            playerId: playerResult.player_id,
+            playerName: playerResult.player_name,
+            inventoryItems: Array.isArray(playerResult.inventory_items) ? playerResult.inventory_items.length : 0,
+            runes: Array.isArray(playerResult.runes) ? playerResult.runes.length : 0,
+            primes: Array.isArray(playerResult.primes) ? playerResult.primes.length : 0
+          })
+
+          // Cache the player ID
+          await AsyncStorage.setItem(PLAYER_ID_KEY, playerResult.player_id)
+
+          // Transform the data to match our PlayerData interface
+          const deviceId = await AuthManager.getDeviceId()
+          const playerData: PlayerData = {
+            player: {
+              id: playerResult.player_id,
+              device_id: deviceId,
+              player_name: playerResult.player_name,
+              level: playerResult.level,
+              current_xp: playerResult.current_xp,
+              max_xp: playerResult.max_xp,
+              gems: playerResult.gems,
+              last_login: playerResult.last_login,
+              total_playtime: playerResult.total_playtime,
+              created_at: playerResult.created_at,
+              updated_at: playerResult.updated_at
+            },
+            inventory: Array.isArray(playerResult.inventory_items) ? playerResult.inventory_items as PlayerInventoryItem[] : [],
+            runes: Array.isArray(playerResult.runes) ? playerResult.runes as PlayerRune[] : [],
+            primes: Array.isArray(playerResult.primes) ? playerResult.primes as PlayerPrime[] : []
+          }
+
+          return playerData
+        }
+      }
+
+      // No player found with auth user ID - this means it's a new auth-based user
+      console.log('ℹ️ No player found by game user ID - new auth-based user needs to create a player')
+      return null
+
+    } catch (error) {
+      console.error('Failed to load player data with auth:', error)
+      return null
     }
   }
 
